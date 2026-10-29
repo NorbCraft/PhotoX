@@ -190,3 +190,80 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
     - saved photos are not hidden and stay listed;
     - the UI Finish tests now check that the gallery still lists all photos and that files are byte-identical with *Keep*.
   - Windows: see the CI result recorded for this commit in the next entry.
+- **Windows CI result for 0.4.1:** run 40947076204 passed on `windows-latest` (79 core and 24 UI tests, including the Windows-only hidden-photo repair test) and on `ubuntu-latest`, and built the Windows package.
+
+### 2026-10-29: Version 0.5.0, owner feedback (prompt_03)
+- **Prompt:** [docs/prompts/prompt_03.md](prompts/prompt_03.md) §§2–5, 7–9.
+- **Investigation (performance, §9):**
+  - Measured with a new benchmark (`PerformanceTests.Interactive_latency`) and the existing large-order benchmark. Both were pinned to 4 cores (`taskset -c 0-3`) on the development PC (Ryzen 7 6800H) to approximate the studio PC.
+  - Root causes:
+    1. The bundled Magick.NET native library is single-threaded (`ResourceLimits.Thread = 1`, no OpenMP), so pinning to 4 cores barely changed anything.
+    2. Each slider step re-ran the whole tone chain on the 1800-px proxy: linear-light conversion 230 ms, sigmoidal contrast 210 ms, levels 120 ms.
+    3. Straightening re-ran an EWA `Distort` (350 ms) plus the tone chain.
+    4. Saving a 12 MP photo spent 3.2 s in the tone chain when contrast was used.
+    5. Returning to the gallery rebuilt the whole view (pages were re-created by a `ContentControl`).
+    6. Changing filters cleared and refilled the gallery.
+    7. Thumbnails were decoded on the UI thread.
+    8. The ID preview resampled the 1800-px proxy with EWA.
+- **Work done:**
+  - **Tone (DEC-044):** Magick.NET computes the per-channel curves once on a gradient, and a parallel pass applies them with Magick's HCL saturation formula. This is used for saving (exact tables) and for previews.
+  - **Editor preview (DEC-045):**
+    - cached base pixels per quarter turn; straightening drawn as a canvas transform; crop and borders drawn by the canvas;
+    - histogram computed off the UI thread; next photo preloaded with its pixels; previous photo kept;
+    - preview proxy shrunk with box averaging.
+  - **ID preview:** proxy, half and quarter copies; the one closest to screen scale is used with bilinear lookups.
+  - **Editor UI:**
+    - shared tone panel (`ToneAdjustmentsViewModel`/`View`) with gradient slider tracks;
+    - `LevelsHistogram` with three triangle handles;
+    - fixed full-width toolbar with icons and segmented buttons; Straighten after the rotate buttons;
+    - resizable panel with a remembered width;
+    - apply crop (double-click / button / after Save) with undo;
+    - Close mode when the order is done.
+  - **Browse:**
+    - pages kept alive;
+    - asynchronous folder scan; thumbnails decoded in the background;
+    - gallery updated in place;
+    - four collapsible recent orders;
+    - tree click to open and expand, no arrow without subfolders, selection styles;
+    - selected card highlighted (its look moved from local values to styles, which had blocked the selected style);
+    - Finish Order as the main button when done.
+  - **ID:**
+    - same tone panel;
+    - landscape sheets for 3×4 (8 copies, strip as row gap) and wherever more copies fit;
+    - the 3×4 strip option replaces the cut-guide option (DEC-046, DEC-047).
+  - **Window:** in-app logo and name removed (DEC-048).
+- **Measurements:** median per step, Linux development PC limited to 4 cores, headless UI (software rendering). "Before" is v0.4.1 measured with the same benchmark in a separate checkout.
+
+  | Operation | 0.4.1 | 0.5.0 |
+  |---|---|---|
+  | Exposure slider step (preview + histogram ready) | 327 ms | 45 ms |
+  | Contrast slider step | 564 ms | 43 ms |
+  | Saturation slider step | 631 ms | 55 ms |
+  | Straighten slider step | 1073 ms (re-render) | 44 ms (change + one software-rendered frame) |
+  | Crop drag frame (layout + render) | 25 ms | 25 ms |
+  | Open photo in editor | 440 ms | 273 ms |
+  | Next photo (preloaded) | 26 ms | 13 ms |
+  | Save & Next, 12 MP (save + open next) | 1922 ms | 458 ms |
+  | ID rotation step | 180 ms | 59 ms |
+  | ID exposure step | 256 ms | 67 ms |
+  | 300 thumbnails, cold / warm cache | 5.9 s / 0.75 s | 4.7 s / 0.50 s |
+  | First 20 thumbnails, cold | 1.2 s | 0.76 s |
+
+  - Memory: peak working set in the large-order benchmark rose from 743 MB to about 1.0 GB when it runs alone (1.4 GB when it runs after the interactive benchmark in the same process; that benchmark's ID portrait and editor stay referenced by test-only event subscriptions). Causes include the gallery staying alive, reusable preview buffers and the preloaded pixels. This is acceptable for the 16 GB reference PC and will be re-checked on Windows.
+  - The interactive numbers include the headless test's dispatcher work. On Windows, Avalonia renders with the GPU, so drawing should be no slower.
+- **Verification (actually run, Linux):**
+  - 93 core tests and 33 headless UI tests pass. Two opt-in benchmarks are skipped by default.
+  - New tests:
+    - fast tone path equal to the Magick operations (7 recipes × 8/16 bit, alpha, greyscale, preview);
+    - applied-crop result view compared with the saved file (mean difference < 3.5 %);
+    - double-click apply does not save, undo, geometry returns to the frame;
+    - Close mode and Finish Order from the main button;
+    - four recent orders and collapsing; tree arrows and click-to-open;
+    - gallery selection is shown and filters keep the cards;
+    - landscape ID layouts and the strip option.
+  - Screenshots at 1366×768, 1280×720 and 1920×1080 (EN/RO) were inspected; this found the hidden toolbar icons and the invisible gallery selection, both fixed.
+- **Limitations / pending:**
+  - No studio-PC measurement yet.
+  - Straightened 12 MP saves still spend about 1.7 s in Magick's single-threaded EWA distort.
+  - Background whitening is unchanged (waiting for samples).
+  - Physical prints, the Romanian review and Windows trials remain with the owner.

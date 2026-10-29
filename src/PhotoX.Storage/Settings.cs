@@ -21,6 +21,13 @@ public sealed class Settings
 
     public bool BrowseDetailsCollapsed { get; set; }
 
+    public bool RecentCollapsed { get; set; }
+
+    /// <summary>Width of the adjustments panel in the Photos editor and the ID Photo Creator (resizable).</summary>
+    public double EditorPanelWidth { get; set; } = 340;
+
+    public double IdPanelWidth { get; set; } = 360;
+
     public void AddRecent(string folder)
     {
         RecentFolders.RemoveAll(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase));

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:v="using:PhotoX.App.Views"
              xmlns:l="using:PhotoX.App.Localization"
              xmlns:s="using:PhotoX.App.Services"
              xmlns:c="using:PhotoX.App.Controls"
@@ -8,78 +9,95 @@
              xmlns:e="using:PhotoX.Core.Editing"
              x:Class="PhotoX.App.Views.EditorView"
              x:DataType="vm:EditorViewModel">
-  <UserControl.Styles>
-    <Style Selector="TextBlock.label">
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="FontSize" Value="13" />
-    </Style>
-    <Style Selector="TextBlock.value">
-      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
-      <Setter Property="FontSize" Value="12.5" />
-      <Setter Property="HorizontalAlignment" Value="Right" />
-    </Style>
-    <Style Selector="Slider">
-      <Setter Property="Margin" Value="0,-8,0,-6" />
-    </Style>
-  </UserControl.Styles>
-  <Grid ColumnDefinitions="*,340" RowDefinitions="Auto,*,Auto">
+  <Grid x:Name="Root" ColumnDefinitions="*,Auto,340" RowDefinitions="Auto,*,Auto">
 
-    <!-- Crop toolbar (FR-010, FR-012, FR-015, FR-049) -->
-    <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+    <!-- Toolbar (FR-010, FR-012, FR-015, FR-049): fixed order; scrolls instead of wrapping when the window is narrow -->
+    <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,7">
       <Grid ColumnDefinitions="*,Auto">
-        <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
-          <Button Focusable="False" Command="{Binding BackToFolderCommand}" ToolTip.Tip="Esc" Content="{l:Tr BackToFolder}" />
-          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
-          <Button Classes="chip" Focusable="False" Content="10 × 15" Command="{Binding SetFormatCommand}" CommandParameter="10x15"
-                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
-          <Button Classes="chip" Focusable="False" Content="15 × 20" Command="{Binding SetFormatCommand}" CommandParameter="15x20"
-                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
-          <Button Classes="chip" Focusable="False" Content="13 × 18" Command="{Binding SetFormatCommand}" CommandParameter="13x18"
-                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=13x18}" />
-          <Button Classes="chip" Focusable="False" Content="{l:Tr Custom}"
-                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=custom}">
-            <Button.Flyout>
-              <Flyout Placement="Bottom">
-                <StackPanel Spacing="10" Width="240">
-                  <TextBlock Text="{l:Tr CustomRatio}" FontWeight="SemiBold" />
-                  <Grid ColumnDefinitions="*,Auto,*" >
-                    <NumericUpDown Value="{Binding CustomWidth}" Minimum="1" Maximum="200" Increment="0.5" FormatString="0.#" ToolTip.Tip="{l:Tr Width}" />
-                    <TextBlock Grid.Column="1" Text="×" VerticalAlignment="Center" Margin="8,0" />
-                    <NumericUpDown Grid.Column="2" Value="{Binding CustomHeight}" Minimum="1" Maximum="200" Increment="0.5" FormatString="0.#" ToolTip.Tip="{l:Tr Height}" />
-                  </Grid>
-                  <Button Classes="primary" HorizontalAlignment="Stretch" Content="{l:Tr Apply}" Command="{Binding ApplyCustomRatioCommand}" />
-                </StackPanel>
-              </Flyout>
-            </Button.Flyout>
-          </Button>
-          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
-          <Button Classes="chip" Focusable="False" Content="{l:Tr Portrait}" Classes.selected="{Binding IsPortrait}"
-                  Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Portrait}" />
-          <Button Classes="chip" Focusable="False" Content="{l:Tr Landscape}" Classes.selected="{Binding !IsPortrait}"
-                  Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Landscape}" />
-          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
-          <Button Classes="chip" Focusable="False" Content="{l:Tr Fill}" Classes.selected="{Binding !IsWholeWithBorder}"
-                  Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.Fill}" />
-          <Button Classes="chip" Focusable="False" Content="{l:Tr Borders}" Classes.selected="{Binding IsWholeWithBorder}"
-                  Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.WholeWithBorder}" />
-          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
-          <Button Classes="chip" Focusable="False" Content="{l:Tr ResetCrop}" Command="{Binding ResetCropCommand}" />
-          <Button Classes="chip" Focusable="False" Content="↺ 90°" Command="{Binding RotateLeftCommand}" ToolTip.Tip="{l:Tr RotateLeft}" />
-          <Button Classes="chip" Focusable="False" Content="↻ 90°" Command="{Binding RotateRightCommand}" ToolTip.Tip="{l:Tr RotateRight}" />
-        </WrapPanel>
-        <ToggleButton Grid.Column="1" Classes="seg" Focusable="False" IsChecked="{Binding ShowBefore}" ToolTip.Tip="Space" VerticalAlignment="Top" Margin="8,0,0,0">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="{l:Tr BeforeAfter}" />
-            <Border Classes="kbd"><TextBlock Text="Space" /></Border>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,2">
+            <Button Classes="icon" Focusable="False" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr BackToFolderTip}">
+              <Path Data="{x:Static s:Icons.FolderBack}" />
+            </Button>
+            <Border Classes="sep" />
+            <Button Classes="chip compact" Focusable="False" Content="10 × 15" Command="{Binding SetFormatCommand}" CommandParameter="10x15"
+                    Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
+            <Button Classes="chip compact" Focusable="False" Content="15 × 20" Command="{Binding SetFormatCommand}" CommandParameter="15x20"
+                    Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
+            <Button Classes="chip compact" Focusable="False" Content="13 × 18" Command="{Binding SetFormatCommand}" CommandParameter="13x18"
+                    Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=13x18}" />
+            <Button Classes="chip compact" Focusable="False" Content="{l:Tr Custom}"
+                    Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=custom}">
+              <Button.Flyout>
+                <Flyout Placement="Bottom">
+                  <StackPanel Spacing="10" Width="240">
+                    <TextBlock Text="{l:Tr CustomRatio}" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="*,Auto,*" >
+                      <NumericUpDown Value="{Binding CustomWidth}" Minimum="1" Maximum="200" Increment="0.5" FormatString="0.#" ToolTip.Tip="{l:Tr Width}" />
+                      <TextBlock Grid.Column="1" Text="×" VerticalAlignment="Center" Margin="8,0" />
+                      <NumericUpDown Grid.Column="2" Value="{Binding CustomHeight}" Minimum="1" Maximum="200" Increment="0.5" FormatString="0.#" ToolTip.Tip="{l:Tr Height}" />
+                    </Grid>
+                    <Button Classes="primary" HorizontalAlignment="Stretch" Content="{l:Tr Apply}" Command="{Binding ApplyCustomRatioCommand}" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+            <Border Classes="sep" />
+            <Border Classes="segbox">
+              <StackPanel Orientation="Horizontal">
+                <ToggleButton Classes="segacc icon" Focusable="False" IsChecked="{Binding IsPortrait, Mode=OneWay}" ToolTip.Tip="{l:Tr Portrait}"
+                              Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Portrait}">
+                  <Rectangle Width="11" Height="17" StrokeThickness="1.8" RadiusX="1.5" RadiusY="1.5" />
+                </ToggleButton>
+                <ToggleButton Classes="segacc icon" Focusable="False" IsChecked="{Binding !IsPortrait, Mode=OneWay}" ToolTip.Tip="{l:Tr Landscape}"
+                              Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Landscape}">
+                  <Rectangle Width="17" Height="11" StrokeThickness="1.8" RadiusX="1.5" RadiusY="1.5" />
+                </ToggleButton>
+              </StackPanel>
+            </Border>
+            <Border Classes="sep" />
+            <Border Classes="segbox">
+              <StackPanel Orientation="Horizontal">
+                <ToggleButton Classes="segacc" Focusable="False" IsChecked="{Binding !IsWholeWithBorder, Mode=OneWay}" Content="{l:Tr Fill}"
+                              Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.Fill}" />
+                <ToggleButton Classes="segacc" Focusable="False" IsChecked="{Binding IsWholeWithBorder, Mode=OneWay}" Content="{l:Tr Borders}"
+                              Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.WholeWithBorder}" />
+              </StackPanel>
+            </Border>
+            <Border Classes="sep" />
+            <Button Classes="icon" Focusable="False" Command="{Binding RotateLeftCommand}" ToolTip.Tip="{l:Tr RotateLeft}">
+              <Path Data="{x:Static s:Icons.RotateLeft}" />
+            </Button>
+            <Button Classes="icon" Focusable="False" Command="{Binding RotateRightCommand}" ToolTip.Tip="{l:Tr RotateRight}">
+              <Path Data="{x:Static s:Icons.RotateRight}" />
+            </Button>
+            <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,0,0,0" ToolTip.Tip="{l:Tr StraightenTip}">
+              <Path Data="{x:Static s:Icons.Straighten}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.8" StrokeLineCap="Round" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" />
+              <Slider Width="112" Minimum="-10" Maximum="10" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding Straighten}"
+                      VerticalAlignment="Center" Margin="0,-10" DoubleTapped="OnStraightenDoubleTapped" />
+              <TextBlock Text="{Binding StraightenText}" Width="40" VerticalAlignment="Center" FontSize="12.5" Foreground="{StaticResource Text2Brush}" />
+            </StackPanel>
+            <Border Classes="sep" />
+            <Button Classes="icon" Focusable="False" Command="{Binding ResetCropCommand}" ToolTip.Tip="{l:Tr ResetCrop}">
+              <Path Data="{x:Static s:Icons.ResetCrop}" />
+            </Button>
+            <ToggleButton Classes="segacc icon outlined" Focusable="False" IsChecked="{Binding CropApplied, Mode=OneWay}" Command="{Binding ToggleCropCommand}"
+                          IsEnabled="{Binding !IsWholeWithBorder}" ToolTip.Tip="{l:Tr ApplyCropTip}">
+              <Path Data="{x:Static s:Icons.Crop}" />
+            </ToggleButton>
           </StackPanel>
+        </ScrollViewer>
+        <ToggleButton Grid.Column="1" Classes="segacc icon outlined" Focusable="False" IsChecked="{Binding ShowBefore}" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0">
+          <Path Data="{x:Static s:Icons.BeforeAfter}" />
         </ToggleButton>
       </Grid>
     </Border>
 
     <!-- Canvas -->
     <Panel Grid.Row="1" Grid.Column="0" Background="{StaticResource CanvasBrush}">
-      <c:PhotoCanvas x:Name="Canvas" Source="{Binding Preview}" CropRect="{Binding CropRect}" CropRatio="{Binding CropRatio}"
-                     CropBounds="{Binding CropBounds}" ShowCrop="{Binding ShowCrop}" />
+      <c:PhotoCanvas x:Name="Canvas" Source="{Binding Preview}" ContentSize="{Binding PreviewSize}" Angle="{Binding Straighten}"
+                     CropRect="{Binding CropRect}" CropRatio="{Binding CropRatio}" CropBounds="{Binding CropBounds}" ShowCrop="{Binding ShowCrop}"
+                     ShowResult="{Binding ShowResult}" ResultFrame="{Binding ResultFrame}" ResultCrop="{Binding ResultCrop}" />
       <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14" Spacing="6">
         <Border Background="#B0000000" CornerRadius="14" Padding="12,5" IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}">
           <TextBlock Text="{Binding CropInfo}" FontWeight="SemiBold" FontSize="13" Foreground="White" />
@@ -110,13 +128,13 @@
           <TextBlock Text="{Binding StatusMessage}" Classes="muted" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-          <ItemsControl ItemsSource="{Binding Browse.AllPhotos}">
+          <ItemsControl x:Name="FilmStrip" ItemsSource="{Binding Browse.AllPhotos}">
             <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate>
+              <ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:PhotoItemViewModel">
-                <Button Classes="film" Classes.current="{Binding IsCurrent}" Focusable="False" Padding="2" Width="96" Height="74" CornerRadius="5"
+                <Button Classes="film" Classes.current="{Binding IsCurrent}" Focusable="False" Padding="2" Width="96" Height="74" CornerRadius="5" Margin="0,0,8,0"
                         Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).OpenItemCommand}" CommandParameter="{Binding}" ToolTip.Tip="{Binding Name}">
                   <Panel>
                     <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
@@ -133,55 +151,20 @@
       </DockPanel>
     </Border>
 
-    <!-- Adjustments (scrolls on small screens) and fixed actions -->
-    <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
-      <Grid RowDefinitions="*,Auto">
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="18,14,18,8">
-          <StackPanel Spacing="8">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Classes="section" Text="{l:Tr Histogram}" VerticalAlignment="Center" />
-              <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ResetLevels}" Command="{Binding ResetLevelsCommand}" FontSize="12" />
-            </Grid>
-            <c:HistogramView Height="96" Histogram="{Binding Histogram}" />
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Levels}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding LevelsText}" /></Grid>
-            <Grid ColumnDefinitions="92,*" RowDefinitions="30,30,30">
-              <TextBlock Classes="value" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{l:Tr Black}" />
-              <Slider Grid.Column="1" Minimum="0" Maximum="0.5" Value="{Binding LevelsBlack}" VerticalAlignment="Center" />
-              <TextBlock Grid.Row="1" Classes="value" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{l:Tr Midtones}" />
-              <Slider Grid.Row="1" Grid.Column="1" Minimum="0.5" Maximum="2" Value="{Binding LevelsMid}" VerticalAlignment="Center" />
-              <TextBlock Grid.Row="2" Classes="value" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{l:Tr White}" />
-              <Slider Grid.Row="2" Grid.Column="1" Minimum="0.5" Maximum="1" Value="{Binding LevelsWhite}" VerticalAlignment="Center" />
-            </Grid>
-            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr AutoCorrect}" Command="{Binding AutoCorrectCommand}" Margin="0,4,0,6" />
+    <!-- Resizable settings panel (prompt_03 §3) -->
+    <GridSplitter Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnSplitterDragCompleted" />
 
-            <Grid ColumnDefinitions="*,Auto,Auto">
-              <TextBlock Classes="section" Text="{l:Tr Adjustments}" VerticalAlignment="Center" />
-              <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Ctrl+Z" />
-              <Button Grid.Column="2" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="Ctrl+Y" />
-            </Grid>
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Exposure}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ExposureText}" /></Grid>
-            <Grid ColumnDefinitions="Auto,*,Auto">
-              <Button Classes="square" Focusable="False" Content="−" Command="{Binding ExposureMinusCommand}" />
-              <Slider Grid.Column="1" Margin="10,0" Minimum="-2" Maximum="2" Value="{Binding Exposure}" VerticalAlignment="Center" DoubleTapped="OnExposureDoubleTapped" />
-              <Button Grid.Column="2" Classes="square" Focusable="False" Content="+" Command="{Binding ExposurePlusCommand}" />
-            </Grid>
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Contrast}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ContrastText}" /></Grid>
-            <Slider Minimum="-100" Maximum="100" Value="{Binding Contrast}" DoubleTapped="OnSliderDoubleTapped" />
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Saturation}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding SaturationText}" /></Grid>
-            <Slider Minimum="-100" Maximum="100" Value="{Binding Saturation}" DoubleTapped="OnSliderDoubleTapped" />
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Temperature}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding TemperatureText}" /></Grid>
-            <Slider Minimum="-100" Maximum="100" Value="{Binding Temperature}" DoubleTapped="OnSliderDoubleTapped" />
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Tint}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding TintText}" /></Grid>
-            <Slider Minimum="-100" Maximum="100" Value="{Binding Tint}" DoubleTapped="OnSliderDoubleTapped" />
-            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Straighten}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding StraightenText}" /></Grid>
-            <Slider Minimum="-10" Maximum="10" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding Straighten}" DoubleTapped="OnSliderDoubleTapped" />
-            <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
-              <Button Classes="link" Focusable="False" Content="{l:Tr ResetColor}" Command="{Binding ResetColorCommand}" />
-              <Button Classes="link" Focusable="False" Content="{l:Tr ResetPhoto}" Command="{Binding ResetPhotoCommand}" />
-            </StackPanel>
-          </StackPanel>
+    <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" Background="{StaticResource PanelBrush}">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="14,10,18,0">
+          <Button Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{l:Tr UndoTip}" HorizontalAlignment="Left" />
+          <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{l:Tr RedoTip}" HorizontalAlignment="Left" />
+          <Button Grid.Column="3" Classes="link" Focusable="False" Content="{l:Tr ResetPhoto}" Command="{Binding ResetPhotoCommand}" FontSize="12" VerticalAlignment="Center" />
+        </Grid>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Padding="18,6,18,8">
+          <v:ToneAdjustmentsView DataContext="{Binding Tone}" />
         </ScrollViewer>
-        <StackPanel Grid.Row="1" Spacing="8" Margin="18,8,18,16">
+        <StackPanel Grid.Row="2" Spacing="8" Margin="18,8,18,16">
           <Grid ColumnDefinitions="*,10,*">
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding PreviousCommand}" IsEnabled="{Binding !IsBusy}">
               <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="←" /><TextBlock Text="{l:Tr Previous}" /></StackPanel>
@@ -198,9 +181,13 @@
           </Button>
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="68" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">
             <Grid ColumnDefinitions="*,Auto">
-              <StackPanel HorizontalAlignment="Center">
+              <StackPanel HorizontalAlignment="Center" IsVisible="{Binding !IsCloseMode}">
                 <TextBlock Text="{l:Tr SaveAndNext}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
                 <TextBlock Text="{l:Tr SaveAndNextHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
+              </StackPanel>
+              <StackPanel HorizontalAlignment="Center" IsVisible="{Binding IsCloseMode}">
+                <TextBlock Text="{l:Tr Close}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+                <TextBlock Text="{l:Tr CloseHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
               </StackPanel>
               <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
             </Grid>

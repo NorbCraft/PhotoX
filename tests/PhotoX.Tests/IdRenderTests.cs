@@ -39,12 +39,12 @@ public class IdRenderTests
     }
 
     [Fact]
-    public void Sheet_places_exact_photos_keeps_white_strip_and_draws_guides_below_it()
+    public void Sheet_places_exact_photos_and_keeps_the_white_strip_on_a_landscape_page()
     {
         using var photo = new MagickImage(new MagickColor("#204060"), (uint)IdSizes.S3x4.WidthPx, (uint)IdSizes.S3x4.HeightPx);
         var layout = SheetLayout.Compute(IdSizes.S3x4, new SheetOptions(8));
-        using var page = SheetRenderer.Render(photo, layout, cutGuides: true);
-        Assert.Equal((1200u, 1800u), (page.Width, page.Height));
+        using var page = SheetRenderer.Render(photo, layout);
+        Assert.Equal((1800u, 1200u), (page.Width, page.Height));
         var k = 300 / 25.4;
         using var px = page.GetPixels();
         foreach (var r in layout.Photos)
@@ -55,8 +55,6 @@ public class IdRenderTests
             Assert.Equal("#204060", px.GetPixel(x + (int)photo.Width - 6, y + (int)photo.Height - 6).ToColor()!.ToHexString()[..7]);
             var stripY = y + (int)photo.Height + (int)(3.5 * k);          // middle of the 7 mm strip
             Assert.Equal("#FFFFFF", px.GetPixel(x + 30, stripY).ToColor()!.ToHexString()[..7]);
-            var cutY = (int)Math.Round((r.Bottom + 7) * k);                 // guide below the strip
-            Assert.Equal("#9A9A9A", px.GetPixel(x + 30, cutY).ToColor()!.ToHexString()[..7]);
         }
     }
 

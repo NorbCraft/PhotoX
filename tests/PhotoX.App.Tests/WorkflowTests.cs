@@ -31,7 +31,7 @@ public class WorkflowTests
         using var dir = new TempDir();
         var order = MakeOrder(dir);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         await UiHelpers.WaitUntil(() => shell.Browse.AllPhotos.All(p => p.Thumbnail is not null));
         UiHelpers.Capture(window, "browse-1366x768");
 
@@ -50,7 +50,7 @@ public class WorkflowTests
         var pw = editor.PreviewWidth;
         var ph = editor.PreviewHeight;
         editor.CommitCrop(new Avalonia.Rect(pw * 0.30, ph * 0.20, pw * 0.45, pw * 0.45 / 1.5));
-        editor.ExposurePlusCommand.Execute(null);
+        editor.Tone.ExposurePlusCommand.Execute(null);
         Assert.True(editor.IsDirty);
         var selected = editor.Recipe.Crop;
         UiHelpers.Capture(window, "editor-1366x768");
@@ -85,7 +85,7 @@ public class WorkflowTests
         var order = MakeOrder(dir, 3);
         var hash = Fixtures.Sha(Path.Combine(order, "IMG_001.jpg"));
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         shell.Browse.StartEditingCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
 
@@ -96,7 +96,7 @@ public class WorkflowTests
         Assert.Equal(PhotoState.ToDo, shell.Browse.AllPhotos[0].State);
 
         // A manual edit followed by Next is kept in memory as unsaved, not written.
-        shell.Editor.ExposureMinusCommand.Execute(null);
+        shell.Editor.Tone.ExposureMinusCommand.Execute(null);
         UiHelpers.Tap(window, PhysicalKey.ArrowRight);
         await UiHelpers.WaitUntil(() => shell.Editor.Current!.Name == "IMG_003.jpg" && !shell.Editor.IsBusy);
         Assert.Equal(PhotoState.Unsaved, shell.Browse.AllPhotos[1].State);
@@ -115,10 +115,10 @@ public class WorkflowTests
         using var dir = new TempDir();
         var order = MakeOrder(dir, 2);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         shell.Browse.StartEditingCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
-        shell.Editor.ExposurePlusCommand.Execute(null);
+        shell.Editor.Tone.ExposurePlusCommand.Execute(null);
 
         File.SetAttributes(Path.Combine(order, "IMG_001.jpg"), FileAttributes.ReadOnly);
         UiHelpers.Tap(window, PhysicalKey.Enter);
@@ -138,7 +138,7 @@ public class WorkflowTests
         using var dir = new TempDir();
         var order = MakeOrder(dir, 4);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         shell.Browse.StartEditingCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
 

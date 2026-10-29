@@ -67,7 +67,7 @@ public sealed partial class MainWindow : Window
                 e.Handled = id.HandleKey(e.Key, e.KeyModifiers);
                 break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:
-                browse.StartEditingCommand.Execute(null);
+                browse.PrimaryActionCommand.Execute(null);
                 e.Handled = true;
                 break;
         }

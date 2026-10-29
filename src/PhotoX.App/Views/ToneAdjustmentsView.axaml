@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:l="using:PhotoX.App.Localization"
+             xmlns:c="using:PhotoX.App.Controls"
+             x:Class="PhotoX.App.Views.ToneAdjustmentsView"
+             x:DataType="vm:ToneAdjustmentsViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.value">
+      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <Style Selector="Panel.slider">
+      <Setter Property="Margin" Value="0,-6,0,-2" />
+    </Style>
+  </UserControl.Styles>
+  <!-- Shared by the Photos editor and the ID Photo Creator (prompt_03 §7). Double-click a slider to reset it. -->
+  <StackPanel Spacing="8">
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBlock Classes="section" Text="{l:Tr Histogram}" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ResetLevels}" Command="{Binding ResetLevelsCommand}" FontSize="12" />
+    </Grid>
+    <c:LevelsHistogram Height="112" Histogram="{Binding Histogram}" Black="{Binding LevelsBlack}" Mid="{Binding LevelsMid}" White="{Binding LevelsWhite}"
+                       ToolTip.Tip="{l:Tr LevelsHint}" />
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Levels}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding LevelsText}" /></Grid>
+    <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr AutoCorrect}" Command="{Binding AutoCorrectCommand}"
+            IsVisible="{Binding HasAutoCorrect}" Margin="0,4,0,2" />
+
+    <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+      <TextBlock Classes="section" Text="{l:Tr Adjustments}" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ResetColor}" Command="{Binding ResetColorCommand}" FontSize="12" />
+    </Grid>
+
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Exposure}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ExposureText}" /></Grid>
+    <Grid ColumnDefinitions="Auto,*,Auto">
+      <Button Classes="square" Focusable="False" Content="−" Command="{Binding ExposureMinusCommand}" ToolTip.Tip="{l:Tr ExposureMinus}" />
+      <Panel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+        <Border Classes="track" Background="{StaticResource ExposureTrack}" />
+        <Slider Classes="tone" Minimum="-2" Maximum="2" Value="{Binding Exposure}" VerticalAlignment="Center" DoubleTapped="OnSliderDoubleTapped" />
+      </Panel>
+      <Button Grid.Column="2" Classes="square" Focusable="False" Content="+" Command="{Binding ExposurePlusCommand}" ToolTip.Tip="{l:Tr ExposurePlus}" />
+    </Grid>
+
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Contrast}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ContrastText}" /></Grid>
+    <Panel Classes="slider">
+      <Border Classes="track">
+        <Grid RowDefinitions="*,*">
+          <Border Background="{StaticResource ContrastTopTrack}" />
+          <Border Grid.Row="1" Background="{StaticResource ContrastBottomTrack}" />
+        </Grid>
+      </Border>
+      <Slider Classes="tone" Minimum="-100" Maximum="100" Value="{Binding Contrast}" DoubleTapped="OnSliderDoubleTapped" />
+    </Panel>
+
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Temperature}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding TemperatureText}" /></Grid>
+    <Panel Classes="slider">
+      <Border Classes="track" Background="{StaticResource TemperatureTrack}" />
+      <Slider Classes="tone" Minimum="-100" Maximum="100" Value="{Binding Temperature}" DoubleTapped="OnSliderDoubleTapped" />
+    </Panel>
+
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Tint}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding TintText}" /></Grid>
+    <Panel Classes="slider">
+      <Border Classes="track" Background="{StaticResource TintTrack}" />
+      <!-- Stored tint is positive towards magenta; the slider runs magenta (left) to green (right). -->
+      <Slider Classes="tone" Minimum="-100" Maximum="100" IsDirectionReversed="True" Value="{Binding Tint}" DoubleTapped="OnSliderDoubleTapped" />
+    </Panel>
+
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Saturation}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding SaturationText}" /></Grid>
+    <Panel Classes="slider">
+      <Border Classes="track" Background="{StaticResource HueTrack}">
+        <Border Background="{StaticResource GreyFadeTrack}" />
+      </Border>
+      <Slider Classes="tone" Minimum="-100" Maximum="100" Value="{Binding Saturation}" DoubleTapped="OnSliderDoubleTapped" />
+    </Panel>
+  </StackPanel>
+</UserControl>

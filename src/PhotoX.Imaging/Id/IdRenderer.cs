@@ -5,10 +5,22 @@ using PhotoX.Core.Id;
 
 namespace PhotoX.Imaging.Id;
 
-/// <summary>ID photo adjustments (FR-064). Background brightness is a manual, mask-based lift of light neutral areas.</summary>
-public sealed record IdAdjustments(double Exposure = 0, double Contrast = 0, double Temperature = 0, double Tint = 0, double BackgroundBrightness = 0)
+/// <summary>
+/// ID photo adjustments (FR-064): the tone adjustments of the Photos editor (only the tone fields of
+/// <paramref name="Tone"/> are used) plus a manual, mask-based lift of light neutral background areas.
+/// </summary>
+public sealed record IdAdjustments(EditRecipe Tone, double BackgroundBrightness = 0)
 {
-    public EditRecipe ToRecipe() => new() { Exposure = Exposure, Contrast = Contrast, Temperature = Temperature, Tint = Tint };
+    public IdAdjustments()
+        : this(new EditRecipe())
+    {
+    }
+
+    public EditRecipe ToRecipe() => new()
+    {
+        Exposure = Tone.Exposure, Contrast = Tone.Contrast, Saturation = Tone.Saturation, Temperature = Tone.Temperature, Tint = Tone.Tint,
+        LevelsBlack = Tone.LevelsBlack, LevelsMid = Tone.LevelsMid, LevelsWhite = Tone.LevelsWhite,
+    };
 }
 
 /// <summary>
@@ -23,7 +35,7 @@ public static class IdRenderer
         var w = widthPx ?? size.WidthPx;
         var h = heightPx ?? size.HeightPx;
         var image = Frame(source, framing, w / framing.FrameWidthSource, w, h, w / 2.0, h / 2.0);
-        RecipeRenderer.ApplyTone(image, adjustments.ToRecipe());
+        ToneProcessor.Apply(image, adjustments.ToRecipe());
         BackgroundLift.Apply(image, adjustments.BackgroundBrightness, HeadOval(size, w, h));
         return image;
     }
@@ -31,6 +43,8 @@ public static class IdRenderer
     /// <summary>
     /// Preview with surroundings: the frame (<paramref name="frameWidthPx"/> wide) centred in a larger viewport so the
     /// operator sees what lies outside it. <paramref name="sourceScale"/> converts framing coordinates to the proxy.
+    /// The proxy should be close to the preview scale: the preview uses fast bilinear lookups instead of the slower
+    /// resampling filter of the exported photo.
     /// </summary>
     public static MagickImage RenderPreview(MagickImage proxy, double sourceScale, IdFraming framing, IdSize size, IdAdjustments adjustments, int frameWidthPx, int viewportWidth, int viewportHeight)
     {
@@ -40,8 +54,8 @@ public static class IdRenderer
             CenterY = framing.CenterY * sourceScale,
             FrameWidthSource = framing.FrameWidthSource * sourceScale,
         };
-        var image = Frame(proxy, scaled, frameWidthPx / scaled.FrameWidthSource, viewportWidth, viewportHeight, viewportWidth / 2.0, viewportHeight / 2.0);
-        RecipeRenderer.ApplyTone(image, adjustments.ToRecipe());
+        var image = Frame(proxy, scaled, frameWidthPx / scaled.FrameWidthSource, viewportWidth, viewportHeight, viewportWidth / 2.0, viewportHeight / 2.0, fast: true);
+        ToneProcessor.Apply(image, adjustments.ToRecipe(), exact: false);
         var frameH = frameWidthPx / size.Ratio;
         var oval = HeadOval(size, frameWidthPx, (int)Math.Round(frameH)).Offset((viewportWidth - frameWidthPx) / 2.0, (viewportHeight - frameH) / 2.0);
         BackgroundLift.Apply(image, adjustments.BackgroundBrightness, oval);
@@ -57,11 +71,36 @@ public static class IdRenderer
         return new RectD((width - ovalW) / 2, top, ovalW, head);
     }
 
-    private static MagickImage Frame(MagickImage source, IdFraming framing, double scale, int width, int height, double newX, double newY)
+    /// <summary>
+    /// Picks the image of <paramref name="levels"/> (each half the size of the previous) whose scale to the preview is
+    /// at most 1.4, so a fast preview never shrinks much (no aliasing) and never processes needless pixels.
+    /// Returns the image and its scale relative to <paramref name="levels"/>[0].
+    /// </summary>
+    public static (MagickImage Image, double Scale) PreviewLevel(IReadOnlyList<MagickImage> levels, double previewScaleOfFirst)
+    {
+        var i = 0;
+        var factor = 1.0;
+        while (i + 1 < levels.Count && previewScaleOfFirst / (factor / 2) <= 1.4)
+        {
+            i++;
+            factor /= 2;
+        }
+
+        return (levels[i], factor);
+    }
+
+    private static MagickImage Frame(MagickImage source, IdFraming framing, double scale, int width, int height, double newX, double newY, bool fast = false)
     {
         var image = (MagickImage)source.Clone();
         try
         {
+            if (fast)
+            {
+                // A point filter makes Distort use direct interpolated lookups instead of area resampling.
+                image.FilterType = FilterType.Point;
+                image.Interpolate = PixelInterpolateMethod.Bilinear;
+            }
+
             image.BackgroundColor = MagickColors.White;
             image.VirtualPixelMethod = VirtualPixelMethod.Background;
             image.SetArtifact("distort:viewport", $"{width}x{height}+0+0");

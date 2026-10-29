@@ -4,6 +4,40 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-29
+
+The owner's feedback from testing 0.4.0 on Linux and Windows 11 ([prompt_03](prompts/prompt_03.md)). Verified with automated tests on Linux and in CI on Windows; the studio trial is pending.
+
+### Changed: speed
+- Sliders, levels and Auto Correct update the preview in about 45 ms instead of 0.3–0.6 s, and the straighten slider redraws immediately instead of taking about 1 s per step. Saving a 12 MP photo with Save & Next takes about 0.5 s instead of 1.9 s. Measured on a PC limited to 4 cores; see the implementation log.
+- Opening a photo is faster (about 0.27 s instead of 0.44 s). Next uses the preloaded photo, and Previous reuses the photo just left.
+- Thumbnails are decoded off the screen thread. The gallery is no longer rebuilt when returning from the editor or changing filters, and opening a folder no longer blocks the window.
+- ID Photo Creator: rotating, moving, zooming and adjusting are about three times faster.
+
+### Changed: editing
+- Histogram and levels: one compact luminance histogram with a single bar and three draggable triangles (black point, midtones, white point).
+- Sliders show their effect on the track: dark → bright, low → high contrast, blue → orange, magenta → green, grey → colourful. Saturation is now below Tint. The − / + exposure buttons change exposure directly.
+- One fixed toolbar row: back-to-folder icon, print sizes, portrait/landscape rectangle icons, **Crop to fill | Whole + borders** as one segmented button, rotation, **Straighten**, reset crop, apply crop and before/after. On narrow windows it scrolls instead of wrapping.
+- **Applied crop:** after Save, or by double-clicking inside the crop frame (which does not save), the preview shows the cropped result fitted to the viewer. Editing and undo continue; changing the crop brings the frame back; the next photo opens with the crop frame as usual.
+- The adjustment panel (Photos and ID) is resized by dragging its separator; the width is remembered.
+- When every photo of the order is done, **Save & Next becomes Close** (back to the gallery), and the gallery's **Start editing** button becomes **Finish Order**.
+
+### Changed: browsing
+- Only the four most recent orders, in a collapsible section.
+- Folder tree like a desktop explorer: clicking a folder opens and expands it (clicking it again folds it); folders without subfolders have no arrow; the selected folder is highlighted.
+- The selected photo in the gallery is clearly highlighted.
+
+### Changed: ID Photo Creator
+- The same histogram, levels and adjustment sliders as the editor (now including saturation and levels).
+- 3×4 photos go on a **landscape** 10×15 sheet (8 copies). Other sizes use landscape when more copies fit (3.5×4.5: 8 instead of 6).
+- The general cut-guide option is removed. 3×4 has a single option: the 7 mm white strip below each photo (on by default).
+
+### Changed: window
+- The PhotoX name and icon appear only once, in the window's own title bar. The logo is shown in Settings › About.
+
+### Not changed
+- Automatic background whitening: still waiting for suitable sample photos.
+
 ## [0.4.1] - 2026-10-29
 
 Critical fix for photos disappearing after Finish Order on Windows (owner report, prompt_03 §6).

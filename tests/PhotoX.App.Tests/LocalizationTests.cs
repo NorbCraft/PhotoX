@@ -63,7 +63,7 @@ public class LocalizationTests
         Directory.CreateDirectory(order);
         Fixtures.WriteJpeg(order, "a.jpg", 600, 400);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1920, 1080);
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         await UiHelpers.WaitUntil(() => shell.Browse.AllPhotos.All(p => p.Thumbnail is not null));
         Assert.Contains(Texts(window), t => t == "ID Photos");
         shell.SetLanguageCommand.Execute("ro");
@@ -104,7 +104,7 @@ public class ScalingTests
         Directory.CreateDirectory(order);
         Fixtures.WriteJpeg(order, "a.jpg", 800, 600);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1280, 720, "ro");
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         await UiHelpers.WaitUntil(() => shell.Browse.AllPhotos.All(p => p.Thumbnail is not null));
         UiHelpers.Capture(window, "small-browse-ro-1280x720");
         shell.Browse.StartEditingCommand.Execute(null);

@@ -14,8 +14,9 @@ public sealed partial class FolderNodeViewModel : ViewModelBase
         Path = path;
         var leaf = System.IO.Path.GetFileName(path.TrimEnd(System.IO.Path.DirectorySeparatorChar));
         Name = name ?? (string.IsNullOrEmpty(leaf) ? path : leaf);
-        // Placeholder child so the expander arrow appears until the real children are loaded.
-        Children.Add(Placeholder);
+        // A placeholder child shows the expander arrow until the real children load; folders without subfolders get none.
+        if (FolderScanner.HasSubFolders(path)) Children.Add(Placeholder);
+        else _loaded = true;
     }
 
     private static FolderNodeViewModel Placeholder { get; } = new(true);

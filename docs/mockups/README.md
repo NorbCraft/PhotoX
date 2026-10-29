@@ -1,6 +1,8 @@
 # PhotoX — UI Concept Mockups
 
 > **Concepts, not screenshots** (plan revision P-2). They show intended layout and behaviour for feedback; the real interface is verified separately ([TEST_PLAN.md](../TEST_PLAN.md) TS-18). All photos are synthetic illustrations.
+>
+> **Superseded in detail since 0.5.0** by the owner's feedback ([prompt_03](../prompts/prompt_03.md)): a single fixed editor toolbar with Straighten, levels as one bar with three triangles, no RGB curves, saturation below tint, resizable panels, landscape 3×4 sheets without cut guides, no in-app title. [PLAN.md](../PLAN.md) describes the current behaviour.
 
 Window: 1600×1000 with a Windows 11-style title bar. Requirement IDs refer to [../PLAN.md](../PLAN.md).
 

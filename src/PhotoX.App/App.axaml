@@ -1,12 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:PhotoX.App"
              x:Class="PhotoX.App.App"
              RequestedThemeVariant="Dark">
-  <Application.DataTemplates>
-    <local:ViewLocator />
-  </Application.DataTemplates>
-
   <Application.Resources>
     <SolidColorBrush x:Key="BgBrush" Color="#1E1E1E" />
     <SolidColorBrush x:Key="BarBrush" Color="#191919" />
@@ -24,6 +19,46 @@
     <SolidColorBrush x:Key="OkBrush" Color="#34C759" />
     <SolidColorBrush x:Key="WarnBrush" Color="#F5A524" />
     <SolidColorBrush x:Key="DangerBrush" Color="#FF5A52" />
+
+    <!-- Slider tracks that show what each adjustment does (prompt_03 §3) -->
+    <LinearGradientBrush x:Key="ExposureTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#0E0E0E" Offset="0" />
+      <GradientStop Color="#F4F4F4" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ContrastTopTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#808080" Offset="0" />
+      <GradientStop Color="#FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ContrastBottomTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#7A7A7A" Offset="0" />
+      <GradientStop Color="#000000" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="TemperatureTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#3D7BFF" Offset="0" />
+      <GradientStop Color="#D6D6D6" Offset="0.5" />
+      <GradientStop Color="#FF8A26" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="TintTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#D44CD4" Offset="0" />
+      <GradientStop Color="#D6D6D6" Offset="0.5" />
+      <GradientStop Color="#45C24A" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="HueTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#FF4D4D" Offset="0" />
+      <GradientStop Color="#FFC93D" Offset="0.2" />
+      <GradientStop Color="#4DDB5C" Offset="0.4" />
+      <GradientStop Color="#3DC8FF" Offset="0.6" />
+      <GradientStop Color="#6A5CFF" Offset="0.8" />
+      <GradientStop Color="#FF4DCF" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="GreyFadeTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#FF8A8A8A" Offset="0" />
+      <GradientStop Color="#008A8A8A" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BackgroundTrack" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Color="#9A9A9A" Offset="0" />
+      <GradientStop Color="#FFFFFF" Offset="1" />
+    </LinearGradientBrush>
   </Application.Resources>
 
   <Application.Styles>
@@ -128,6 +163,84 @@
       <Setter Property="Padding" Value="0" />
       <Setter Property="FontSize" Value="18" />
     </Style>
+    <Style Selector="Button.icon, ToggleButton.icon">
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="Button.icon Path, ToggleButton.icon Path">
+      <Setter Property="Stroke" Value="{StaticResource TextBrush}" />
+      <Setter Property="StrokeThickness" Value="1.8" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Stretch" Value="Uniform" />
+    </Style>
+    <Style Selector="Border.sep">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Margin" Value="4,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{StaticResource Border2Brush}" />
+    </Style>
+    <!-- Segmented buttons: one box, the active part filled with the accent colour -->
+    <Style Selector="Border.segbox">
+      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="Padding" Value="2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.segacc">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="Padding" Value="12,5" />
+      <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="ToggleButton.segacc.icon">
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.segacc.outlined">
+      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Height" Value="34" />
+    </Style>
+    <Style Selector="ToggleButton.segacc:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="ToggleButton.segacc:checked">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ToggleButton.segacc:checked Path, ToggleButton.segacc:checked Rectangle">
+      <Setter Property="Stroke" Value="White" />
+    </Style>
+    <Style Selector="ToggleButton.segacc Rectangle">
+      <Setter Property="Stroke" Value="{StaticResource Text2Brush}" />
+    </Style>
+    <Style Selector="Button.icon:disabled Path, ToggleButton.icon:disabled Path">
+      <Setter Property="Stroke" Value="{StaticResource Text3Brush}" />
+    </Style>
+    <Style Selector="Button.chip.compact">
+      <Setter Property="Padding" Value="10,4" />
+    </Style>
+    <Style Selector="GridSplitter.panel">
+      <Setter Property="Width" Value="5" />
+      <Setter Property="MinWidth" Value="5" />
+      <Setter Property="Background" Value="{StaticResource BorderBrush}" />
+      <Setter Property="Cursor" Value="SizeWestEast" />
+    </Style>
+    <Style Selector="GridSplitter.panel:pointerover">
+      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+    </Style>
     <Style Selector="Border.kbd">
       <Setter Property="Background" Value="#33FFFFFF" />
       <Setter Property="CornerRadius" Value="4" />
@@ -159,6 +272,19 @@
 
     <Style Selector="Slider">
       <Setter Property="Focusable" Value="False" />
+    </Style>
+    <!-- Tone sliders: the gradient track behind the slider replaces the theme's track fill -->
+    <Style Selector="Slider.tone /template/ RepeatButton, Slider.tone:pointerover /template/ RepeatButton, Slider.tone:pressed /template/ RepeatButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.track">
+      <Setter Property="Height" Value="8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="3,0" />
+      <Setter Property="Opacity" Value="0.9" />
     </Style>
     <Style Selector="ProgressBar">
       <Setter Property="Foreground" Value="{StaticResource OkBrush}" />

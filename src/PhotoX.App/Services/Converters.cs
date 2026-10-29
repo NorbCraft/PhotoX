@@ -27,6 +27,9 @@ public static class IconConverter
     public static readonly IValueConverter FolderName = new FuncValueConverter<string?, string>(p =>
         p is null ? string.Empty : Path.GetFileName(p.TrimEnd(Path.DirectorySeparatorChar)) is { Length: > 0 } n ? n : p);
 
+    /// <summary>▸ when a section is collapsed, ▾ when it is open.</summary>
+    public static readonly IValueConverter Chevron = new FuncValueConverter<bool, string>(collapsed => collapsed ? "▸" : "▾");
+
     public static readonly IValueConverter BadgeGlyph = new FuncValueConverter<bool, string>(warn => warn ? "!" : "✓");
 
     public static readonly IValueConverter BadgeBrush = new FuncValueConverter<bool, Avalonia.Media.IBrush>(warn =>

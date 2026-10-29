@@ -29,6 +29,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
     {
         _services = services;
         DetailsCollapsed = services.Settings.BrowseDetailsCollapsed;
+        RecentCollapsed = services.Settings.RecentCollapsed;
         LoadLocations();
         Localizer.Instance.LanguageChanged += (_, _) => RefreshTexts();
     }
@@ -84,6 +85,14 @@ public sealed partial class BrowseViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsRemovable { get; set; }
 
+    /// <summary>The recent-orders list is folded away (prompt_03 §2).</summary>
+    [ObservableProperty]
+    public partial bool RecentCollapsed { get; set; }
+
+    /// <summary>True while the folder is scanned (opening is asynchronous).</summary>
+    [ObservableProperty]
+    public partial bool IsScanning { get; set; }
+
     public bool HasSelection => SelectedPhoto is not null;
 
     public bool HasFolder => CurrentFolder is not null;
@@ -95,6 +104,9 @@ public sealed partial class BrowseViewModel : ViewModelBase
     public int DoneCount => AllPhotos.Count(p => p.IsDone);
 
     public double Progress => TotalCount == 0 ? 0 : (double)DoneCount / TotalCount;
+
+    /// <summary>Every photo is saved or reviewed and nothing is pending: the main action becomes Finish Order (prompt_03 §5).</summary>
+    public bool IsOrderDone => TotalCount > 0 && DoneCount == TotalCount && AllPhotos.All(p => p.PendingRecipe is null);
 
     public string ProgressText => Localizer.Instance.Format("DoneOf", DoneCount, TotalCount);
 
@@ -116,12 +128,29 @@ public sealed partial class BrowseViewModel : ViewModelBase
         _services.SaveSettings();
     }
 
+    partial void OnRecentCollapsedChanged(bool value)
+    {
+        _services.Settings.RecentCollapsed = value;
+        _services.SaveSettings();
+    }
+
+    /// <summary>Clicking a folder selects and opens it and shows its subfolders, like a desktop file explorer (prompt_03 §2).</summary>
     partial void OnSelectedFolderNodeChanged(FolderNodeViewModel? value)
     {
-        if (value is not null && !string.IsNullOrEmpty(value.Path))
-        {
-            OpenFolder(value.Path);
-        }
+        if (value is null || string.IsNullOrEmpty(value.Path)) return;
+        value.IsExpanded = true;
+        if (!string.Equals(value.Path, CurrentFolder, StringComparison.Ordinal)) OpenFolder(value.Path);
+    }
+
+    [RelayCommand]
+    private void ToggleRecent() => RecentCollapsed = !RecentCollapsed;
+
+    /// <summary>The primary button: Start editing, or Finish Order once every photo is done.</summary>
+    [RelayCommand]
+    private void PrimaryAction()
+    {
+        if (IsOrderDone) FinishRequested?.Invoke();
+        else StartEditing();
     }
 
     [RelayCommand]
@@ -178,11 +207,15 @@ public sealed partial class BrowseViewModel : ViewModelBase
         }
     }
 
-    public void OpenFolder(string folder)
+    /// <summary>Opens an order folder. The scan runs in the background; <see cref="OpenFolderAsync"/> can be awaited.</summary>
+    public void OpenFolder(string folder) => _ = OpenFolderAsync(folder);
+
+    public async Task OpenFolderAsync(string folder)
     {
         if (!Directory.Exists(folder)) return;
         _thumbCts.Cancel();
         _thumbCts = new CancellationTokenSource();
+        var ct = _thumbCts.Token;
         CurrentFolder = folder;
         IsRemovable = DriveHelper.IsRemovable(folder);
         _services.Settings.LastFolder = folder;
@@ -190,15 +223,27 @@ public sealed partial class BrowseViewModel : ViewModelBase
         _services.SaveSettings();
         RefreshRecent();
 
+        IsScanning = true;
+        SelectedPhoto = null;
         AllPhotos.Clear();
-        var store = new OrderStore(folder);
-        var sidecar = store.Load();
-        if (store.UnhideRecordedPhotos(sidecar) is > 0 and var unhidden)
+        VisiblePhotos.Clear();
+        RaiseCounts();
+        var (sidecar, entries) = await Task.Run(() =>
         {
-            Log.Warning("Made {Count} saved photos visible again in {Folder} (hidden by PhotoX 0.4.0)", unhidden, folder);
-        }
+            var store = new OrderStore(folder);
+            var s = store.Load();
+            if (store.UnhideRecordedPhotos(s) is > 0 and var unhidden)
+            {
+                Log.Warning("Made {Count} saved photos visible again in {Folder} (hidden by PhotoX 0.4.0)", unhidden, folder);
+            }
 
-        foreach (var entry in FolderScanner.Scan(folder))
+            return (s, FolderScanner.Scan(folder));
+        });
+        if (ct.IsCancellationRequested) return;
+        IsScanning = false;
+
+        var items = new List<PhotoItemViewModel>(entries.Count);
+        foreach (var entry in entries)
         {
             var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry));
             item.ErrorText = entry.Kind switch
@@ -207,13 +252,15 @@ public sealed partial class BrowseViewModel : ViewModelBase
                 ImageKind.OtherImage or ImageKind.Unknown => ErrorTexts.ForImage(ImageError.UnsupportedFormat),
                 _ => null,
             };
-            AllPhotos.Add(item);
+            items.Add(item);
         }
 
-        SelectedPhoto = AllPhotos.FirstOrDefault(p => p.IsToDo && p.IsOpenable) ?? AllPhotos.FirstOrDefault();
+        foreach (var item in items) AllPhotos.Add(item);
         ApplyFilter();
+        // Select after the gallery holds the items, so the list shows the selection.
+        SelectedPhoto = VisiblePhotos.FirstOrDefault(p => p.IsToDo && p.IsOpenable) ?? VisiblePhotos.FirstOrDefault();
         RaiseCounts();
-        _ = LoadThumbnailsAsync(AllPhotos.ToList(), _thumbCts.Token);
+        _ = LoadThumbnailsAsync(items, ct);
         Log.Information("Opened folder {Folder} with {Count} photos", folder, AllPhotos.Count);
     }
 
@@ -248,21 +295,32 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(CountAll));
         OnPropertyChanged(nameof(CountToDo));
         OnPropertyChanged(nameof(CountDone));
+        OnPropertyChanged(nameof(IsOrderDone));
     }
 
+    /// <summary>
+    /// Updates the visible photos in place: only photos that enter or leave the filter are inserted or removed,
+    /// so the gallery keeps its cards (rebuilding hundreds of cards made returning from the editor slow).
+    /// </summary>
     public void ApplyFilter()
     {
         var keep = SelectedPhoto;
-        VisiblePhotos.Clear();
-        foreach (var p in AllPhotos)
+        var wanted = AllPhotos.Where(p => Filter == PhotoFilter.All || (Filter == PhotoFilter.ToDo && p.IsToDo) || (Filter == PhotoFilter.Done && p.IsDone)).ToList();
+        var wantedSet = wanted.ToHashSet();
+        for (var i = VisiblePhotos.Count - 1; i >= 0; i--)
         {
-            if (Filter == PhotoFilter.All || (Filter == PhotoFilter.ToDo && p.IsToDo) || (Filter == PhotoFilter.Done && p.IsDone))
-            {
-                VisiblePhotos.Add(p);
-            }
+            if (!wantedSet.Contains(VisiblePhotos[i])) VisiblePhotos.RemoveAt(i);
         }
 
-        SelectedPhoto = keep is not null && VisiblePhotos.Contains(keep) ? keep : VisiblePhotos.FirstOrDefault();
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            if (i < VisiblePhotos.Count && ReferenceEquals(VisiblePhotos[i], wanted[i])) continue;
+            var existing = VisiblePhotos.IndexOf(wanted[i]);
+            if (existing >= 0) VisiblePhotos.Move(existing, i);
+            else VisiblePhotos.Insert(i, wanted[i]);
+        }
+
+        SelectedPhoto = keep is not null && wantedSet.Contains(keep) ? keep : VisiblePhotos.FirstOrDefault();
     }
 
     internal static PhotoState StateFromSidecar(OrderSidecar sidecar, PhotoEntry entry)
@@ -295,7 +353,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
     private void RefreshRecent()
     {
         RecentFolders.Clear();
-        foreach (var f in _services.Settings.RecentFolders.Where(Directory.Exists).Take(6))
+        foreach (var f in _services.Settings.RecentFolders.Where(Directory.Exists).Take(4))
         {
             RecentFolders.Add(f);
         }
@@ -329,15 +387,20 @@ public sealed partial class BrowseViewModel : ViewModelBase
             {
                 if (ct.IsCancellationRequested || !item.IsOpenable) return;
                 var entry = item.Entry;
-                var (bytes, info, error) = await Task.Run(() => MakeThumbnail(entry), ct).ConfigureAwait(false);
+                var (bitmap, info, error) = await Task.Run(() =>
+                {
+                    var (bytes, i, e) = MakeThumbnail(entry);
+                    if (bytes is null) return ((Bitmap?)null, i, e);
+                    using var ms = new MemoryStream(bytes);
+                    return (new Bitmap(ms), i, e); // decoded here, not on the UI thread
+                }, ct).ConfigureAwait(false);
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (ct.IsCancellationRequested) return;
                     item.Info = info;
-                    if (bytes is not null)
+                    if (bitmap is not null)
                     {
-                        using var ms = new MemoryStream(bytes);
-                        item.Thumbnail = new Bitmap(ms);
+                        item.Thumbnail = bitmap;
                     }
                     else if (error is not null)
                     {

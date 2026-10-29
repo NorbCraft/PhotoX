@@ -38,8 +38,9 @@ public class IdWorkflowTests
         UiHelpers.Capture(window, "id-framing-1366x768");
 
         id.SelectSizeCommand.Execute(id.Sizes.Single(s => s.Size.Id == "3x4"));
-        Assert.Equal(8, id.Copies); // familiar count, below the capacity of 9
-        Assert.Equal(9, id.Capacity);
+        Assert.Equal(8, id.Copies); // the largest familiar count, which is also the capacity
+        Assert.Equal(8, id.Capacity);
+        Assert.True(id.HasStripOption);
         id.MoveBy(10, -20);
         id.ZoomBy(1.1);
         id.BackgroundBrightness = 40;
@@ -57,7 +58,7 @@ public class IdWorkflowTests
         Assert.NotEqual(first, second);
         using (var sheet = new MagickImage(first!))
         {
-            Assert.Equal((1200u, 1800u), (sheet.Width, sheet.Height));
+            Assert.Equal((1800u, 1200u), (sheet.Width, sheet.Height)); // 3×4 on a landscape 10×15 page
             Assert.Equal(300, sheet.Density.X, 1);
         }
 
@@ -96,7 +97,7 @@ public class IdWorkflowTests
         Directory.CreateDirectory(order);
         File.Copy(SyntheticPortrait(dir.Path), Path.Combine(order, "p.jpg"));
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         shell.Browse.UseForIdCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.CurrentPage is IdViewModel && shell.Id.Preview is not null);
         Assert.Equal("p.jpg", shell.Id.SourceName);

@@ -101,7 +101,7 @@ public sealed partial class ShellViewModel
         }
 
         CurrentPage = Browse;
-        Browse.OpenFolder(folder);
+        await Browse.OpenFolderAsync(folder);
         var done = new DialogViewModel(Localizer.Instance["FinishButton"], message);
         done.Buttons.Add(new DialogButton("ok", Localizer.Instance["Ok"], true));
         await ShowDialogAsync(done);

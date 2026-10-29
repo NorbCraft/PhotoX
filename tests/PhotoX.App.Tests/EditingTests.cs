@@ -17,7 +17,7 @@ public class EditingTests
         Directory.CreateDirectory(order);
         for (var i = 1; i <= count; i++) Fixtures.WriteJpeg(order, $"P{i}.jpg", w, h);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         shell.Browse.StartEditingCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
         return ((MainWindow)window, shell, order);
@@ -72,15 +72,15 @@ public class EditingTests
     {
         using var dir = new TempDir();
         var (window, shell, _) = await OpenEditor(dir);
-        Assert.NotNull(shell.Editor.Histogram);
+        Assert.NotNull(shell.Editor.Tone.Histogram);
         await shell.Editor.AutoCorrectCommand.ExecuteAsync(null);
         var r = shell.Editor.Recipe;
         Assert.InRange(r.Exposure, -1, 1);
         Assert.True(shell.Editor.CanUndo);
         shell.Editor.UndoCommand.Execute(null);
         Assert.Equal(0, shell.Editor.Recipe.Exposure);
-        shell.Editor.Tint = 30;
-        shell.Editor.Temperature = -20;
+        shell.Editor.Tone.Tint = 30;
+        shell.Editor.Tone.Temperature = -20;
         shell.Editor.Straighten = 3;
         await UiHelpers.WaitUntil(() => shell.Editor.Recipe.Straighten == 3);
         UiHelpers.Capture(window, "editor-adjusted-1366x768");
@@ -93,11 +93,11 @@ public class EditingTests
     {
         using var dir = new TempDir();
         var (window, shell, order) = await OpenEditor(dir);
-        shell.Editor.ExposurePlusCommand.Execute(null);
+        shell.Editor.Tone.ExposurePlusCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Editor.IsDirty);
         Assert.True(await shell.Editor.SaveCurrentAsync());          // P1 saved
         await shell.Editor.NextAsync();
-        shell.Editor.ExposureMinusCommand.Execute(null);             // P2 unsaved manual edit
+        shell.Editor.Tone.ExposureMinusCommand.Execute(null);             // P2 unsaved manual edit
         shell.Editor.BackToFolderCommand.Execute(null);
 
         var finish = shell.FinishOrderAsync();
@@ -149,7 +149,7 @@ public class EditingTests
         Directory.CreateDirectory(order);
         File.WriteAllBytes(Path.Combine(order, "phone.heic"), [0, 0, 0, 24, (byte)'f', (byte)'t', (byte)'y', (byte)'p', (byte)'h', (byte)'e', (byte)'i', (byte)'c']);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
-        shell.Browse.OpenFolder(order);
+        await shell.Browse.OpenFolderAsync(order);
         var item = Assert.Single(shell.Browse.AllPhotos);
         Assert.Equal(PhotoState.UnsupportedHeic, item.State);
         Assert.Contains("JPEG", item.ErrorText);

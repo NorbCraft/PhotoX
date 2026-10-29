@@ -1,11 +1,11 @@
 # PhotoX — Architecture
 
-Plan revision **P-2** (2026-10-29). Requirements are in [PLAN.md](PLAN.md) and are referenced by ID. This document describes how PhotoX is built, and is kept deliberately modest: **Magick.NET does the image work, and custom code exists only for geometry, layout, histogram statistics and model integration.**
+Plan revision **P-2** (2026-10-29). Requirements are in [PLAN.md](PLAN.md) and are referenced by ID. This document describes how PhotoX is built, and is kept deliberately modest: **Magick.NET does the image work, and custom code exists only for geometry, layout, histogram statistics, model integration and one parallel pass that applies Magick-computed tone curves (DEC-044).**
 
 ## 1. Principles
 
 1. **Simple and reliable first.** Few projects, few abstractions, and only where there is a concrete use (NFR-009).
-2. **Edits are parameters.** An `EditRecipe` (crop, rotation, adjustments, composition) describes every edit. Preview and save apply the same recipe with the same Magick.NET operations: on a screen-sized proxy for preview, and on the full-resolution original for saving.
+2. **Edits are parameters.** An `EditRecipe` (crop, rotation, adjustments, composition) describes every edit. Saving renders it on the full-resolution original. The preview applies the same tone curves to a screen-sized proxy and lets the canvas draw rotation, crop and borders, so the screen shows what will be saved (verified by a test, prompt_03 §4).
 3. **Never damage what exists.** Write to a temp file, check it, then replace. Preserve the first original, and never overwrite an uncertain backup (FR-005, FR-021–FR-023).
 4. **Offline.** No network access (NFR-001).
 
@@ -61,9 +61,10 @@ Rules:
 
 ## 4. UI structure
 
-- **Shell:** top bar (logo, Photos | ID Photos, folder/photo context, EN|RO, settings) and a content area. View-model-first navigation with a `ViewLocator`.
-- **Photos workspace:** *Browse* (explorer, gallery, collapsible details, Finish Order) ⇄ *Edit* (canvas with crop overlay, adjustment panel, filmstrip, action bar).
-- **ID workspace:** *Framing* → *Sheet*.
+- **Shell:** native window title bar with the PhotoX icon and name (shown once, prompt_03 §8); top bar (Photos | ID Photos, folder/photo context, EN|RO, settings) and a content area. The three pages (Browse, Edit, ID) are created once and shown or hidden, so switching never rebuilds the gallery.
+- **Photos workspace:** *Browse* (explorer with a folder tree, four recent orders, gallery, collapsible details, Start editing / Finish Order) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel, filmstrip, actions; Save & Next becomes Close when the order is done).
+- **ID workspace:** *Framing* → *Sheet*, with the same resizable panel.
+- **Shared adjustments:** `ToneAdjustmentsViewModel` + `ToneAdjustmentsView` (levels histogram with three triangle handles, exposure − / +, contrast, white balance, tint, saturation with gradient tracks) are used by both workspaces (prompt_03 §7).
 - **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
 - **Keyboard:** handled at window level with `KeyDown` (tunnelling). Shortcuts are ignored when `e.Handled`, when a `TextBox`/`NumericUpDown`/`ComboBox` has focus, when a dialog is open, or for auto-repeat. Avalonia exposes no repeat flag, so the handler tracks key-down/key-up pairs and ignores repeated `KeyDown` events for a key that is still held (FR-018).
 
@@ -101,7 +102,7 @@ The renderer applies the steps in a fixed order. The same code serves preview (p
 | # | Step | Magick.NET operation |
 |---|---|---|
 | 1 | quarter turns | `Rotate(90·n)`, exact |
-| 2 | straighten | `Rotate(θ)` with white background. The crop is constrained to the valid area by Core geometry. |
+| 2 | straighten | `Distort(ScaleRotateTranslate, θ)` with an explicit viewport and white background. The crop is constrained to the valid area by Core geometry. |
 | 3 | crop | `Crop(geometry)` + `ResetPage()`. Geometry comes from the normalised crop rounded to pixel edges (exact selected crop, FR-004). |
 | 4 | white balance, tint, exposure | in linear light (`ColorSpace = RGB`): per-channel `Evaluate(Multiply)` with combined gains = 2^EV × WB/tint gains; then back to sRGB |
 | 5 | levels | `Level(black, white, midGamma)` |
@@ -110,14 +111,14 @@ The renderer applies the steps in a fixed order. The same code serves preview (p
 | 8 | composition | `Extent(w, h, Gravity.Center, White)` for whole-photo borders and the 13×18-on-15×20 canvas (§5.4) |
 | 9 | output colour | ensure sRGB, set the embedded sRGB profile |
 
-No custom pixel pipeline is used. Before/after shows the proxy with an identity recipe for steps 4–7.
+Steps 4–6 act on each channel independently, so `ToneCurve` runs them once with Magick.NET on a gradient that contains every 16-bit input value and keeps the result as lookup tables. `ToneProcessor` applies the tables and step 7 (the HCL formula of Magick's modulate) in one parallel pass. Tests show the output equals the Magick operations within one 16-bit level (DEC-044). This was needed because the bundled Magick.NET native library runs single-threaded: the operations took 3.2 s per 12 MP save and 0.3–1 s per preview update. Before/after shows the proxy with identity curves.
 
 ### 5.3 Preview
 
-- The proxy is decoded once per photo, at a long edge of about 2048 px (or the screen size if larger), and kept in a small cache for the current ±1 photos within a memory budget (FR-052).
-- Adjustments re-render the proxy on a worker thread, latest request wins. The result is converted to an Avalonia `WriteableBitmap` (BGRA).
-- The crop rectangle is a UI overlay on the uncropped (rotated) proxy. Geometry is shown directly; tone steps are applied to the whole proxy.
-- **Histogram (FR-043):** computed from the rendered proxy pixels inside the crop. This is a small custom loop over `ToByteArray` (256 bins for R, G, B and luminance), since Magick's colour histogram does not provide channel bins efficiently.
+- The proxy is decoded once per photo with the JPEG size hint and shrunk to a long edge of 1800 px by box averaging. The next photo is preloaded (FR-052).
+- The proxy after quarter turns is kept as BGRA. A tone change builds preview curves (4,096 evaluated points, about 2 ms) and runs one parallel pass into a reused buffer, latest request wins. The result becomes an Avalonia `WriteableBitmap`.
+- **Geometry is drawn, not rendered.** `PhotoCanvas` draws the bitmap rotated by the straightening angle inside the straightened bounding box, so the straighten slider costs only a redraw. The crop is an overlay. In the result view (crop applied by double-click or after Save, whole photo with borders, 13×18 canvas), the canvas fits the output canvas to the viewer, fills it white and draws only the crop.
+- **Histogram (FR-043):** luminance bins of the shown pixels inside the crop, computed off the UI thread (a small custom loop, since Magick's colour histogram does not provide channel bins efficiently).
 - Display assumes an sRGB monitor (documented limitation).
 
 ### 5.4 Geometry (Core)
@@ -190,9 +191,10 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 ## 7. ID Photo Creator
 
 - **Sizes** in `assets/id-sizes.json` (FR-061). Framing state = scale, rotation and centre of the portrait under a fixed frame.
-- **Render:** `Distort(ScaleRotateTranslate)` from the full-resolution portrait into exactly `round(mm·300/25.4)` px (Lanczos), then the same adjustment steps as §5.2 plus the background-brightness lift (FR-064: brightening of light, low-saturation pixels, via a Magick FX/mask composite).
-- **Sheet layout (Core, FR-066/FR-074):** portrait page of 101.6×152.4 mm. Columns and rows are `⌊(avail + gap)/(cell + gap)⌋`, where the 3×4 cell height is 40 + 7 mm strip. The grid is centred. Copies fill row-major. Cut guides lie on cell edges, with the 3×4 strip edge as the bottom cut.
-- **Export (FR-068/FR-075):** a 1200×1800 px canvas at 300 ppi (with an optional calibration scale from settings, FR-071), sRGB, JPEG q95 or PNG, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
+- **Render:** `Distort(ScaleRotateTranslate)` from the full-resolution portrait into exactly `round(mm·300/25.4)` px, then the tone adjustments of §5.2 and the background-brightness lift (FR-064: brightening of light, low-saturation pixels through a soft mask).
+- **Preview:** the framing preview uses the proxy, half or quarter copy whose scale to the screen is closest to 1, with fast bilinear lookups and preview curves; it is about three times faster than resampling the 1800-px proxy.
+- **Sheet layout (Core, FR-066/FR-074, DEC-046):** 4×6 in page, landscape for 3×4 and for any size where landscape fits more copies, otherwise portrait. Columns and rows are `⌊(avail + gap)/(cell + gap)⌋`. With the 3×4 strip the cell is 30 × 47 mm and the strip is also the gap to the next row. The grid is centred and copies fill row-major. No cut guides are drawn.
+- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG q95 or PNG, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
 - **Auto Align (FR-063, 0.4.0):**
   - YuNet (MIT, ≈ 230 KB) runs on ONNX Runtime on a 640-px copy, giving face boxes and 5 landmarks.
   - With one face: roll comes from the eye line, and head height is estimated from the eye-to-mouth distance and fitted to the guides.
@@ -213,7 +215,8 @@ Print formats are data (`print-formats.json`). A later version could copy finish
 ## 10. Performance notes
 
 - Thumbnails decode with the JPEG size hint, run in parallel (≤ 4 workers), visible items first, and use the disk cache.
-- Preview renders on a ~2048 px proxy.
-- Full-resolution work happens only while saving, one image at a time.
+- Preview: tone changes cost one parallel pass over the 1800-px proxy; straightening, crop and borders cost only a redraw (DEC-044, DEC-045).
+- Full-resolution work happens only while saving, one image at a time. Tone adjustments run in parallel; decoding, straightening (EWA distort) and JPEG encoding are single-threaded in the bundled Magick.NET.
+- Pages stay alive between switches; folder scanning and thumbnail decoding run off the UI thread; the gallery is updated in place.
 - Q16 memory is about 8 bytes per pixel (24 MP ≈ 200 MB). The memory check before decoding large images uses `GC.GetGCMemoryInfo().TotalAvailableMemoryBytes`.
 - Numbers are measured and recorded in [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md), not assumed (NFR-003).

@@ -44,7 +44,7 @@ public sealed partial class ShellViewModel : ViewModelBase
     public IdViewModel Id { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsEditing))]
+    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsEditing), nameof(IsBrowsing))]
     public partial ViewModelBase CurrentPage { get; set; }
 
     public bool IsPhotosWorkspace => CurrentPage is BrowseViewModel or EditorViewModel;
@@ -52,6 +52,8 @@ public sealed partial class ShellViewModel : ViewModelBase
     public bool IsIdWorkspace => CurrentPage is IdViewModel;
 
     public bool IsEditing => CurrentPage is EditorViewModel;
+
+    public bool IsBrowsing => CurrentPage is BrowseViewModel;
 
     public bool IsEnglish => Localizer.Instance.Language == "en";
 

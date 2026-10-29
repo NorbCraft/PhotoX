@@ -8,16 +8,24 @@ using PhotoX.Core.Geometry;
 namespace PhotoX.App.Controls;
 
 /// <summary>
-/// Shows the preview and the ratio-locked crop frame (FR-003, FR-012). The crop is in preview-pixel coordinates;
-/// dragging updates it live and <see cref="CropCommitted"/> fires once when the drag ends (one undo step).
+/// Shows the preview and the ratio-locked crop frame (FR-003, FR-012). Coordinates are preview pixels of the
+/// straightened photo (its bounding box, <see cref="ContentSize"/>); the source bitmap is drawn rotated by
+/// <see cref="Angle"/>, so straightening needs no re-rendering. Dragging updates the crop live and
+/// <see cref="CropCommitted"/> fires once when the drag ends (one undo step). In the result view the output canvas
+/// (<see cref="ResultFrame"/>, white) is fitted to the control and only the crop is drawn (prompt_03 §4).
 /// </summary>
 public sealed class PhotoCanvas : Control
 {
     public static readonly StyledProperty<Bitmap?> SourceProperty = AvaloniaProperty.Register<PhotoCanvas, Bitmap?>(nameof(Source));
+    public static readonly StyledProperty<Size> ContentSizeProperty = AvaloniaProperty.Register<PhotoCanvas, Size>(nameof(ContentSize));
+    public static readonly StyledProperty<double> AngleProperty = AvaloniaProperty.Register<PhotoCanvas, double>(nameof(Angle));
     public static readonly StyledProperty<Rect> CropRectProperty = AvaloniaProperty.Register<PhotoCanvas, Rect>(nameof(CropRect));
     public static readonly StyledProperty<double> CropRatioProperty = AvaloniaProperty.Register<PhotoCanvas, double>(nameof(CropRatio), 1.5);
     public static readonly StyledProperty<bool> ShowCropProperty = AvaloniaProperty.Register<PhotoCanvas, bool>(nameof(ShowCrop), true);
     public static readonly StyledProperty<Rect> CropBoundsProperty = AvaloniaProperty.Register<PhotoCanvas, Rect>(nameof(CropBounds));
+    public static readonly StyledProperty<bool> ShowResultProperty = AvaloniaProperty.Register<PhotoCanvas, bool>(nameof(ShowResult));
+    public static readonly StyledProperty<Rect> ResultFrameProperty = AvaloniaProperty.Register<PhotoCanvas, Rect>(nameof(ResultFrame));
+    public static readonly StyledProperty<Rect> ResultCropProperty = AvaloniaProperty.Register<PhotoCanvas, Rect>(nameof(ResultCrop));
 
     private const double Padding = 24;
     private const double HandleReach = 16;
@@ -25,6 +33,7 @@ public sealed class PhotoCanvas : Control
     private static readonly IPen FramePen = new Pen(Brushes.White, 1.5);
     private static readonly IPen ThirdsPen = new Pen(new SolidColorBrush(Color.FromArgb(115, 255, 255, 255)), 1);
     private static readonly IPen HandlePen = new Pen(Brushes.White, 4, lineCap: PenLineCap.Square);
+    private static readonly IPen ResultEdgePen = new Pen(new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), 1);
 
     private CropHandle _drag;
     private Rect _startCrop;
@@ -32,53 +41,63 @@ public sealed class PhotoCanvas : Control
 
     static PhotoCanvas()
     {
-        AffectsRender<PhotoCanvas>(SourceProperty, CropRectProperty, ShowCropProperty);
+        AffectsRender<PhotoCanvas>(SourceProperty, ContentSizeProperty, AngleProperty, CropRectProperty, ShowCropProperty,
+            ShowResultProperty, ResultFrameProperty, ResultCropProperty);
         FocusableProperty.OverrideDefaultValue<PhotoCanvas>(false);
+    }
+
+    public PhotoCanvas()
+    {
+        DoubleTapped += OnDoubleTapped;
     }
 
     public event EventHandler<Rect>? CropCommitted;
 
-    public Bitmap? Source
-    {
-        get => GetValue(SourceProperty);
-        set => SetValue(SourceProperty, value);
-    }
+    /// <summary>Double-click inside the crop frame (apply the crop) or on the result view (edit the crop again).</summary>
+    public event EventHandler? CropToggleRequested;
 
-    public Rect CropRect
-    {
-        get => GetValue(CropRectProperty);
-        set => SetValue(CropRectProperty, value);
-    }
+    public Bitmap? Source { get => GetValue(SourceProperty); set => SetValue(SourceProperty, value); }
 
-    public double CropRatio
-    {
-        get => GetValue(CropRatioProperty);
-        set => SetValue(CropRatioProperty, value);
-    }
+    /// <summary>Size of the straightened photo's bounding box in preview pixels (defaults to the bitmap size).</summary>
+    public Size ContentSize { get => GetValue(ContentSizeProperty); set => SetValue(ContentSizeProperty, value); }
+
+    /// <summary>Straightening angle in degrees (positive = clockwise), as in the saved photo.</summary>
+    public double Angle { get => GetValue(AngleProperty); set => SetValue(AngleProperty, value); }
+
+    public Rect CropRect { get => GetValue(CropRectProperty); set => SetValue(CropRectProperty, value); }
+
+    public double CropRatio { get => GetValue(CropRatioProperty); set => SetValue(CropRatioProperty, value); }
 
     /// <summary>Area the crop must stay inside (valid area after straightening), in preview pixels; empty = whole image.</summary>
-    public Rect CropBounds
-    {
-        get => GetValue(CropBoundsProperty);
-        set => SetValue(CropBoundsProperty, value);
-    }
+    public Rect CropBounds { get => GetValue(CropBoundsProperty); set => SetValue(CropBoundsProperty, value); }
 
-    public bool ShowCrop
-    {
-        get => GetValue(ShowCropProperty);
-        set => SetValue(ShowCropProperty, value);
-    }
+    public bool ShowCrop { get => GetValue(ShowCropProperty); set => SetValue(ShowCropProperty, value); }
 
-    /// <summary>Where the image is drawn inside the control (uniform fit).</summary>
+    public bool ShowResult { get => GetValue(ShowResultProperty); set => SetValue(ShowResultProperty, value); }
+
+    /// <summary>The output canvas (crop plus white borders) in preview pixels, shown in the result view.</summary>
+    public Rect ResultFrame { get => GetValue(ResultFrameProperty); set => SetValue(ResultFrameProperty, value); }
+
+    /// <summary>The part of the photo that appears in the output, in preview pixels.</summary>
+    public Rect ResultCrop { get => GetValue(ResultCropProperty); set => SetValue(ResultCropProperty, value); }
+
+    private Size Content => ContentSize.Width > 0 ? ContentSize : Source?.Size ?? default;
+
+    private bool IsResultView => ShowResult && ResultFrame.Width > 0 && ResultCrop.Width > 0;
+
+    /// <summary>The visible area in content coordinates: the whole photo, or the output canvas in the result view.</summary>
+    private Rect View => IsResultView ? ResultFrame : new Rect(Content);
+
+    /// <summary>Where the visible area is drawn inside the control (uniform fit).</summary>
     public Rect ImageDestination()
     {
-        if (Source is null) return default;
-        var size = Source.Size;
+        var view = View;
+        if (Source is null || view.Width <= 0) return default;
         var availW = Math.Max(1, Bounds.Width - 2 * Padding);
         var availH = Math.Max(1, Bounds.Height - 2 * Padding);
-        var scale = Math.Min(availW / size.Width, availH / size.Height);
-        var w = size.Width * scale;
-        var h = size.Height * scale;
+        var scale = Math.Min(availW / view.Width, availH / view.Height);
+        var w = view.Width * scale;
+        var h = view.Height * scale;
         return new Rect((Bounds.Width - w) / 2, (Bounds.Height - h) / 2, w, h);
     }
 
@@ -86,7 +105,20 @@ public sealed class PhotoCanvas : Control
     {
         if (Source is null) return;
         var dest = ImageDestination();
-        context.DrawImage(Source, new Rect(Source.Size), dest);
+        var k = dest.Width / View.Width;
+        if (IsResultView)
+        {
+            context.FillRectangle(Brushes.White, dest);
+            using (context.PushClip(ToScreen(ResultCrop)))
+            {
+                DrawPhoto(context, dest, k);
+            }
+
+            context.DrawRectangle(null, ResultEdgePen, dest);
+            return;
+        }
+
+        DrawPhoto(context, dest, k);
         if (!ShowCrop || CropRect.Width <= 0) return;
 
         var c = ToScreen(CropRect);
@@ -94,10 +126,10 @@ public sealed class PhotoCanvas : Control
         shade.Children.Add(new RectangleGeometry(dest));
         shade.Children.Add(new RectangleGeometry(c));
         context.DrawGeometry(Shade, null, shade);
-        for (var k = 1; k <= 2; k++)
+        for (var i = 1; i <= 2; i++)
         {
-            context.DrawLine(ThirdsPen, new Point(c.X + c.Width * k / 3, c.Y), new Point(c.X + c.Width * k / 3, c.Bottom));
-            context.DrawLine(ThirdsPen, new Point(c.X, c.Y + c.Height * k / 3), new Point(c.Right, c.Y + c.Height * k / 3));
+            context.DrawLine(ThirdsPen, new Point(c.X + c.Width * i / 3, c.Y), new Point(c.X + c.Width * i / 3, c.Bottom));
+            context.DrawLine(ThirdsPen, new Point(c.X, c.Y + c.Height * i / 3), new Point(c.Right, c.Y + c.Height * i / 3));
         }
 
         context.DrawRectangle(null, FramePen, c);
@@ -115,15 +147,43 @@ public sealed class PhotoCanvas : Control
         context.DrawLine(HandlePen, new Point(c.Right, c.Center.Y - e), new Point(c.Right, c.Center.Y + e));
     }
 
+    /// <summary>Draws the bitmap rotated about its centre into the centre of the content box, then maps content to screen.</summary>
+    private void DrawPhoto(DrawingContext context, Rect dest, double k)
+    {
+        var src = Source!.Size;
+        var content = Content;
+        var view = View;
+        var transform = Matrix.CreateTranslation(-src.Width / 2, -src.Height / 2)
+            * Matrix.CreateRotation(Angle * Math.PI / 180)
+            * Matrix.CreateTranslation(content.Width / 2 - view.X, content.Height / 2 - view.Y)
+            * Matrix.CreateScale(k, k)
+            * Matrix.CreateTranslation(dest.X, dest.Y);
+        using (context.PushTransform(transform))
+        {
+            context.DrawImage(Source, new Rect(src));
+        }
+    }
+
+    private void OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Source is null) return;
+        var p = e.GetPosition(this);
+        if (IsResultView ? ImageDestination().Contains(p) : ShowCrop && ToScreen(CropRect).Contains(p))
+        {
+            CropToggleRequested?.Invoke(this, EventArgs.Empty);
+            e.Handled = true;
+        }
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        if (!ShowCrop || Source is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (!ShowCrop || IsResultView || Source is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         var handle = HitTest(e.GetPosition(this));
         if (handle == CropHandle.None) return;
         _drag = handle;
         _startCrop = CropRect;
-        _startPoint = ToImage(e.GetPosition(this));
+        _startPoint = ToContent(e.GetPosition(this));
         e.Pointer.Capture(this);
         e.Handled = true;
     }
@@ -135,14 +195,14 @@ public sealed class PhotoCanvas : Control
         var p = e.GetPosition(this);
         if (_drag == CropHandle.None)
         {
-            Cursor = CursorFor(ShowCrop ? HitTest(p) : CropHandle.None);
+            Cursor = CursorFor(ShowCrop && !IsResultView ? HitTest(p) : CropHandle.None);
             return;
         }
 
-        var ip = ToImage(p);
+        var ip = ToContent(p);
         var bounds = CropBounds.Width > 0
             ? new RectD(CropBounds.X, CropBounds.Y, CropBounds.Width, CropBounds.Height)
-            : RectD.FromSize(Source.Size.Width, Source.Size.Height);
+            : RectD.FromSize(Content.Width, Content.Height);
         var start = new RectD(_startCrop.X, _startCrop.Y, _startCrop.Width, _startCrop.Height);
         var next = _drag == CropHandle.Move
             ? CropMath.Move(start, ip.X - _startPoint.X, ip.Y - _startPoint.Y, bounds)
@@ -206,14 +266,16 @@ public sealed class PhotoCanvas : Control
     private Rect ToScreen(Rect r)
     {
         var d = ImageDestination();
-        var k = d.Width / Source!.Size.Width;
-        return new Rect(d.X + r.X * k, d.Y + r.Y * k, r.Width * k, r.Height * k);
+        var view = View;
+        var k = d.Width / view.Width;
+        return new Rect(d.X + (r.X - view.X) * k, d.Y + (r.Y - view.Y) * k, r.Width * k, r.Height * k);
     }
 
-    private Point ToImage(Point p)
+    private Point ToContent(Point p)
     {
         var d = ImageDestination();
-        var k = Source!.Size.Width / d.Width;
-        return new Point((p.X - d.X) * k, (p.Y - d.Y) * k);
+        var view = View;
+        var k = view.Width / d.Width;
+        return new Point((p.X - d.X) * k + view.X, (p.Y - d.Y) * k + view.Y);
     }
 }

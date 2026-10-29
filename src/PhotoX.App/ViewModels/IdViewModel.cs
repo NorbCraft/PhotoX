@@ -49,6 +49,7 @@ public sealed partial class IdViewModel : ViewModelBase
     private readonly List<(IdFraming F, IdAdjustments A)> _undo = [];
     private MagickImage? _source;
     private MagickImage? _proxy;
+    private List<MagickImage> _levels = [];
     private double _proxyScale = 1;
     private int _renderVersion;
     private bool _syncing;
@@ -57,6 +58,12 @@ public sealed partial class IdViewModel : ViewModelBase
     public IdViewModel(AppServices services)
     {
         _services = services;
+        Tone.Changed += tag =>
+        {
+            if (_syncing || Framing is null) return;
+            PushUndo(tag ?? "adjust");
+            Rerender();
+        };
         foreach (var s in IdSizes.BuiltIn) Sizes.Add(new IdSizeItem(s));
         SelectedSize = Sizes[1];
         Sizes[1].IsSelected = true;
@@ -68,6 +75,9 @@ public sealed partial class IdViewModel : ViewModelBase
             RaiseSheet();
         };
     }
+
+    /// <summary>Histogram, levels and tone sliders, the same controls as in the Photos editor (prompt_03 §7).</summary>
+    public ToneAdjustmentsViewModel Tone { get; } = new();
 
     /// <summary>Set by the view: file and folder pickers (not available in headless tests).</summary>
     public Func<Task<string?>>? PickPhoto { get; set; }
@@ -183,7 +193,7 @@ public sealed partial class IdViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FrameRatio), nameof(Capacity), nameof(FamiliarCounts))]
+    [NotifyPropertyChangedFor(nameof(FrameRatio), nameof(Capacity), nameof(FamiliarCounts), nameof(HasStripOption))]
     public partial IdSizeItem SelectedSize { get; set; }
 
     [ObservableProperty]
@@ -219,18 +229,6 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial double Rotation { get; set; }
 
     [ObservableProperty]
-    public partial double Exposure { get; set; }
-
-    [ObservableProperty]
-    public partial double Contrast { get; set; }
-
-    [ObservableProperty]
-    public partial double Temperature { get; set; }
-
-    [ObservableProperty]
-    public partial double Tint { get; set; }
-
-    [ObservableProperty]
     public partial double BackgroundBrightness { get; set; }
 
     [ObservableProperty]
@@ -252,8 +250,9 @@ public sealed partial class IdViewModel : ViewModelBase
     [ObservableProperty]
     public partial decimal SpacingMm { get; set; } = 2;
 
+    /// <summary>3×4 only: keep the 7 mm white strip below each photo (FR-074).</summary>
     [ObservableProperty]
-    public partial bool CutGuides { get; set; } = true;
+    public partial bool IncludeStrip { get; set; } = true;
 
     [ObservableProperty]
     public partial bool SaveAsPng { get; set; }
@@ -272,22 +271,24 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public double FrameRatio => SelectedSize.Size.Ratio;
 
-    public int Capacity => SheetLayout.CapacityFor(SelectedSize.Size, (double)MarginMm, (double)SpacingMm);
+    public int Capacity => SheetLayout.CapacityFor(SelectedSize.Size, (double)MarginMm, (double)SpacingMm, IncludeStrip);
+
+    public bool HasStripOption => SelectedSize.Size.StripBelowMm > 0;
+
+    public string PageText => Localizer.Instance[CurrentLayout().Landscape ? "PageLandscape" : "PagePortrait"];
 
     public IReadOnlyList<int> FamiliarCounts => SelectedSize.Size.FamiliarCounts.Where(c => c <= Capacity).Append(Capacity).Distinct().Order().ToList();
 
     public string SourceName => SourcePath is null ? string.Empty : Path.GetFileName(SourcePath);
 
-    public IdAdjustments Adjustments => new(Exposure, Contrast, Temperature, Tint, BackgroundBrightness);
+    public IdAdjustments Adjustments => new(Tone.ApplyTo(new Core.Editing.EditRecipe()), BackgroundBrightness);
 
     public string CopiesText => Localizer.Instance.Format("OfPlaces", Capacity);
 
     public string FileNamePreview => IdFileNames.Base(DateTime.Now) + (SaveAsPng ? ".png" : ".jpg");
 
     public string PhotoInfo => Localizer.Instance.Format("IdPhotoInfo", SelectedSize.Label, SelectedSize.Size.WidthPx, SelectedSize.Size.HeightPx)
-        + (SelectedSize.Size.StripBelowMm > 0 ? "  ·  " + Localizer.Instance["StripNote"] : string.Empty);
-
-    public string ExposureText => Localizer.Instance.Format("ExposureValue", Exposure);
+        + (HasStripOption && IncludeStrip ? "  ·  " + Localizer.Instance["StripNote"] : string.Empty);
 
     public string RotationText => string.Format(Localizer.Instance.Culture, "{0:+0.0;−0.0;0.0}°", Rotation);
 
@@ -310,20 +311,30 @@ public sealed partial class IdViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            var (source, proxy) = await Task.Run(() =>
+            var (source, proxy, levels) = await Task.Run(() =>
             {
                 var full = ImageLoader.Load(path);
                 var small = (MagickImage)full.Clone();
                 if (Math.Max(small.Width, small.Height) > ProxyEdge) small.Resize(new MagickGeometry(ProxyEdge, ProxyEdge));
-                return (full, small);
+                // Half and quarter size copies keep the framing preview fast at any zoom.
+                var list = new List<MagickImage> { small };
+                for (var i = 0; i < 2 && list[^1].Width > 400; i++)
+                {
+                    var half = (MagickImage)list[^1].Clone();
+                    half.Resize(new Percentage(50));
+                    list.Add(half);
+                }
+
+                return (full, small, list);
             });
             await _renderGate.WaitAsync();
             try
             {
                 _source?.Dispose();
-                _proxy?.Dispose();
+                foreach (var l in _levels) l.Dispose();
                 _source = source;
                 _proxy = proxy;
+                _levels = levels;
                 _proxyScale = (double)proxy.Width / source.Width;
             }
             finally
@@ -419,15 +430,12 @@ public sealed partial class IdViewModel : ViewModelBase
         SetFraming(Framing with { RotationDeg = Math.Round(value, 1) }, "rotate");
     }
 
-    partial void OnExposureChanged(double value) => AdjustmentChanged(nameof(ExposureText));
-
-    partial void OnContrastChanged(double value) => AdjustmentChanged(null);
-
-    partial void OnTemperatureChanged(double value) => AdjustmentChanged(null);
-
-    partial void OnTintChanged(double value) => AdjustmentChanged(null);
-
-    partial void OnBackgroundBrightnessChanged(double value) => AdjustmentChanged(null);
+    partial void OnBackgroundBrightnessChanged(double value)
+    {
+        if (_syncing || Framing is null) return;
+        PushUndo("background");
+        Rerender();
+    }
 
     partial void OnShowBeforeChanged(bool value) => Rerender();
 
@@ -437,15 +445,9 @@ public sealed partial class IdViewModel : ViewModelBase
 
     partial void OnSpacingMmChanged(decimal value) => RaiseSheet();
 
-    partial void OnCutGuidesChanged(bool value) => RaiseSheet();
+    partial void OnIncludeStripChanged(bool value) => RaiseSheet();
 
     partial void OnSaveAsPngChanged(bool value) => OnPropertyChanged(nameof(FileNamePreview));
-
-    [RelayCommand]
-    private void ExposureMinus() => Exposure = Math.Clamp(Math.Round((Exposure - 1.0 / 6) * 6) / 6, -2, 2);
-
-    [RelayCommand]
-    private void ExposurePlus() => Exposure = Math.Clamp(Math.Round((Exposure + 1.0 / 6) * 6) / 6, -2, 2);
 
     [RelayCommand]
     private void ResetFraming()
@@ -460,7 +462,8 @@ public sealed partial class IdViewModel : ViewModelBase
         _initial = IdFraming.Initial(_source.Width, _source.Height, SelectedSize.Size);
         _undo.Clear();
         _syncing = true;
-        Exposure = Contrast = Temperature = Tint = BackgroundBrightness = 0;
+        Tone.Load(new Core.Editing.EditRecipe());
+        BackgroundBrightness = 0;
         _syncing = false;
         Framing = _initial;
         SyncSliders();
@@ -474,10 +477,7 @@ public sealed partial class IdViewModel : ViewModelBase
         var (f, a) = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
         _syncing = true;
-        Exposure = a.Exposure;
-        Contrast = a.Contrast;
-        Temperature = a.Temperature;
-        Tint = a.Tint;
+        Tone.Load(a.Tone);
         BackgroundBrightness = a.BackgroundBrightness;
         _syncing = false;
         Framing = f;
@@ -526,14 +526,6 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public int ViewportHeight => (int)Math.Round(PreviewFrameHeight * 1.3);
 
-    private void AdjustmentChanged(string? textProperty)
-    {
-        if (textProperty is not null) OnPropertyChanged(textProperty);
-        if (_syncing || Framing is null) return;
-        PushUndo("adjust");
-        Rerender();
-    }
-
     private string? _lastTag;
     private DateTime _lastTime;
 
@@ -574,19 +566,24 @@ public sealed partial class IdViewModel : ViewModelBase
         try
         {
             if (version != _renderVersion || _proxy is null || Framing is null) return;
-            var proxy = _proxy;
             var framing = Framing;
             var size = SelectedSize.Size;
             var adj = ShowBefore ? new IdAdjustments() : Adjustments;
-            var (fw, vw, vh, k) = ((int)Math.Round(PreviewFrameWidth), ViewportWidth, ViewportHeight, _proxyScale);
-            var data = await Task.Run(() =>
+            var fw = (int)Math.Round(PreviewFrameWidth);
+            var (vw, vh) = (ViewportWidth, ViewportHeight);
+            var (proxy, factor) = IdRenderer.PreviewLevel(_levels, fw / (framing.FrameWidthSource * _proxyScale));
+            var k = _proxyScale * factor;
+            var frame = new Core.Geometry.PixelRect((vw - fw) / 2, (int)Math.Round((vh - PreviewFrameHeight) / 2), fw, (int)PreviewFrameHeight);
+            var (data, histogram) = await Task.Run(() =>
             {
                 using var img = IdRenderer.RenderPreview(proxy, k, framing, size, adj, fw, vw, vh);
-                return PixelData.From(img);
+                var pixels = PixelData.From(img);
+                return (pixels, ImageStatistics.Histogram(pixels, frame));
             });
             var old = Preview;
             Preview = BitmapFactory.Create(data);
             (old as IDisposable)?.Dispose();
+            Tone.Histogram = histogram;
         }
         catch (MagickException ex)
         {
@@ -601,7 +598,7 @@ public sealed partial class IdViewModel : ViewModelBase
     // ------------------------------------------------------------------ sheet
 
     private SheetLayout CurrentLayout() =>
-        SheetLayout.Compute(SelectedSize.Size, new SheetOptions(Copies, (double)MarginMm, (double)SpacingMm, CutGuides));
+        SheetLayout.Compute(SelectedSize.Size, new SheetOptions(Copies, (double)MarginMm, (double)SpacingMm, IncludeStrip));
 
     private void RaiseSheet()
     {
@@ -610,6 +607,8 @@ public sealed partial class IdViewModel : ViewModelBase
         OnPropertyChanged(nameof(CopiesText));
         OnPropertyChanged(nameof(PhotoInfo));
         OnPropertyChanged(nameof(FileNamePreview));
+        OnPropertyChanged(nameof(PageText));
+        OnPropertyChanged(nameof(HasStripOption));
         if (Copies > Capacity && Capacity > 0) Copies = Capacity;
         if (IsSheetStep) _ = RenderSheetPreviewAsync();
     }
@@ -622,11 +621,10 @@ public sealed partial class IdViewModel : ViewModelBase
         var size = SelectedSize.Size;
         var adj = Adjustments;
         var layout = CurrentLayout();
-        var guides = CutGuides;
         var data = await Task.Run(() =>
         {
             using var photo = IdRenderer.Render(proxy, framing, size, adj);
-            using var sheet = SheetRenderer.Render(photo, layout, guides);
+            using var sheet = SheetRenderer.Render(photo, layout);
             return PixelData.From(sheet);
         });
         var old = SheetPreview;
@@ -666,14 +664,13 @@ public sealed partial class IdViewModel : ViewModelBase
             var size = SelectedSize.Size;
             var adj = Adjustments;
             var layout = CurrentLayout();
-            var guides = CutGuides;
             var kind = SaveAsPng ? ImageKind.Png : ImageKind.Jpeg;
             var folder = OutputFolder!;
             var quality = _services.Settings.JpegQuality;
             var path = await Task.Run(() =>
             {
                 using var photo = IdRenderer.Render(source, framing, size, adj);
-                using var sheet = SheetRenderer.Render(photo, layout, guides);
+                using var sheet = SheetRenderer.Render(photo, layout);
                 var bytes = IdOutput.Encode(sheet, kind, quality);
                 return IdExporter.Write(folder, bytes, kind == ImageKind.Png ? ".png" : ".jpg", DateTime.Now);
             });

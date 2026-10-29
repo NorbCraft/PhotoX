@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Plan revision** | **P-2** (2026-10-29). Supersedes P-1. |
+| **Plan revision** | **P-2** (2026-10-29), updated with the owner's feedback of [prompt_03.md](prompts/prompt_03.md) (marked "prompt_03"). Supersedes P-1. |
 | **Approval** | Approved for implementation by the owner in [prompt_02.md](prompts/prompt_02.md), which supersedes conflicting parts of [prompt_01.md](prompts/prompt_01.md). |
 | **Current version** | see `Directory.Build.props` and [CHANGELOG.md](CHANGELOG.md) |
 
@@ -97,16 +97,16 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, short list of recent folders. Hidden/system folders and `Original` are not shown as part of an order. | M | Owner | 0.1.0 | Implemented | TS-10, TS-18 |
-| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. | M | Owner | 0.1.0 | Implemented | TS-10, TS-18 |
+| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, the **four most recent orders in a collapsible section**. The tree behaves like a desktop explorer: clicking a folder selects, opens and expands it; subfolders are nested; folders without subfolders have no arrow; the selected folder is clearly marked (prompt_03). Hidden/system folders and `Original` are not shown as part of an order. | M | Owner | 0.1.0, 0.5.0 | Implemented | TS-10, TS-18 |
+| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. The selected photo is clearly highlighted (prompt_03). | M | Owner | 0.1.0 | Implemented | TS-10, TS-18 |
 | FR-008 | **Two workspaces**, *Photos* and *ID Photos*, switched from a persistent top bar. | M | Owner | 0.1.0 | Implemented | TS-18 |
 | FR-009 | **English/Romanian**, switchable at runtime from the top bar; choice remembered; culture-correct numbers (RO `3,5 × 4,5 cm`); comma-below ș/ț; consistent terminology and form of address. | M | Owner | 0.1.0 | Implemented | TS-16 |
-| FR-039 | **Neutral dark theme**, large clear primary actions, collapsible browse details panel, clear *Back to folder* action. | M | Owner | 0.1.0 | Implemented | TS-18 |
+| FR-039 | **Neutral dark theme**, large clear primary actions, collapsible browse details panel, a recognisable folder/back icon for *Back to folder*, and adjustment panels (Photos and ID) that are resized by dragging their separator, with the image using the remaining space (prompt_03). | M | Owner | 0.1.0, 0.5.0 | Implemented | TS-18 |
 | FR-040 | **Settings** for infrequent options: print-format dimensions (data file), JPEG quality, thumbnail cache (size, age, *Clear cache*), ID output folder. Not needed for daily work. | M | Planner | 0.2.0 | Implemented | TS-18 |
 | FR-041 | **Multiple selection** in the gallery. | C | Owner (“consider”) | Deferred | Deferred | — |
 | FR-053 | **Thumbnails:** generated in the background (visible first); persistent cache capped at 1 GB, 30-day retention, with *Clear cache*. Cache entries of an order are removed by Finish Order where practical. | M | Owner | 0.1.0 (gen), 0.2.0 (cache) | Implemented | TS-11 |
 | FR-054 | **Removable-media warning:** opening a folder on removable media shows a clear warning recommending a local working copy. Editing is allowed. | S | Owner | 0.2.0 | Implemented | TS-18 |
-| FR-077 | **Logo and application icon:** a simple original PhotoX logo used in the main window, About screen and Windows installation (editable SVG source). | S | Owner | 0.4.0 | Implemented | — |
+| FR-077 | **Logo and application icon:** a simple original PhotoX logo used as the window icon, in the About screen and in the Windows installation (editable SVG source). The name and icon appear once, in the native title bar (prompt_03, DEC-048). | S | Owner | 0.4.0 | Implemented | — |
 
 ### 5.2 Editor navigation and saving workflow
 
@@ -114,7 +114,7 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 |---|---|---|---|---|---|---|
 | FR-003 | **Default crop on an unedited photo:** crop tool active, preset **10×15**, orientation matching the photo, **largest centred rectangle** of the ratio, ratio locked. If the photo already has the ratio, the whole image. Opening a photo never writes to disk. | M | Owner | 0.1.0 | Implemented | TS-01, TS-07 |
 | FR-004 | **Save & Next (Enter and button):** save using the **current edits and exactly the currently selected crop** (never reset, re-centred or enlarged), **wait until the save succeeds**, then open the next photo. On failure: stay on the photo, keep the edits, explain the problem. No background save queue. Work runs off the UI thread so the UI stays responsive (a progress indicator is shown). | M | Owner | 0.1.0 | Implemented | TS-07 |
-| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. | M | Owner | 0.1.0 | Implemented | TS-07, TS-18 |
+| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. When every photo is saved or reviewed, **Save & Next becomes Close** (back to the gallery) and the gallery's main **Start editing** button becomes **Finish Order** (prompt_03). | M | Owner | 0.1.0, 0.5.0 | Implemented | TS-07, TS-18 |
 | FR-018 | **Keyboard:** Enter = Save & Next; Ctrl+S = Save; ←/→ (or PgUp/PgDn) = Previous / Next; Ctrl+Z / Ctrl+Y = Undo / Redo; Space (hold) = before/after. Auto-repeat of held keys is ignored. Editor shortcuts never act while a dialog, text field, numeric input or a control that uses the key has focus. | M | Owner | 0.1.0 | Implemented | TS-07, TS-18 |
 | FR-019 | **Unsaved changes** are clearly indicated (editor and filmstrip/gallery). Skip/Previous keep *manual* edits in memory for the session (marked Unsaved) and never save them silently. Skipping never accepts or saves the default crop. | M | Owner | 0.1.0 | Implemented | TS-07 |
 | FR-016 | **Undo/redo** of edit steps for the current photo; **Reset** returns to the default state. | M | Owner | 0.2.0 | Implemented | TS-04 |
@@ -128,15 +128,15 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 |---|---|---|---|---|---|---|
 | FR-010 | **Crop presets:** **10×15** (default), **15×20**, **13×18**, **Custom** (ratio or W×H). Definitions are simple configuration data (§8.1). | M | Owner | 0.1.0 (10×15, 15×20), 0.2.0 (13×18, Custom) | Implemented | TS-01 |
 | FR-011 | **Print-format data:** ratio and physical size per preset (10×15 = 4×6 in = 101.6×152.4 mm, 2:3; 15×20 = 6×8 in = 152.4×203.2 mm, 3:4). Used for ratio, effective ppi and the 13×18 canvas. Independent of printer overscan. | M | Owner | 0.1.0 | Implemented | TS-01 |
-| FR-012 | **Crop interaction:** move; resize with locked ratio; portrait/landscape toggle; dimmed outside area; thirds grid; *Fit* (largest frame) and *Reset crop*. The frame stays inside the image. Output pixel size and ppi are shown. | M | Owner | 0.1.0 | Implemented | TS-01, TS-18 |
-| FR-049 | **Composition modes:** **Crop to fill** (default) and **Whole photo with white borders**. The latter keeps the entire photo and extends the canvas with white to the output ratio, without resampling its pixels. | M | Owner | 0.2.0 | Implemented | TS-01, TS-06 |
+| FR-012 | **Crop interaction:** move; resize with locked ratio; portrait/landscape toggle shown as recognisable rectangle icons; dimmed outside area; thirds grid; *Fit* (largest frame) and *Reset crop*. The frame stays inside the image. Output pixel size and ppi are shown. **Applying the crop** (double-click inside the frame, the crop button, or after Save) shows the actual result fitted to the viewer without the frame; editing and undo continue; double-click does not save; each photo opens with the crop frame (prompt_03, DEC-045). One fixed toolbar row keeps its order and scrolls rather than wrapping on narrow windows. | M | Owner | 0.1.0, 0.5.0 | Implemented | TS-01, TS-18 |
+| FR-049 | **Composition modes:** **Crop to fill** (default) and **Whole photo with white borders**, shown as one segmented button with the active part highlighted (prompt_03). The latter keeps the entire photo and extends the canvas with white to the output ratio, without resampling its pixels. | M | Owner | 0.2.0 | Implemented | TS-01, TS-06 |
 | FR-073 | **13×18 on 15×20:** crop to exactly 130:180 (or 180:130 landscape), then centre it on a white 15×20 canvas at a consistent physical scale, so that printing the canvas at 15×20 reproduces the photo at 130×180 mm. Photo pixels are preserved. | M | Owner | 0.2.0 | Implemented | TS-01, TS-06 |
 | FR-006 | **Exposure and histogram correction** (umbrella): detailed by FR-013, FR-043, FR-044 and FR-045. | M | Owner | 0.1.0–0.2.0 | Implemented | TS-03, TS-04 |
-| FR-013 | **Exposure:** slider plus − / + buttons (±1/6 EV per step, range ±2 EV). | M | Owner | 0.1.0 | Implemented | TS-04 |
-| FR-014 | **Contrast, saturation, white balance (temperature) and tint** (green–magenta) sliders with neutral centre and double-click reset. | M | Owner | 0.2.0 | Implemented | TS-04 |
-| FR-015 | **Rotation** 90° left/right and **straightening** (±10°); the crop stays inside the valid area. | M | Owner | 0.2.0 | Implemented | TS-01, TS-02 |
-| FR-043 | **Live histogram:** luminance plus R, G and B of the edited preview. | M | Owner | 0.2.0 | Implemented | TS-03 |
-| FR-044 | **Levels:** black point, white point and midtones, with reset. | M | Owner | 0.2.0 | Implemented | TS-03 |
+| FR-013 | **Exposure:** slider plus − / + buttons that change exposure directly and stay in sync with the slider (±1/6 EV per step, range ±2 EV). | M | Owner | 0.1.0 | Implemented | TS-04 |
+| FR-014 | **Contrast, white balance (temperature), tint and saturation** sliders, in that order below exposure, with neutral centre and double-click reset. Slider tracks show their effect: exposure dark → bright, contrast low → high (grey to black/white), white balance blue → orange, tint magenta → green, saturation grey → colourful (prompt_03). | M | Owner | 0.2.0, 0.5.0 | Implemented | TS-04 |
+| FR-015 | **Rotation** 90° left/right and **straightening** (±10°) in the toolbar, straightening right after the rotation buttons, with smooth preview while dragging; the crop stays inside the valid area. | M | Owner | 0.2.0, 0.5.0 | Implemented | TS-01, TS-02 |
+| FR-043 | **Live histogram:** compact luminance histogram of the edited preview inside the crop (separate RGB curves are not needed, prompt_03). | M | Owner | 0.2.0, 0.5.0 | Implemented | TS-03 |
+| FR-044 | **Levels:** one horizontal bar under the histogram with three draggable triangles for black point, midtones and white point; the preview updates while dragging; reset (prompt_03). | M | Owner | 0.2.0, 0.5.0 | Implemented | TS-03 |
 | FR-045 | **Auto Correct (single photo):** conservative exposure/levels (and mild colour) correction. It sets ordinary slider values, so the result stays adjustable and undoable. No histogram equalisation. | M | Owner | 0.2.0 | Implemented | TS-04 |
 
 ### 5.4 Files, saving and order lifecycle
@@ -168,12 +168,12 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | FR-061 | **Geometric sizes:** 3×4 cm, 3.5×4.5 cm, **2×2 in** (50.8×50.8 mm, shown as ≈ 5.1 × 5.1 cm), **4×6 cm**, **5×7 cm**, 9×12 cm, Custom. No country-specific templates and no compliance claims. Data, not code. | M | Owner | 0.3.0 | Implemented | TS-14 |
 | FR-062 | **Framing:** fixed frame of the size's ratio; the photo is moved, zoomed and rotated underneath (mouse, wheel, keys, sliders). Face oval plus crown, eye, chin and centre guides. | M | Owner | 0.3.0 | Implemented | TS-14 |
 | FR-063 | **Auto Align** only on button press: offline face detection positions, scales and levels the face to the guides. The result is adjustable and undoable. **With several faces the operator chooses** (or keeps manual framing). No face found gives a clear message. | M | Owner | 0.4.0 | Implemented | TS-13 |
-| FR-064 | **ID adjustments:** exposure, contrast, white balance, tint, manual **background brightness**. Undo/reset and before/after where useful. | M | Owner | 0.3.0 | Implemented | TS-04, TS-14 |
+| FR-064 | **ID adjustments:** the same controls as the Photos editor (histogram with levels handles, exposure − / +, contrast, white balance, tint, saturation; same look and order, prompt_03, DEC-047), plus manual **background brightness**. Undo/reset and before/after where useful. | M | Owner | 0.3.0, 0.5.0 | Implemented | TS-04, TS-14 |
 | FR-065 | **Automatic background whitening:** experimental; bounded investigation. Included only if useful, otherwise the limitation is recorded. It never delays other work. | C | Owner | 0.4.0 (evaluate) | Not included (evaluated; DEC-041) | TS-13 |
-| FR-066 | **Sheet layouts:** simple uniform grids on a portrait 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. | M | Owner | 0.3.0 | Implemented | TS-15 |
-| FR-074 | **3×4 with 7 mm strip:** the 3×4 sheet reserves at least **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. Cut guides keep the strip. The copy count is reduced if needed. | M | Owner | 0.3.0 | Implemented | TS-15 |
-| FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; optional cut guides. | M | Owner | 0.3.0 | Implemented | TS-15, TS-18 |
-| FR-068 | **ID export:** JPEG or PNG at **300 ppi**; nominal page 1200×1800 px; each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Implemented | TS-15 |
+| FR-066 | **Sheet layouts:** simple uniform grids on a 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. **3×4 photos use a landscape page; other sizes use landscape when it fits more copies** (prompt_03, DEC-046). Photos keep their size and upright orientation. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. | M | Owner | 0.3.0, 0.5.0 | Implemented | TS-15 |
+| FR-074 | **3×4 with 7 mm strip:** an option, offered only for 3×4 and on by default, reserves **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. The strip is also the gap to the next row (DEC-046). The copy count is reduced if needed. | M | Owner | 0.3.0, 0.5.0 | Implemented | TS-15 |
+| FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; the 3×4 strip option. No general cut-guide option (prompt_03). | M | Owner | 0.3.0, 0.5.0 | Implemented | TS-15, TS-18 |
+| FR-068 | **ID export:** JPEG or PNG at **300 ppi**; page 1200×1800 px (portrait) or 1800×1200 px (landscape); each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Implemented | TS-15 |
 | FR-075 | **ID filenames:** `ID_yyyyMMdd_HHmm.jpg` (local time). If the name exists, `_1`, `_2`, … is appended. Never overwrites. | M | Owner | 0.3.0 | Implemented | TS-15 |
 | FR-071 | **Calibration test sheet:** a printable page with mm rulers, the 7 mm strip, a centred 13×18-on-15×20 frame and ID reference rectangles, for checking physical output through Citizen's software. A simple configurable scale correction for ID export (default none) can be applied if physical tests require it. | S | Owner | 0.3.0 | Implemented (physical print check pending) | TS-15 |
 
@@ -189,11 +189,11 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | ID | Requirement | Src | Progress | Tests |
 |---|---|---|---|---|
 | NFR-001 | **Offline and private.** No network use. No customer data leaves the machine. | Owner | Implemented | review |
-| NFR-002 | **Platforms:** Windows 11 x64 production; Linux development. | Owner | In progress (Linux verified; Windows pending owner) | TS-17 |
-| NFR-003 | **Responsiveness:** the UI never freezes during loading, thumbnails or saving. Performance is reported from **measurements** on the reference machine, not assumed. | Owner | In progress (measured on the development PC; reference PC pending) | TS-11 |
+| NFR-002 | **Platforms:** Windows 11 x64 production; Linux development. | Owner | In progress (owner ran 0.4.0 on Windows 11; automated tests run on Windows in CI; studio trial pending) | TS-17 |
+| NFR-003 | **Responsiveness:** the UI never freezes during loading, thumbnails or saving; sliders, straightening, cropping and navigation feel immediate on a four-core studio PC (prompt_03). Performance is reported from **measurements**, not assumed. | Owner | In progress (measured on the development PC limited to 4 cores; studio PC pending) | TS-11 |
 | NFR-004 | **Memory:** bounded caches. Memory is checked before large operations. | Owner | Implemented | TS-12 |
 | NFR-005 | **Save safety:** a failed save never damages the existing photo or its preserved original (FR-005, FR-021–FR-023). | Owner | Implemented | TS-08 |
-| NFR-006 | **Image fidelity:** no unintended resampling; no colour shift for sRGB sources; one JPEG generation from the original while history is kept. | Owner | Planned | TS-05, TS-06 |
+| NFR-006 | **Image fidelity:** no unintended resampling; no colour shift for sRGB sources; one JPEG generation from the original while history is kept. | Owner | Implemented (exact crop pixels, neutral recipe leaves pixels unchanged, re-edits render from the original; fast tone path equal to Magick within one 16-bit level) | TS-05, TS-06 |
 | NFR-007 | **Usability:** large primary actions; usable at common Windows resolutions (1366×768 to 4K) and 100–200 % scaling; mouse and keyboard first. | Owner | In progress (headless 1280×720 to 1920×1080 checked; Windows scaling pending) | TS-18 |
 | NFR-008 | **Localization quality:** no hard-coded UI text; key parity between EN and RO; Romanian wording reviewed by the owner. | Owner | In progress (owner review pending) | TS-16 |
 | NFR-009 | **Maintainability:** modest separation of UI, image processing, file handling and pure geometry. No abstractions without a concrete use. | Owner | Implemented | review |
@@ -259,15 +259,15 @@ Progress = (Edited + Reviewed) / total. After Finish Order with **Erase**, all p
 
 | Size | mm | px at 300 ppi | Familiar copy counts* |
 |---|---|---|---|
-| 3×4 cm (+7 mm strip) | 30 × 40 (cell 30 × 47) | 354 × 472 | 4, 6, 8 (up to 9) |
-| 3.5×4.5 cm | 35 × 45 | 413 × 531 | 2, 4, 6 |
+| 3×4 cm (+7 mm strip) | 30 × 40 (cell 30 × 47) | 354 × 472 | 4, 6, 8 (landscape page, 8 fit) |
+| 3.5×4.5 cm | 35 × 45 | 413 × 531 | 2, 4, 6 (landscape page, 8 fit) |
 | 2×2 in (≈ 5.1×5.1 cm) | 50.8 × 50.8 | 600 × 600 | 1, 2 |
 | 4×6 cm | 40 × 60 | 472 × 709 | 2, 4 |
 | 5×7 cm | 50 × 70 | 591 × 827 | 1, 2 |
 | 9×12 cm | 90 × 120 | 1063 × 1417 | 1 |
 | Custom | user | computed | up to capacity |
 
-\*The capacity is computed from margins (default 3 mm) and spacing (default 2 mm) on a portrait 101.6×152.4 mm page. The exact capacities are verified by tests (TS-15). Copy counts are selectable from 1 to capacity, and the familiar counts are offered as quick choices.
+\*The capacity is computed from margins (default 3 mm) and spacing (default 2 mm) on a 101.6×152.4 mm page, landscape for 3×4 and wherever landscape fits more (DEC-046). Other sizes fit: 2×2 in → 2, 4×6 cm → 4, 5×7 cm → 2, 9×12 cm → 1 (portrait). The exact capacities are verified by tests (TS-15). Copy counts are selectable from 1 to capacity, and the familiar counts are offered as quick choices.
 
 ## 9. Deferred
 

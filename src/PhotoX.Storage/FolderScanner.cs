@@ -38,9 +38,7 @@ public static partial class FolderScanner
     {
         try
         {
-            return new DirectoryInfo(folder)
-                .EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.Hidden | FileAttributes.System })
-                .Where(d => !d.Name.StartsWith('.') && !string.Equals(d.Name, OrderSidecar.OriginalFolderName, StringComparison.OrdinalIgnoreCase))
+            return VisibleSubFolders(folder)
                 .Select(d => d.FullName)
                 .OrderBy(n => Path.GetFileName(n), NaturalComparer.Instance)
                 .ToList();
@@ -50,4 +48,22 @@ public static partial class FolderScanner
             return [];
         }
     }
+
+    /// <summary>True if the explorer would show at least one subfolder (stops at the first one).</summary>
+    public static bool HasSubFolders(string folder)
+    {
+        try
+        {
+            return VisibleSubFolders(folder).Any();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return false;
+        }
+    }
+
+    private static IEnumerable<DirectoryInfo> VisibleSubFolders(string folder) =>
+        new DirectoryInfo(folder)
+            .EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.Hidden | FileAttributes.System })
+            .Where(d => !d.Name.StartsWith('.') && !string.Equals(d.Name, OrderSidecar.OriginalFolderName, StringComparison.OrdinalIgnoreCase));
 }

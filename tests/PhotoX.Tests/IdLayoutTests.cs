@@ -1,3 +1,4 @@
+using PhotoX.Core.Geometry;
 using PhotoX.Core.Id;
 
 namespace PhotoX.Tests;
@@ -19,38 +20,53 @@ public class IdLayoutTests
     }
 
     [Theory]
-    [InlineData("3x4", 9)]   // 3 × 3 with the 7 mm strip
-    [InlineData("35x45", 6)] // 2 × 3
-    [InlineData("2x2in", 2)]
-    [InlineData("4x6cm", 4)]
-    [InlineData("5x7cm", 2)]
-    [InlineData("9x12", 1)]
-    public void Capacities_with_default_margins(string id, int capacity) =>
-        Assert.Equal(capacity, SheetLayout.CapacityFor(IdSizes.BuiltIn.Single(s => s.Id == id)));
+    [InlineData("3x4", true, 8)]   // landscape 4 × 2; each 7 mm strip is also the gap to the next row (prompt_03 §7)
+    [InlineData("35x45", true, 8)] // landscape 4 × 2 fits more than portrait 2 × 3
+    [InlineData("2x2in", false, 2)]
+    [InlineData("4x6cm", false, 4)]
+    [InlineData("5x7cm", false, 2)]
+    [InlineData("9x12", false, 1)]
+    public void Orientation_and_capacity_with_default_margins(string id, bool landscape, int capacity)
+    {
+        var layout = SheetLayout.Compute(IdSizes.BuiltIn.Single(s => s.Id == id), new SheetOptions(99));
+        Assert.Equal((landscape, capacity), (layout.Landscape, layout.Capacity));
+        Assert.Equal(capacity, layout.Photos.Count);
+    }
 
     [Fact]
-    public void Three_by_four_keeps_7mm_strip_below_every_photo_and_cuts_below_it()
+    public void Three_by_four_keeps_7mm_strip_below_every_photo_on_a_landscape_page()
     {
         var size = IdSizes.S3x4;
         var layout = SheetLayout.Compute(size, new SheetOptions(8));
+        Assert.True(layout.Landscape);
+        Assert.Equal((152.4, 101.6), (layout.PageWidthMm, layout.PageHeightMm));
         Assert.Equal(8, layout.Photos.Count);
         foreach (var (photo, cell) in layout.Photos.Zip(layout.Cells))
         {
-            Assert.Equal(30, photo.Width, 9);
-            Assert.Equal(40, photo.Height, 9);
+            Assert.Equal((30.0, 40.0), (photo.Width, photo.Height));  // upright, exact size
             Assert.Equal(47, cell.Height, 9);
             Assert.Equal(photo.Y, cell.Y, 9);
-            // No cut line runs along the photo's lower edge (the strip is kept), but one runs 7 mm below it.
-            Assert.DoesNotContain(layout.CutY, y => Math.Abs(y - photo.Bottom) < 1e-6);
-            Assert.Contains(layout.CutY, y => Math.Abs(y - (photo.Bottom + 7)) < 1e-6);
+            // The strip below each photo is free of other photos, so every photo can be cut as 30 × 47 mm.
+            var strip = new RectD(photo.X, photo.Bottom, photo.Width, 7);
+            Assert.DoesNotContain(layout.Photos, other => other != photo && other.Y < strip.Bottom - 1e-6 && other.Bottom > strip.Y + 1e-6
+                && other.X < strip.Right && other.Right > strip.X);
         }
 
-        // Nothing overlaps and everything stays on the page with at least the margin.
         foreach (var c in layout.Cells)
         {
-            Assert.True(c.X >= 3 - 1e-6 && c.Right <= SheetOptions.PageWidthMm - 3 + 1e-6);
-            Assert.True(c.Y >= 3 - 1e-6 && c.Bottom <= SheetOptions.PageHeightMm - 3 + 1e-6);
+            Assert.True(c.X >= 3 - 1e-6 && c.Right <= layout.PageWidthMm - 3 + 1e-6);
+            Assert.True(c.Y >= 3 - 1e-6 && c.Bottom <= layout.PageHeightMm - 3 + 1e-6);
         }
+    }
+
+    [Fact]
+    public void Three_by_four_without_strip_uses_the_spacing_between_rows()
+    {
+        var layout = SheetLayout.Compute(IdSizes.S3x4, new SheetOptions(8, Strip: false));
+        Assert.True(layout.Landscape);
+        Assert.Equal(8, layout.Capacity);
+        var rows = layout.Photos.Select(p => p.Y).Distinct().Order().ToList();
+        Assert.Equal(42, rows[1] - rows[0], 6); // 40 mm photo + 2 mm spacing
     }
 
     [Fact]
@@ -60,9 +76,9 @@ public class IdLayoutTests
         Assert.Equal(2, layout.Photos.Count);
         Assert.All(layout.Photos, p => Assert.Equal((35.0, 45.0), (p.Width, p.Height)));
         var left = layout.Photos.Min(p => p.X);
-        var right = SheetOptions.PageWidthMm - layout.Photos.Max(p => p.Right);
+        var right = layout.PageWidthMm - layout.Photos.Max(p => p.Right);
         Assert.Equal(left, right, 6);
-        Assert.Equal(6, SheetLayout.Compute(IdSizes.S35x45, new SheetOptions(99)).Photos.Count); // capped at capacity
+        Assert.Equal(8, SheetLayout.Compute(IdSizes.S35x45, new SheetOptions(99)).Photos.Count); // capped at capacity
     }
 
     [Fact]

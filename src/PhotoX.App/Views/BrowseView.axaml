@@ -26,9 +26,15 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="10,18,10,0" Spacing="2" IsVisible="{Binding RecentFolders.Count}">
-          <TextBlock Classes="section" Text="{l:Tr RecentFolders}" Margin="8,0,0,6" />
-          <ItemsControl ItemsSource="{Binding RecentFolders}">
+        <StackPanel Grid.Row="1" Margin="10,14,10,0" Spacing="2" IsVisible="{Binding RecentFolders.Count}">
+          <!-- Four most recent orders, collapsible (prompt_03 §2) -->
+          <Button Classes="list" Focusable="False" Padding="8,2" Command="{Binding ToggleRecentCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Classes="section" Text="{l:Tr RecentFolders}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding RecentCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{StaticResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <ItemsControl ItemsSource="{Binding RecentFolders}" IsVisible="{Binding !RecentCollapsed}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="x:String">
                 <Button Classes="list" Focusable="False" ToolTip.Tip="{Binding}"
@@ -44,18 +50,30 @@
         </StackPanel>
         <DockPanel Grid.Row="2" Margin="10,18,10,8">
           <TextBlock DockPanel.Dock="Top" Classes="section" Text="{l:Tr Folders}" Margin="8,0,0,6" />
-          <TreeView ItemsSource="{Binding FolderRoots}" SelectedItem="{Binding SelectedFolderNode}" Background="Transparent">
+          <TreeView x:Name="Folders" ItemsSource="{Binding FolderRoots}" SelectedItem="{Binding SelectedFolderNode}" Background="Transparent">
             <TreeView.Styles>
               <Style Selector="TreeViewItem" x:DataType="vm:FolderNodeViewModel">
                 <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                 <Setter Property="MinHeight" Value="30" />
+              </Style>
+              <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+                <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                <Setter Property="BorderThickness" Value="2,0,0,0" />
+              </Style>
+              <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+                <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+              </Style>
+              <Style Selector="TreeViewItem:selected TextBlock.folder">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="#D6E6FF" />
               </Style>
             </TreeView.Styles>
             <TreeView.ItemTemplate>
               <TreeDataTemplate x:DataType="vm:FolderNodeViewModel" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <Path Data="{x:Static s:IconConverter.FolderGeometry}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.6" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding Name}" FontSize="13.5" />
+                  <TextBlock Classes="folder" Text="{Binding Name}" FontSize="13.5" />
                 </StackPanel>
               </TreeDataTemplate>
             </TreeView.ItemTemplate>
@@ -89,6 +107,7 @@
       </Border>
       <TextBlock Grid.Row="2" IsVisible="{Binding !HasFolder}" Text="{l:Tr NoFolder}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Grid.Row="2" IsVisible="{Binding IsEmpty}" Text="{l:Tr NoPhotos}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="2" IsVisible="{Binding IsScanning}" Text="{l:Tr Loading}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <ListBox Grid.Row="2" x:Name="Gallery" Margin="16,0,8,8" Background="Transparent" ItemsSource="{Binding VisiblePhotos}" SelectedItem="{Binding SelectedPhoto}"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListBox.ItemsPanel>
@@ -103,15 +122,29 @@
           <Style Selector="ListBoxItem:selected /template/ ContentPresenter, ListBoxItem:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
           </Style>
+          <!-- Card look lives in styles (not local values), so the selected style can override it. -->
+          <Style Selector="Border.card">
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="Background" Value="#11FFFFFF" />
+          </Style>
+          <!-- The selected photo is clearly marked (prompt_03 §2) -->
           <Style Selector="ListBoxItem:selected Border.card">
             <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+            <Setter Property="BorderThickness" Value="3" />
+            <Setter Property="BoxShadow" Value="0 0 0 3 #553B82F6" />
+          </Style>
+          <Style Selector="ListBoxItem:selected TextBlock.name">
+            <Setter Property="Foreground" Value="#D6E6FF" />
+          </Style>
+          <Style Selector="ListBoxItem:pointerover Border.card">
+            <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
           </Style>
         </ListBox.Styles>
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PhotoItemViewModel">
-            <Border Classes="card" Width="176" Height="188" CornerRadius="9" BorderThickness="2" BorderBrush="{StaticResource BorderBrush}" Background="#11FFFFFF"
-                    DoubleTapped="OnPhotoDoubleTapped">
+            <Border Classes="card" Width="176" Height="188" CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped">
               <Grid RowDefinitions="132,*" Margin="8">
                 <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                 <TextBlock Text="…" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -120,7 +153,7 @@
                   <TextBlock Text="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeGlyph}}" FontWeight="Bold" FontSize="12" Foreground="#151515" />
                 </Border>
                 <StackPanel Grid.Row="1" Margin="2,8,2,0" Spacing="2">
-                  <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="name" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                   <TextBlock Text="{Binding StateText}" FontSize="11.5" IsVisible="{Binding HasBadge}" Foreground="{Binding IsWarning, Converter={x:Static s:IconConverter.StateBrush}}" TextTrimming="CharacterEllipsis" />
                   <TextBlock Text="{Binding Info}" FontSize="11.5" IsVisible="{Binding !HasBadge}" Foreground="{StaticResource Text3Brush}" />
                 </StackPanel>
@@ -157,18 +190,22 @@
             <TextBlock Text="{Binding PhotosLeftText}" Classes="muted" FontSize="12.5" />
           </StackPanel>
           <StackPanel Grid.Row="4" Spacing="10">
-            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="62" Command="{Binding StartEditingCommand}" IsEnabled="{Binding HasFolder}">
+            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="62" Command="{Binding PrimaryActionCommand}" IsEnabled="{Binding HasFolder}">
               <Grid ColumnDefinitions="*,Auto">
-                <StackPanel HorizontalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" IsVisible="{Binding !IsOrderDone}">
                   <TextBlock Text="{l:Tr StartEditing}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
                   <TextBlock Text="{l:Tr StartEditingHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
+                </StackPanel>
+                <StackPanel HorizontalAlignment="Center" IsVisible="{Binding IsOrderDone}">
+                  <TextBlock Text="{l:Tr FinishButton}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+                  <TextBlock Text="{l:Tr FinishHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
                 </StackPanel>
                 <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
               </Grid>
             </Button>
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding EditPhotoCommand}" CommandParameter="{Binding SelectedPhoto}" IsEnabled="{Binding HasSelection}" Content="{l:Tr EditSelected}" />
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding UseForIdCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr UseForId}" />
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding FinishOrderCommand}" IsEnabled="{Binding HasFolder}" Content="{l:Tr FinishOrder}" />
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding FinishOrderCommand}" IsEnabled="{Binding HasFolder}" IsVisible="{Binding !IsOrderDone}" Content="{l:Tr FinishOrder}" />
           </StackPanel>
         </Grid>
       </Panel>

@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:PhotoX.App.ViewModels"
         xmlns:l="using:PhotoX.App.Localization"
+        xmlns:v="using:PhotoX.App.Views"
         x:Class="PhotoX.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Icon="/Assets/photox.ico"
@@ -11,12 +12,9 @@
   <Grid RowDefinitions="56,*">
     <!-- Top bar (FR-008, FR-009) -->
     <Border Grid.Row="0" Background="{StaticResource BarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+      <!-- The application name and icon appear only in the native title bar (prompt_03 §8). -->
       <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="16,0">
-        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Image Source="/Assets/photox-icon-256.png" Width="26" Height="26" />
-          <TextBlock Text="PhotoX" FontSize="19" FontWeight="Bold" VerticalAlignment="Center" />
-        </StackPanel>
-        <Border Grid.Column="1" Margin="28,0,0,0" Background="{StaticResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
+        <Border Grid.Column="1" Background="{StaticResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="4">
             <ToggleButton Classes="seg" Focusable="False" MinWidth="140" IsChecked="{Binding IsPhotosWorkspace, Mode=OneWay}" Command="{Binding ShowPhotosCommand}" Content="{l:Tr TabPhotos}" />
             <ToggleButton Classes="seg" Focusable="False" MinWidth="140" IsChecked="{Binding IsIdWorkspace, Mode=OneWay}" Command="{Binding ShowIdCommand}" Content="{l:Tr TabId}" />
@@ -45,7 +43,12 @@
       </Grid>
     </Border>
 
-    <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
+    <!-- The pages stay alive while hidden, so switching never rebuilds the gallery or the editor (prompt_03 §9). -->
+    <Panel Grid.Row="1">
+      <Panel IsVisible="{Binding IsBrowsing}"><v:BrowseView DataContext="{Binding Browse}" /></Panel>
+      <Panel IsVisible="{Binding IsEditing}"><v:EditorView DataContext="{Binding Editor}" /></Panel>
+      <Panel IsVisible="{Binding IsIdWorkspace}"><v:IdView DataContext="{Binding Id}" /></Panel>
+    </Panel>
 
     <!-- In-window dialogs (Finish Order, unsaved changes, messages) -->
     <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#99000000">
@@ -109,7 +112,10 @@
           </StackPanel>
           <StackPanel Spacing="6">
             <TextBlock Text="{l:Tr About}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding AboutText}" Classes="muted" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="Auto,*">
+              <Image Source="/Assets/photox-icon-256.png" Width="40" Height="40" VerticalAlignment="Top" Margin="0,0,12,0" />
+              <TextBlock Grid.Column="1" Text="{Binding AboutText}" Classes="muted" TextWrapping="Wrap" />
+            </Grid>
             <TextBlock Text="{Binding LogsText}" Foreground="{StaticResource Text3Brush}" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
           <Button Classes="primary" HorizontalAlignment="Right" MinWidth="120" Content="{l:Tr Close}" Command="{Binding CloseCommand}" />

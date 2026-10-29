@@ -11,7 +11,6 @@ PhotoX uses the following third-party components. Their licences permit use in a
 | Magick.NET (Q16-x64) | 14.17.2 | Apache-2.0 | https://github.com/dlemstra/Magick.NET |
 | ImageMagick (bundled in Magick.NET) | 7.1.x | ImageMagick License (Apache-2.0 style) | https://imagemagick.org/script/license.php |
 | Libraries bundled in Magick.NET's native library | — | various permissive and LGPL licences; see the `Notice.txt` file shipped in the Magick.NET package | https://github.com/dlemstra/Magick.Native |
-| Serilog, Serilog.Sinks.File, Serilog.Extensions.Logging | 4.4.0 / 7.0.0 / 10.0.0 | Apache-2.0 | https://github.com/serilog |
-| Microsoft.Extensions.Logging | 10.0.x | MIT | https://github.com/dotnet/runtime |
+| Serilog, Serilog.Sinks.File | 4.4.0 / 7.0.0 | Apache-2.0 | https://github.com/serilog |
 
 Components added later (for example ONNX Runtime and the YuNet face-detection model for Auto Align) are listed here when they are introduced.

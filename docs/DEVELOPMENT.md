@@ -42,7 +42,7 @@ The version lives in `Directory.Build.props`. Implementation starts at **0.1.0**
 - Prefer Magick.NET operations over custom pixel code (DEC-026). Add custom image code only when the library cannot reasonably do the job, and document why.
 - No abstractions without a concrete use. Interfaces only where tests or two implementations need them.
 - Never block the UI thread with decoding, rendering or saving.
-- All UI text goes through `Strings.resx` / `Strings.ro.resx`, and a new key is added to both files in the same commit. Use a consistent form of address in Romanian (polite plural imperative, e.g. “Salvați”, or neutral infinitive/noun labels such as “Salvare”), and keep terminology consistent.
+- All UI text goes through `src/PhotoX.App/Localization/Strings_en.json` and `Strings_ro.json`, and a new key is added to both files in the same commit (a test checks parity). Use a consistent form of address in Romanian (polite plural imperative, e.g. “Salvați”, or neutral infinitive/noun labels such as “Salvare”), and keep terminology consistent.
 - New NuGet packages are pinned in `Directory.Packages.props`, and their licence is checked against NFR-010.
 
 ## 4. Tests

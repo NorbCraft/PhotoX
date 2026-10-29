@@ -1,0 +1,144 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:l="using:PhotoX.App.Localization"
+             xmlns:s="using:PhotoX.App.Services"
+             xmlns:c="using:PhotoX.App.Controls"
+             xmlns:g="using:PhotoX.Core.Geometry"
+             x:Class="PhotoX.App.Views.EditorView"
+             x:DataType="vm:EditorViewModel">
+  <Grid ColumnDefinitions="*,340" RowDefinitions="Auto,*,Auto">
+
+    <!-- Crop toolbar (FR-010, FR-012) -->
+    <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,8">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Focusable="False" Command="{Binding BackToFolderCommand}" ToolTip.Tip="Esc">
+            <TextBlock Text="{l:Tr BackToFolder}" />
+          </Button>
+          <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,2" />
+          <TextBlock Text="{l:Tr Crop}" Classes="muted" VerticalAlignment="Center" Margin="2,0,4,0" />
+          <Button Classes="chip" Focusable="False" Content="10 × 15" Command="{Binding SetFormatCommand}" CommandParameter="10x15"
+                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
+          <Button Classes="chip" Focusable="False" Content="15 × 20" Command="{Binding SetFormatCommand}" CommandParameter="15x20"
+                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
+          <Button Classes="chip" Focusable="False" Content="13 × 18" Command="{Binding SetFormatCommand}" CommandParameter="13x18"
+                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=13x18}" />
+          <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,2" />
+          <Button Classes="chip" Focusable="False" Content="{l:Tr Portrait}" Classes.selected="{Binding IsPortrait}"
+                  Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Portrait}" />
+          <Button Classes="chip" Focusable="False" Content="{l:Tr Landscape}" Classes.selected="{Binding !IsPortrait}"
+                  Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Landscape}" />
+          <Button Classes="chip" Focusable="False" Content="{l:Tr ResetCrop}" Command="{Binding ResetCropCommand}" />
+        </StackPanel>
+        <ToggleButton Grid.Column="2" Classes="seg" Focusable="False" IsChecked="{Binding ShowBefore}" ToolTip.Tip="Space">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{l:Tr BeforeAfter}" />
+            <Border Classes="kbd"><TextBlock Text="Space" /></Border>
+          </StackPanel>
+        </ToggleButton>
+      </Grid>
+    </Border>
+
+    <!-- Canvas -->
+    <Panel Grid.Row="1" Grid.Column="0" Background="{StaticResource CanvasBrush}">
+      <c:PhotoCanvas x:Name="Canvas" Source="{Binding Preview}" CropRect="{Binding CropRect}" CropRatio="{Binding CropRatio}" />
+      <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14" Spacing="6">
+        <Border Background="#A0000000" CornerRadius="14" Padding="12,5" IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <TextBlock Text="{Binding CropInfo}" FontWeight="SemiBold" FontSize="13" Foreground="White" />
+        </Border>
+        <Border Background="#3A2C10" BorderBrush="#7A5714" BorderThickness="1" CornerRadius="14" Padding="12,4" IsVisible="{Binding ResolutionWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <TextBlock Text="{Binding ResolutionWarning}" Foreground="#F8D48A" FontSize="12.5" />
+        </Border>
+      </StackPanel>
+      <Border IsVisible="{Binding IsLoading}" Background="#A0000000" CornerRadius="8" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="{l:Tr Loading}" Foreground="White" FontSize="14" />
+      </Border>
+      <Border IsVisible="{Binding HasError}" Background="#4A1715" BorderBrush="#FF5A52" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="24"
+              HorizontalAlignment="Center" VerticalAlignment="Bottom" MaxWidth="760">
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFD0CC" TextWrapping="Wrap" FontSize="14" />
+      </Border>
+    </Panel>
+
+    <!-- Filmstrip and progress -->
+    <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="14" Margin="0,0,0,6">
+          <TextBlock Text="{Binding PositionText}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+          <ProgressBar Width="160" Minimum="0" Maximum="1" Value="{Binding Browse.Progress}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Browse.ProgressText}" Classes="muted" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding StatusMessage}" Classes="muted" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Browse.AllPhotos}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PhotoItemViewModel">
+                <Button Classes="film" Classes.current="{Binding IsCurrent}" Focusable="False" Padding="2" Width="96" Height="74" CornerRadius="5"
+                        Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).OpenItemCommand}" CommandParameter="{Binding}" ToolTip.Tip="{Binding Name}">
+                  <Panel>
+                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                    <Border IsVisible="{Binding HasBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="8" Padding="5,0" Margin="2"
+                            Background="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeBrush}}">
+                      <TextBlock Text="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeGlyph}}" FontWeight="Bold" FontSize="10.5" Foreground="#151515" />
+                    </Border>
+                  </Panel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <!-- Adjustments and actions -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+      <Grid RowDefinitions="*,Auto" Margin="18,16,18,18">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <TextBlock Classes="section" Text="{l:Tr Adjustments}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Ctrl+Z" />
+            <Button Grid.Column="2" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="Ctrl+Y" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+            <TextBlock Text="{l:Tr Exposure}" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="1" Text="{Binding ExposureText}" Classes="muted" />
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Button Classes="square" Focusable="False" Content="−" Command="{Binding ExposureMinusCommand}" />
+            <Slider Grid.Column="1" Margin="10,0" Minimum="-2" Maximum="2" Value="{Binding Exposure}" VerticalAlignment="Center" DoubleTapped="OnExposureDoubleTapped" />
+            <Button Grid.Column="2" Classes="square" Focusable="False" Content="+" Command="{Binding ExposurePlusCommand}" />
+          </Grid>
+          <Button Classes="link" Focusable="False" Margin="0,16,0,0" Content="{l:Tr ResetPhoto}" Command="{Binding ResetPhotoCommand}" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Spacing="10">
+          <Grid ColumnDefinitions="*,10,*">
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding PreviousCommand}" IsEnabled="{Binding !IsBusy}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="←" /><TextBlock Text="{l:Tr Previous}" /></StackPanel>
+            </Button>
+            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding NextCommand}" IsEnabled="{Binding !IsBusy}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{l:Tr Next}" /><TextBlock Text="→" /></StackPanel>
+            </Button>
+          </Grid>
+          <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{l:Tr Save}" HorizontalAlignment="Center" />
+              <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Ctrl+S" /></Border>
+            </Grid>
+          </Button>
+          <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="72" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="{l:Tr SaveAndNext}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+                <TextBlock Text="{l:Tr SaveAndNextHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
+              </StackPanel>
+              <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
+            </Grid>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

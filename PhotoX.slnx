@@ -1,10 +1,12 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/PhotoX.App/PhotoX.App.csproj" />
     <Project Path="src/PhotoX.Core/PhotoX.Core.csproj" />
     <Project Path="src/PhotoX.Imaging/PhotoX.Imaging.csproj" />
     <Project Path="src/PhotoX.Storage/PhotoX.Storage.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/PhotoX.App.Tests/PhotoX.App.Tests.csproj" />
     <Project Path="tests/PhotoX.Tests/PhotoX.Tests.csproj" />
   </Folder>
 </Solution>

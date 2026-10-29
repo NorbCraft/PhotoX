@@ -21,7 +21,7 @@ Newest last. Decisions are never deleted. When one changes, a new entry supersed
 | DEC-009 | 2026-10-29 | Background save queue; advance before the save finishes. | — | **Superseded by DEC-027** | — |
 | DEC-010 | 2026-10-29 | sRGB working and output space; convert other profiles on load. | Predictable printing; Avalonia has no colour management. | Accepted (owner, OQ-012) | FR-034 |
 | DEC-011 | 2026-10-29 | ONNX Runtime + YuNet for face detection; MODNet only as an experiment. Rejected models with non-commercial licences. | Permissive licences, small models. | Accepted (confirmed by DEC-038) | FR-063, FR-065 |
-| DEC-012 | 2026-10-29 | Serilog file logging behind Microsoft.Extensions.Logging abstractions. | MEL has no file provider. | Accepted | FR-051 |
+| DEC-012 | 2026-10-29 | Serilog file logging behind Microsoft.Extensions.Logging abstractions. | MEL has no file provider. | Superseded by DEC-040 | FR-051 |
 | DEC-013 | 2026-10-29 | xUnit v3 pinned to 3.2.2; Avalonia.Headless.XUnit; no FluentAssertions 8+. | xUnit 4 breaks Avalonia.Headless; licences. | Accepted | TEST_PLAN |
 | DEC-014 | 2026-10-29 | `docs/PLAN.md` is the source of truth; prompts archived in `docs/prompts/`. | Owner requirement. | Accepted (owner) | — |
 | DEC-015 | 2026-10-29 | SemVer-style 0.x versioning starting at 0.1.0, with a `-dev` suffix during milestones. | — | **Superseded by DEC-034** (no `-dev` suffix) | — |
@@ -48,3 +48,5 @@ Newest last. Decisions are never deleted. When one changes, a new entry supersed
 | DEC-036 | 2026-10-29 | **Thumbnail cache:** 1 GB, 30 days, Clear cache; Finish Order removes the order's entries. | OQ-018. | Accepted (owner) | FR-053 |
 | DEC-037 | 2026-10-29 | **Distribution:** one studio. Velopack with manual updates; no code signing; dependencies must permit paid-studio use. | OQ-013, OQ-015, OQ-027, OQ-028. | Accepted (owner) | NFR-010 |
 | DEC-038 | 2026-10-29 | **Auto Align** uses YuNet on ONNX Runtime, with no fallback chain; the operator picks when several faces are found. | prompt_02 §10 (small, documented integration). | Accepted (owner) | FR-063 |
+| DEC-039 | 2026-10-29 | **UI strings in two embedded JSON files** (`Strings_en.json`, `Strings_ro.json`) instead of `.resx`. Each key is bound through a small observable object so a language switch updates the interface live. | Easier for the owner to review the Romanian wording. In Avalonia 12, bindings to an indexer did not update on change; per-key observables did (verified in a headless test). | Accepted | FR-009, NFR-008 |
+| DEC-040 | 2026-10-29 | **Serilog used directly in the app**, without Microsoft.Extensions.Logging abstractions. Core, Imaging and Storage return typed results and do not log. | Nothing needed the abstraction (NFR-009). | Accepted | FR-051 |

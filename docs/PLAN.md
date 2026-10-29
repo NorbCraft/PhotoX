@@ -97,42 +97,42 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, short list of recent folders. Hidden/system folders and `Original` are not shown as part of an order. | M | Owner | 0.1.0 | Planned | TS-10, TS-18 |
-| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. | M | Owner | 0.1.0 | Planned | TS-10, TS-18 |
-| FR-008 | **Two workspaces**, *Photos* and *ID Photos*, switched from a persistent top bar. | M | Owner | 0.1.0 | Planned | TS-18 |
-| FR-009 | **English/Romanian**, switchable at runtime from the top bar; choice remembered; culture-correct numbers (RO `3,5 × 4,5 cm`); comma-below ș/ț; consistent terminology and form of address. | M | Owner | 0.1.0 | Planned | TS-16 |
-| FR-039 | **Neutral dark theme**, large clear primary actions, collapsible browse details panel, clear *Back to folder* action. | M | Owner | 0.1.0 | Planned | TS-18 |
+| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, short list of recent folders. Hidden/system folders and `Original` are not shown as part of an order. | M | Owner | 0.1.0 | Implemented | TS-10, TS-18 |
+| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. | M | Owner | 0.1.0 | Implemented | TS-10, TS-18 |
+| FR-008 | **Two workspaces**, *Photos* and *ID Photos*, switched from a persistent top bar. | M | Owner | 0.1.0 | Implemented | TS-18 |
+| FR-009 | **English/Romanian**, switchable at runtime from the top bar; choice remembered; culture-correct numbers (RO `3,5 × 4,5 cm`); comma-below ș/ț; consistent terminology and form of address. | M | Owner | 0.1.0 | Implemented | TS-16 |
+| FR-039 | **Neutral dark theme**, large clear primary actions, collapsible browse details panel, clear *Back to folder* action. | M | Owner | 0.1.0 | Implemented | TS-18 |
 | FR-040 | **Settings** for infrequent options: print-format dimensions (data file), JPEG quality, thumbnail cache (size, age, *Clear cache*), ID output folder. Not needed for daily work. | M | Planner | 0.2.0 | Planned | TS-18 |
 | FR-041 | **Multiple selection** in the gallery. | C | Owner (“consider”) | Deferred | Deferred | — |
-| FR-053 | **Thumbnails:** generated in the background (visible first); persistent cache capped at 1 GB, 30-day retention, with *Clear cache*. Cache entries of an order are removed by Finish Order where practical. | M | Owner | 0.1.0 (gen), 0.2.0 (cache) | Planned | TS-11 |
-| FR-054 | **Removable-media warning:** opening a folder on removable media shows a clear warning recommending a local working copy. Editing is allowed. | S | Owner | 0.2.0 | Planned | TS-18 |
+| FR-053 | **Thumbnails:** generated in the background (visible first); persistent cache capped at 1 GB, 30-day retention, with *Clear cache*. Cache entries of an order are removed by Finish Order where practical. | M | Owner | 0.1.0 (gen), 0.2.0 (cache) | In progress | TS-11 |
+| FR-054 | **Removable-media warning:** opening a folder on removable media shows a clear warning recommending a local working copy. Editing is allowed. | S | Owner | 0.2.0 | Implemented | TS-18 |
 | FR-077 | **Logo and application icon:** a simple original PhotoX logo used in the main window, About screen and Windows installation (editable SVG source). | S | Owner | 0.4.0 | Planned | — |
 
 ### 5.2 Editor navigation and saving workflow
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-003 | **Default crop on an unedited photo:** crop tool active, preset **10×15**, orientation matching the photo, **largest centred rectangle** of the ratio, ratio locked. If the photo already has the ratio, the whole image. Opening a photo never writes to disk. | M | Owner | 0.1.0 | Planned | TS-01, TS-07 |
-| FR-004 | **Save & Next (Enter and button):** save using the **current edits and exactly the currently selected crop** (never reset, re-centred or enlarged), **wait until the save succeeds**, then open the next photo. On failure: stay on the photo, keep the edits, explain the problem. No background save queue. Work runs off the UI thread so the UI stays responsive (a progress indicator is shown). | M | Owner | 0.1.0 | Planned | TS-07 |
-| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. | M | Owner | 0.1.0 | Planned | TS-07, TS-18 |
-| FR-018 | **Keyboard:** Enter = Save & Next; Ctrl+S = Save; ←/→ (or PgUp/PgDn) = Previous / Next; Ctrl+Z / Ctrl+Y = Undo / Redo; Space (hold) = before/after. Auto-repeat of held keys is ignored. Editor shortcuts never act while a dialog, text field, numeric input or a control that uses the key has focus. | M | Owner | 0.1.0 | Planned | TS-07, TS-18 |
-| FR-019 | **Unsaved changes** are clearly indicated (editor and filmstrip/gallery). Skip/Previous keep *manual* edits in memory for the session (marked Unsaved) and never save them silently. Skipping never accepts or saves the default crop. | M | Owner | 0.1.0 | Planned | TS-07 |
-| FR-016 | **Undo/redo** of edit steps for the current photo; **Reset** returns to the default state. | M | Owner | 0.2.0 | Planned | TS-04 |
-| FR-042 | **Before/after** comparison (hold Space or toggle). | M | Owner | 0.2.0 | Planned | TS-18 |
+| FR-003 | **Default crop on an unedited photo:** crop tool active, preset **10×15**, orientation matching the photo, **largest centred rectangle** of the ratio, ratio locked. If the photo already has the ratio, the whole image. Opening a photo never writes to disk. | M | Owner | 0.1.0 | Implemented | TS-01, TS-07 |
+| FR-004 | **Save & Next (Enter and button):** save using the **current edits and exactly the currently selected crop** (never reset, re-centred or enlarged), **wait until the save succeeds**, then open the next photo. On failure: stay on the photo, keep the edits, explain the problem. No background save queue. Work runs off the UI thread so the UI stays responsive (a progress indicator is shown). | M | Owner | 0.1.0 | Implemented | TS-07 |
+| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. | M | Owner | 0.1.0 | Implemented | TS-07, TS-18 |
+| FR-018 | **Keyboard:** Enter = Save & Next; Ctrl+S = Save; ←/→ (or PgUp/PgDn) = Previous / Next; Ctrl+Z / Ctrl+Y = Undo / Redo; Space (hold) = before/after. Auto-repeat of held keys is ignored. Editor shortcuts never act while a dialog, text field, numeric input or a control that uses the key has focus. | M | Owner | 0.1.0 | Implemented | TS-07, TS-18 |
+| FR-019 | **Unsaved changes** are clearly indicated (editor and filmstrip/gallery). Skip/Previous keep *manual* edits in memory for the session (marked Unsaved) and never save them silently. Skipping never accepts or saves the default crop. | M | Owner | 0.1.0 | Implemented | TS-07 |
+| FR-016 | **Undo/redo** of edit steps for the current photo; **Reset** returns to the default state. | M | Owner | 0.2.0 | Implemented | TS-04 |
+| FR-042 | **Before/after** comparison (hold Space or toggle). | M | Owner | 0.2.0 | Implemented | TS-18 |
 | FR-052 | **Preloading** of adjacent photos where useful, within a memory budget. | S | Owner | 0.2.0 | Planned | TS-11, TS-12 |
-| FR-047 | **Low-resolution warning:** effective ppi of the crop at the selected print size is shown, with a warning below 200 ppi and a strong warning below 150 ppi. No automatic upscaling. | S | Planner | 0.2.0 | Planned | TS-01 |
+| FR-047 | **Low-resolution warning:** effective ppi of the crop at the selected print size is shown, with a warning below 200 ppi and a strong warning below 150 ppi. No automatic upscaling. | S | Planner | 0.2.0 | Implemented | TS-01 |
 
 ### 5.3 Crop, composition and adjustments
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-010 | **Crop presets:** **10×15** (default), **15×20**, **13×18**, **Custom** (ratio or W×H). Definitions are simple configuration data (§8.1). | M | Owner | 0.1.0 (10×15, 15×20), 0.2.0 (13×18, Custom) | Planned | TS-01 |
-| FR-011 | **Print-format data:** ratio and physical size per preset (10×15 = 4×6 in = 101.6×152.4 mm, 2:3; 15×20 = 6×8 in = 152.4×203.2 mm, 3:4). Used for ratio, effective ppi and the 13×18 canvas. Independent of printer overscan. | M | Owner | 0.1.0 | Planned | TS-01 |
-| FR-012 | **Crop interaction:** move; resize with locked ratio; portrait/landscape toggle; dimmed outside area; thirds grid; *Fit* (largest frame) and *Reset crop*. The frame stays inside the image. Output pixel size and ppi are shown. | M | Owner | 0.1.0 | Planned | TS-01, TS-18 |
-| FR-049 | **Composition modes:** **Crop to fill** (default) and **Whole photo with white borders**. The latter keeps the entire photo and extends the canvas with white to the output ratio, without resampling its pixels. | M | Owner | 0.2.0 | Planned | TS-01, TS-06 |
-| FR-073 | **13×18 on 15×20:** crop to exactly 130:180 (or 180:130 landscape), then centre it on a white 15×20 canvas at a consistent physical scale, so that printing the canvas at 15×20 reproduces the photo at 130×180 mm. Photo pixels are preserved. | M | Owner | 0.2.0 | Planned | TS-01, TS-06 |
-| FR-006 | **Exposure and histogram correction** (umbrella): detailed by FR-013, FR-043, FR-044 and FR-045. | M | Owner | 0.1.0–0.2.0 | Planned | TS-03, TS-04 |
-| FR-013 | **Exposure:** slider plus − / + buttons (±1/6 EV per step, range ±2 EV). | M | Owner | 0.1.0 | Planned | TS-04 |
+| FR-010 | **Crop presets:** **10×15** (default), **15×20**, **13×18**, **Custom** (ratio or W×H). Definitions are simple configuration data (§8.1). | M | Owner | 0.1.0 (10×15, 15×20), 0.2.0 (13×18, Custom) | In progress | TS-01 |
+| FR-011 | **Print-format data:** ratio and physical size per preset (10×15 = 4×6 in = 101.6×152.4 mm, 2:3; 15×20 = 6×8 in = 152.4×203.2 mm, 3:4). Used for ratio, effective ppi and the 13×18 canvas. Independent of printer overscan. | M | Owner | 0.1.0 | Implemented | TS-01 |
+| FR-012 | **Crop interaction:** move; resize with locked ratio; portrait/landscape toggle; dimmed outside area; thirds grid; *Fit* (largest frame) and *Reset crop*. The frame stays inside the image. Output pixel size and ppi are shown. | M | Owner | 0.1.0 | Implemented | TS-01, TS-18 |
+| FR-049 | **Composition modes:** **Crop to fill** (default) and **Whole photo with white borders**. The latter keeps the entire photo and extends the canvas with white to the output ratio, without resampling its pixels. | M | Owner | 0.2.0 | In progress | TS-01, TS-06 |
+| FR-073 | **13×18 on 15×20:** crop to exactly 130:180 (or 180:130 landscape), then centre it on a white 15×20 canvas at a consistent physical scale, so that printing the canvas at 15×20 reproduces the photo at 130×180 mm. Photo pixels are preserved. | M | Owner | 0.2.0 | Implemented | TS-01, TS-06 |
+| FR-006 | **Exposure and histogram correction** (umbrella): detailed by FR-013, FR-043, FR-044 and FR-045. | M | Owner | 0.1.0–0.2.0 | In progress | TS-03, TS-04 |
+| FR-013 | **Exposure:** slider plus − / + buttons (±1/6 EV per step, range ±2 EV). | M | Owner | 0.1.0 | Implemented | TS-04 |
 | FR-014 | **Contrast, saturation, white balance (temperature) and tint** (green–magenta) sliders with neutral centre and double-click reset. | M | Owner | 0.2.0 | Planned | TS-04 |
 | FR-015 | **Rotation** 90° left/right and **straightening** (±10°); the crop stays inside the valid area. | M | Owner | 0.2.0 | Planned | TS-01, TS-02 |
 | FR-043 | **Live histogram:** luminance plus R, G and B of the edited preview. | M | Owner | 0.2.0 | Planned | TS-03 |
@@ -143,21 +143,21 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-005 | **Temporary original:** on the first effective save, the untouched source is preserved in `Original/` (inside the opened folder), and the edited photo is written at the original location and filename. Later saves keep that original and re-render from it. Originals are temporary, per order (see FR-072). | M | Owner | 0.1.0 | Planned | TS-08 |
-| FR-021 | **Backup identity:** an existing file in `Original/` whose identity is uncertain is never overwritten. A fresh collision-safe name is used and the association is recorded in the sidecar. Names are compared case-insensitively. | M | Owner | 0.1.0 | Planned | TS-08 |
-| FR-022 | **Safe write:** output is written to a temporary file in the same folder, then replaces the destination only after the write and a read-back check succeed. If anything fails, the existing photo is unchanged. | M | Owner | 0.1.0 | Planned | TS-08 |
-| FR-023 | **Ordinary failures** are explained in plain language: insufficient disk space, read-only file or folder, file changed or removed externally since loading, unreadable source. | M | Owner | 0.1.0 | Planned | TS-08 |
-| FR-024 | **Effectively unchanged photo:** if the recipe is a no-op (the crop keeps all pixels and there are no adjustments), Save marks the photo **Reviewed** without re-encoding or creating a backup. A crop that removes pixels is an effective change. | M | Owner | 0.1.0 | Planned | TS-07, TS-08 |
-| FR-026 | **Edit history (sidecar):** a small, versioned `Original/.photox-order.json` stores the backup mapping, saved crop and adjustments, and Reviewed marks. Reopening restores them. No database. | M | Owner | 0.1.0 | Planned | TS-08 |
-| FR-027 | **Order state** (To do / Edited / Reviewed) survives restarts via `Original/` and the sidecar. Unsaved edits exist only in memory. | M | Owner | 0.1.0 | Planned | TS-07 |
+| FR-005 | **Temporary original:** on the first effective save, the untouched source is preserved in `Original/` (inside the opened folder), and the edited photo is written at the original location and filename. Later saves keep that original and re-render from it. Originals are temporary, per order (see FR-072). | M | Owner | 0.1.0 | Implemented | TS-08 |
+| FR-021 | **Backup identity:** an existing file in `Original/` whose identity is uncertain is never overwritten. A fresh collision-safe name is used and the association is recorded in the sidecar. Names are compared case-insensitively. | M | Owner | 0.1.0 | Implemented | TS-08 |
+| FR-022 | **Safe write:** output is written to a temporary file in the same folder, then replaces the destination only after the write and a read-back check succeed. If anything fails, the existing photo is unchanged. | M | Owner | 0.1.0 | Implemented | TS-08 |
+| FR-023 | **Ordinary failures** are explained in plain language: insufficient disk space, read-only file or folder, file changed or removed externally since loading, unreadable source. | M | Owner | 0.1.0 | Implemented | TS-08 |
+| FR-024 | **Effectively unchanged photo:** if the recipe is a no-op (the crop keeps all pixels and there are no adjustments), Save marks the photo **Reviewed** without re-encoding or creating a backup. A crop that removes pixels is an effective change. | M | Owner | 0.1.0 | Implemented | TS-07, TS-08 |
+| FR-026 | **Edit history (sidecar):** a small, versioned `Original/.photox-order.json` stores the backup mapping, saved crop and adjustments, and Reviewed marks. Reopening restores them. No database. | M | Owner | 0.1.0 | Implemented | TS-08 |
+| FR-027 | **Order state** (To do / Edited / Reviewed) survives restarts via `Original/` and the sidecar. Unsaved edits exist only in memory. | M | Owner | 0.1.0 | Implemented | TS-07 |
 | FR-072 | **Finish Order:** first completes or resolves required saves. If manual edits are unsaved, the operator chooses *Save them* or *Return to editing*; nothing is discarded silently. Then a single confirmation with **Erase originals and edit history (default)** or **Keep**. Erase deletes only originals and history known to belong to this order (from the sidecar), PhotoX temp files and the order's cached thumbnails. It keeps finished photos, exported ID images and unrelated files (including unknown files in `Original/`), and removes `Original/` only if empty. Failures are reported with what remains. Afterwards, editing starts from the saved photo. | M | Owner | 0.2.0 | Planned | TS-09 |
-| FR-030 | **Formats:** JPEG and PNG in, same format out. The real format is detected from content. Supported variants are listed in §8.3. | M | Owner | 0.1.0 | Planned | TS-06, TS-09 |
-| FR-031 | **HEIC/HEIF:** unsupported initially; shown in the gallery as *Unsupported (HEIC)* with an explanation instead of disappearing. Future point. | M (message) | Owner | 0.2.0 (message) | Planned | TS-09 |
-| FR-032 | **EXIF orientation** applied on load; saved pixels are upright with Orientation = 1. | M | Owner | 0.1.0 | Planned | TS-02 |
-| FR-033 | **Metadata:** keep appropriate source metadata (EXIF/IPTC/XMP); update orientation and dimensions; remove the stale embedded EXIF preview. Effective-ppi density is written when the format defines a physical size. Metadata is not treated as a guarantee of printed size. | M | Owner | 0.1.0 | Planned | TS-06 |
-| FR-034 | **Colour:** honour embedded ICC profiles on load; work in sRGB; **edited outputs are sRGB with an embedded profile**. Preview assumes an sRGB display (documented). | M | Owner | 0.1.0 | Planned | TS-05 |
-| FR-035 | **Output quality:** JPEG quality 95, 4:4:4. **Native crop resolution is preserved.** Interpolation only where straightening or rotation geometry requires it. PNG alpha and bit depth preserved where supported. | M | Owner | 0.1.0 | Planned | TS-06 |
-| FR-036 | **Bad input** (corrupt, truncated, zero-byte, unsupported variant, decompression bomb) gives an error state and explanation, never a crash or hang. | M | Owner | 0.1.0 | Planned | TS-09 |
+| FR-030 | **Formats:** JPEG and PNG in, same format out. The real format is detected from content. Supported variants are listed in §8.3. | M | Owner | 0.1.0 | Implemented | TS-06, TS-09 |
+| FR-031 | **HEIC/HEIF:** unsupported initially; shown in the gallery as *Unsupported (HEIC)* with an explanation instead of disappearing. Future point. | M (message) | Owner | 0.2.0 (message) | In progress | TS-09 |
+| FR-032 | **EXIF orientation** applied on load; saved pixels are upright with Orientation = 1. | M | Owner | 0.1.0 | Implemented | TS-02 |
+| FR-033 | **Metadata:** keep appropriate source metadata (EXIF/IPTC/XMP); update orientation and dimensions; remove the stale embedded EXIF preview. Effective-ppi density is written when the format defines a physical size. Metadata is not treated as a guarantee of printed size. | M | Owner | 0.1.0 | Implemented | TS-06 |
+| FR-034 | **Colour:** honour embedded ICC profiles on load; work in sRGB; **edited outputs are sRGB with an embedded profile**. Preview assumes an sRGB display (documented). | M | Owner | 0.1.0 | Implemented | TS-05 |
+| FR-035 | **Output quality:** JPEG quality 95, 4:4:4. **Native crop resolution is preserved.** Interpolation only where straightening or rotation geometry requires it. PNG alpha and bit depth preserved where supported. | M | Owner | 0.1.0 | Implemented | TS-06 |
+| FR-036 | **Bad input** (corrupt, truncated, zero-byte, unsupported variant, decompression bomb) gives an error state and explanation, never a crash or hang. | M | Owner | 0.1.0 | Implemented | TS-09 |
 | FR-037 | **Image size policy:** up to 64 MP normal; 64–210 MP allowed but slower; above 210 MP refused clearly. Available memory is checked before expensive operations. If measurements show the upper range is unsafe, a conservative documented limit applies. | M | Owner | 0.2.0 | Planned | TS-12 |
 
 ### 5.5 ID Photo Creator
@@ -182,20 +182,20 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
 | FR-050 | **Printing deferred.** Files are printed via Citizen software. The preferred future integration is **LinkServer hot folders** (not implemented now). No print queues, quantities, grouping or mixed-media management. | — | Owner | Deferred | Deferred | — |
-| FR-051 | **Logging and errors:** rolling local log file; plain-language localized error messages. The log never contains image content. | M | Planner | 0.1.0 | Planned | TS-17 |
+| FR-051 | **Logging and errors:** rolling local log file; plain-language localized error messages. The log never contains image content. | M | Planner | 0.1.0 | Implemented | TS-17 |
 
 ## 6. Non-functional requirements
 
 | ID | Requirement | Src | Progress | Tests |
 |---|---|---|---|---|
 | NFR-001 | **Offline and private.** No network use. No customer data leaves the machine. | Owner | Planned | review |
-| NFR-002 | **Platforms:** Windows 11 x64 production; Linux development. | Owner | Planned | TS-17 |
+| NFR-002 | **Platforms:** Windows 11 x64 production; Linux development. | Owner | In progress (Linux verified; Windows pending owner) | TS-17 |
 | NFR-003 | **Responsiveness:** the UI never freezes during loading, thumbnails or saving. Performance is reported from **measurements** on the reference machine, not assumed. | Owner | Planned | TS-11 |
 | NFR-004 | **Memory:** bounded caches. Memory is checked before large operations. | Owner | Planned | TS-12 |
-| NFR-005 | **Save safety:** a failed save never damages the existing photo or its preserved original (FR-005, FR-021–FR-023). | Owner | Planned | TS-08 |
+| NFR-005 | **Save safety:** a failed save never damages the existing photo or its preserved original (FR-005, FR-021–FR-023). | Owner | Implemented | TS-08 |
 | NFR-006 | **Image fidelity:** no unintended resampling; no colour shift for sRGB sources; one JPEG generation from the original while history is kept. | Owner | Planned | TS-05, TS-06 |
 | NFR-007 | **Usability:** large primary actions; usable at common Windows resolutions (1366×768 to 4K) and 100–200 % scaling; mouse and keyboard first. | Owner | Planned | TS-18 |
-| NFR-008 | **Localization quality:** no hard-coded UI text; key parity between EN and RO; Romanian wording reviewed by the owner. | Owner | Planned | TS-16 |
+| NFR-008 | **Localization quality:** no hard-coded UI text; key parity between EN and RO; Romanian wording reviewed by the owner. | Owner | In progress (owner review pending) | TS-16 |
 | NFR-009 | **Maintainability:** modest separation of UI, image processing, file handling and pure geometry. No abstractions without a concrete use. | Owner | Planned | review |
 | NFR-010 | **Licences:** free dependencies whose terms permit use in a paid studio (personal-use-only terms do not qualify). Notices retained. | Owner | Planned | review |
 | NFR-011 | **Builds:** pinned package versions. Windows/Linux CI once the GitHub remote exists. | Owner | Planned | TS-17 |

@@ -57,3 +57,24 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   4. Installed the .NET 10 SDK 10.0.403 user-locally and pinned package versions.
 - **Verification:** documentation consistency check (IDs and links); mockups re-rendered and inspected.
 - **Implementation status:** starting 0.1.0 (vertical slice).
+
+### 2026-10-29: Version 0.1.0, vertical slice
+- **Milestone:** 0.1.0 ([ROADMAP](ROADMAP.md))
+- **Requirements:** see PLAN.md Progress (32 FR implemented, 5 in progress).
+- **Work done:**
+  - Solution with four projects (Core, Imaging, Storage, App) and two test projects.
+  - Magick.NET-based load, render and save.
+  - The safe-save pipeline with temporary originals and sidecar.
+  - Avalonia UI: explorer, gallery, editor with crop overlay, exposure, Save & Next, filmstrip, EN/RO.
+- **Verification (actually run):**
+  - `dotnet test` on Linux Mint (.NET SDK 10.0.403): **36 core/imaging/storage tests** and **13 headless UI tests** pass.
+  - The UI tests drive the real window: open folder → Enter → crop → exposure → Enter. They check that the saved file has exactly the selected crop, the original is preserved, the edits are restored on reopen, Skip never saves, a save failure keeps the photo and its edits, held Enter saves only once, the language switches live, and Romanian plurals are correct.
+  - Headless screenshots at 1366×768 and 1920×1080 were inspected (EN/RO). Fixed from that inspection: shading seams, filmstrip highlight, clipped Romanian hint, and labels not switching language.
+  - Owner sample `id_photo/IMG_6153.JPG` (3456×2304), **on a copy only**: header and 1800-px proxy load 245 ms; full-resolution save (render + encode + check + backup) 1.3 s on the development machine (16 cores, 30 GB RAM). These are not reference-machine numbers. Reference checksum unchanged (`243e7ef5…`).
+- **Limitations / not yet done:**
+  - Windows 11 not run yet (owner).
+  - No persistent thumbnail cache.
+  - Custom crop ratio and whole-photo-with-borders UI are not done (the renderer supports borders).
+  - Contrast, colour, histogram, levels, rotation/straighten UI and Finish Order are not done.
+  - The gallery is not virtualised; to be measured with large folders in 0.2.0.
+- **Commits:** see `git log v0.1.0`.

@@ -18,7 +18,7 @@ Plan revision **P-2** (2026-10-29). Requirements are in [PLAN.md](PLAN.md) and a
 | MVVM | CommunityToolkit.Mvvm | 8.4.2 | MIT | source generators |
 | Imaging | **Magick.NET-Q16-x64** | **14.17.2** | Apache-2.0 + ImageMagick licence | contains win-x64 and linux-x64 natives. 14.17.2 was chosen over 15.0.0 (released 2026-10-10 with breaking API changes) for maturity. Revisit after 1.0. |
 | Face detection | Microsoft.ML.OnnxRuntime + YuNet model | 1.31.1 / 2023mar | MIT / MIT | 0.4.0, Auto Align only |
-| Logging | Serilog + Serilog.Sinks.File (+ Microsoft.Extensions.Logging abstractions) | 4.4.0 / 7.0.0 | Apache-2.0 | |
+| Logging | Serilog + Serilog.Sinks.File (used directly in the app; libraries return typed results instead of logging) | 4.4.0 / 7.0.0 | Apache-2.0 | DEC-040 |
 | Tests | xUnit v3 **3.2.2** + Avalonia.Headless.XUnit | 3.2.2 / 12.1.4 | Apache-2.0 / MIT | xUnit 4.x breaks Avalonia.Headless (Avalonia issue #22072) |
 | Installer | Velopack | 1.2.x | MIT | 0.4.0. Self-contained folder build for early trials. |
 
@@ -64,7 +64,7 @@ Rules:
 - **Shell:** top bar (logo, Photos | ID Photos, folder/photo context, EN|RO, settings) and a content area. View-model-first navigation with a `ViewLocator`.
 - **Photos workspace:** *Browse* (explorer, gallery, collapsible details, Finish Order) ⇄ *Edit* (canvas with crop overlay, adjustment panel, filmstrip, action bar).
 - **ID workspace:** *Framing* → *Sheet*.
-- **Localization:** `Strings.resx` / `Strings.ro.resx` with a `Localizer` (indexer plus `INotifyPropertyChanged`) and a `{l:Tr Key}` markup extension, so language switches live (FR-009).
+- **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
 - **Keyboard:** handled at window level with `KeyDown` (tunnelling). Shortcuts are ignored when `e.Handled`, when a `TextBox`/`NumericUpDown`/`ComboBox` has focus, when a dialog is open, or for auto-repeat. Avalonia exposes no repeat flag, so the handler tracks key-down/key-up pairs and ignores repeated `KeyDown` events for a key that is still held (FR-018).
 
 ```mermaid

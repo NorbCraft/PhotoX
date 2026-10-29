@@ -103,6 +103,17 @@
             <NumericUpDown Grid.Column="1" Width="130" Minimum="80" Maximum="100" Increment="1" FormatString="0" Value="{Binding JpegQuality}" />
           </Grid>
           <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{l:Tr IdScale}" VerticalAlignment="Center" FontWeight="SemiBold" />
+              <NumericUpDown Grid.Column="1" Width="130" Minimum="90" Maximum="110" Increment="0.1" FormatString="0.0" Value="{Binding IdScalePercent}" />
+            </Grid>
+            <TextBlock Text="{l:Tr IdScaleHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Text="{l:Tr DataFilesTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding DataFilesText}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Spacing="6">
             <TextBlock Text="{l:Tr ThumbnailCache}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding CacheText}" Classes="muted" TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal" Spacing="12">

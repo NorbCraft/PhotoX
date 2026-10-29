@@ -621,10 +621,12 @@ public sealed partial class IdViewModel : ViewModelBase
         var size = SelectedSize.Size;
         var adj = Adjustments;
         var layout = CurrentLayout();
+        var scale = _services.Settings.IdScale;
+        var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
         var data = await Task.Run(() =>
         {
-            using var photo = IdRenderer.Render(proxy, framing, size, adj);
-            using var sheet = SheetRenderer.Render(photo, layout);
+            using var photo = IdRenderer.Render(proxy, framing, size, adj, pw, ph);
+            using var sheet = SheetRenderer.Render(photo, layout, scale);
             return PixelData.From(sheet);
         });
         var old = SheetPreview;
@@ -667,10 +669,12 @@ public sealed partial class IdViewModel : ViewModelBase
             var kind = SaveAsPng ? ImageKind.Png : ImageKind.Jpeg;
             var folder = OutputFolder!;
             var quality = _services.Settings.JpegQuality;
+            var scale = _services.Settings.IdScale;
+            var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
             var path = await Task.Run(() =>
             {
-                using var photo = IdRenderer.Render(source, framing, size, adj);
-                using var sheet = SheetRenderer.Render(photo, layout);
+                using var photo = IdRenderer.Render(source, framing, size, adj, pw, ph);
+                using var sheet = SheetRenderer.Render(photo, layout, scale);
                 var bytes = IdOutput.Encode(sheet, kind, quality);
                 return IdExporter.Write(folder, bytes, kind == ImageKind.Png ? ".png" : ".jpg", DateTime.Now);
             });

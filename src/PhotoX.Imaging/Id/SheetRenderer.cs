@@ -9,7 +9,18 @@ public static class SheetRenderer
     public const int PageShortPx = 1200; // 101.6 mm at 300 ppi
     public const int PageLongPx = 1800;  // 152.4 mm at 300 ppi
 
-    public static MagickImage Render(MagickImage photo, SheetLayout layout)
+    /// <summary>
+    /// Pixel size of each photo with the print scale correction of FR-071 (1 = none): a printer that enlarges by 2 %
+    /// is corrected with 0.98, so the printed photo has its nominal size.
+    /// </summary>
+    public static (int Width, int Height) PhotoPixels(IdSize size, double scale = 1) =>
+        ((int)Math.Round(size.WidthPx * scale), (int)Math.Round(size.HeightPx * scale));
+
+    /// <summary>
+    /// Places the photos (rendered at <see cref="PhotoPixels"/>) on the page. With a scale correction, positions are
+    /// scaled about the page centre too, so the whole layout keeps its proportions after printing.
+    /// </summary>
+    public static MagickImage Render(MagickImage photo, SheetLayout layout, double scale = 1)
     {
         var k = IdSize.Ppi / 25.4;
         var page = layout.Landscape
@@ -17,9 +28,12 @@ public static class SheetRenderer
             : new MagickImage(MagickColors.White, PageShortPx, PageLongPx);
         try
         {
+            double cx = page.Width / 2.0, cy = page.Height / 2.0;
             foreach (var r in layout.Photos)
             {
-                page.Composite(photo, (int)Math.Round(r.X * k), (int)Math.Round(r.Y * k), CompositeOperator.Over);
+                var x = cx + (r.X * k - cx) * scale;
+                var y = cy + (r.Y * k - cy) * scale;
+                page.Composite(photo, (int)Math.Round(x), (int)Math.Round(y), CompositeOperator.Over);
             }
 
             page.Density = new Density(IdSize.Ppi, IdSize.Ppi, DensityUnit.PixelsPerInch);

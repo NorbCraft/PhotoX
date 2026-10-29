@@ -128,7 +128,7 @@
   "SettingsTitle": "Setări",
   "JpegQuality": "Calitate JPEG",
   "ThumbnailCache": "Cache miniaturi",
-  "CacheInfo": "{0:0.0} MB folosiți (limită 1 GB, intrările mai vechi de 30 de zile se șterg)",
+  "CacheInfo": "{0:0.0} MB folosiți (limită {1} MB; intrările mai vechi de {2} zile se șterg)",
   "ClearCache": "Golește cache-ul",
   "CacheCleared": "Cache-ul de miniaturi a fost golit.",
   "About": "Despre",
@@ -194,5 +194,9 @@
   "PagePortrait": "10 × 15 cm (4 × 6 in), portret  ·  1200 × 1800 px la 300 ppi",
   "PageLandscape": "10 × 15 cm (4 × 6 in), peisaj  ·  1800 × 1200 px la 300 ppi",
   "IncludeStrip": "Bandă albă de 7 mm sub fiecare fotografie",
-  "FinishHint": "toate fotografiile sunt gata · păstrați sau ștergeți originalele"
+  "FinishHint": "toate fotografiile sunt gata · păstrați sau ștergeți originalele",
+  "IdScale": "Corecție de scară la imprimarea actelor (%)",
+  "IdScaleHint": "Lăsați 100 % dacă o foaie de calibrare imprimată nu arată altă dimensiune. Exemplu: dacă 100 mm se imprimă ca 102 mm, setați 98.",
+  "DataFilesTitle": "Dimensiuni de imprimare și de acte",
+  "DataFiles": "Dimensiunile fizice de imprimare (print-formats.json) și dimensiunile fotografiilor de acte (id-sizes.json) sunt fișiere de date în {0}. Modificați-le doar dacă testele de imprimare o cer, apoi reporniți PhotoX."
 }

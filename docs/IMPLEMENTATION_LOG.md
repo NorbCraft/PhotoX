@@ -267,3 +267,31 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Straightened 12 MP saves still spend about 1.7 s in Magick's single-threaded EWA distort.
   - Background whitening is unchanged (waiting for samples).
   - Physical prints, the Romanian review and Windows trials remain with the owner.
+- **Windows CI result for 0.5.0:** run 40954894289 passed on `windows-latest` (91 core and 31 UI tests; skipped: owner-sample tests and opt-in benchmarks) and on `ubuntu-latest`, and built the Windows package.
+
+### 2026-10-29: Plan review and version 0.6.0
+- **Prompt:** [docs/prompts/prompt_03.md](prompts/prompt_03.md) §11: review the plan against the implementation, then implement what remains and is feasible.
+- **Review of PLAN.md:**
+
+  | Status | Requirements |
+  |---|---|
+  | Implemented and covered by automated tests (Linux and Windows CI) | FR-001–FR-005, FR-008–FR-019, FR-021–FR-024, FR-026, FR-027, FR-030–FR-037, FR-039, FR-040, FR-042–FR-045, FR-047, FR-049, FR-051–FR-054, FR-061–FR-064, FR-066–FR-068, FR-072–FR-075, FR-077; NFR-001, NFR-004–NFR-006, NFR-009–NFR-011 |
+  | Partially implemented before this version, finished now | FR-010/FR-011/FR-040: print-format dimensions were not a data file. FR-061: ID sizes were in code. FR-071: the ID scale correction was missing (the calibration sheets existed). |
+  | In progress (needs the studio) | NFR-002 (studio use on Windows 11), NFR-003 (measurements on the studio PC), NFR-007 (real Windows scaling and resolutions), NFR-008 (Romanian review) |
+  | Intentionally deferred (PLAN §9) | FR-041 multiple selection, FR-050 direct printing / LinkServer hot folders, HEIC, batch operations, monitor colour management, printer overscan beyond FR-071, touch, country templates |
+  | Blocked by hardware, samples or owner input | FR-065 automatic background whitening (suitable sample photos); FR-071 physical calibration and all Citizen printing tests (printer); Romanian wording (owner review) |
+
+- **Work done:**
+  - `ConfigData` (Storage) creates and reads the two data files. `PrintFormats.Configure` updates only the three fixed presets; `IdSizes.Configure` uses the listed sizes. Both skip implausible values.
+  - The ID scale correction is a setting, applied by `SheetRenderer` (photo size and positions about the page centre).
+  - The cache text shows the configured limits; JSON is written with relaxed escaping.
+- **Verification (actually run, Linux):**
+  - 97 core tests and 34 headless UI tests pass. Two opt-in benchmarks are skipped.
+  - New tests:
+    - files created with defaults (no computed fields);
+    - edited values applied, implausible and unknown entries ignored;
+    - a damaged file left untouched with defaults used;
+    - scale correction shrinks photos (354 → 347 px at 98 %) and keeps the layout centred;
+    - an exported sheet with 98 % entered in Settings has 347-px photos.
+  - The app started on the Linux desktop with empty settings folders, created both files and logged no errors (stopped after 12 s).
+- **Not verified:** physical prints (no printer), Windows studio PC.

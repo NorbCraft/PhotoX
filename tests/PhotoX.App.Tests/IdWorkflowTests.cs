@@ -67,6 +67,33 @@ public class IdWorkflowTests
     }
 
     [AvaloniaFact]
+    public async Task Print_scale_correction_from_settings_shrinks_exported_photos()
+    {
+        using var dir = new TempDir();
+        var portrait = Path.Combine(dir.Path, "grey.png");
+        using (var grey = new MagickImage(new MagickColor("#606060"), 1200, 1600)) grey.Write(portrait);
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
+        shell.OpenSettingsCommand.Execute(null);
+        shell.Settings!.IdScalePercent = 98m;                 // as entered in Settings (FR-071)
+        UiHelpers.Capture(window, "settings");
+        shell.Settings.CloseCommand.Execute(null);
+        shell.ShowIdCommand.Execute(null);
+        await shell.Id.LoadSourceAsync(portrait);
+        shell.Id.SelectSizeCommand.Execute(shell.Id.Sizes.Single(s => s.Size.Id == "3x4"));
+        shell.Id.OutputFolder = Path.Combine(dir.Path, "out");
+        var path = await shell.Id.SaveSheetAsync();
+        using var sheet = new MagickImage(path!);
+        using var px = sheet.GetPixels();
+        var y = (int)sheet.Height / 4;
+        var run = 0;
+        var x = 0;
+        while (px.GetPixel(x, y).ToColor()!.R > 50000) x++;   // margin
+        while (px.GetPixel(x + run, y).ToColor()!.R < 50000) run++;
+        Assert.InRange(run, 346, 348);                        // 354 px × 0.98
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task Owner_sample_frames_and_exports_on_a_copy()
     {
         var sample = SampleTests.SamplePath();

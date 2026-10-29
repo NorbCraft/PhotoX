@@ -9,7 +9,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 
 ## Current status
 
-> **Version 0.5.0**: ordinary-photo editing, Finish Order, ID Photo Creator with Auto Align, and a Windows installer, plus the owner's feedback from testing 0.4.0 (prompt_03): the Finish Order fix (0.4.1), a much faster editor, an applied-crop preview, and reworked browsing and ID controls. Verified by automated tests on Linux and in CI on Windows. **Studio use on Windows, physical Citizen prints and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.6.0**: ordinary-photo editing, Finish Order, ID Photo Creator with Auto Align, and a Windows installer, plus the owner's feedback from testing 0.4.0 (prompt_03): the Finish Order fix (0.4.1), a much faster editor, an applied-crop preview, and reworked browsing and ID controls (0.5.0). Version 0.6.0 adds editable print/ID size data files and an ID print scale correction. Verified by automated tests on Linux and in CI on Windows. **Studio use on Windows, physical Citizen prints and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -56,7 +56,7 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.5.0 --packDir publish/win-x64 \
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.6.0 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --outputDir releases/win          # Windows installer
 ```
 

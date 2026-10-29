@@ -11,6 +11,8 @@ public static class JsonFile
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() },
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        // Local data files meant to be readable when edited by hand (× and Romanian letters as such, not \u escapes).
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     public static T? Read<T>(string path)

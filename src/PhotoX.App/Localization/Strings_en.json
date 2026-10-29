@@ -128,7 +128,7 @@
   "SettingsTitle": "Settings",
   "JpegQuality": "JPEG quality",
   "ThumbnailCache": "Thumbnail cache",
-  "CacheInfo": "{0:0.0} MB used (limit 1 GB, entries older than 30 days are removed)",
+  "CacheInfo": "{0:0.0} MB used (limit {1} MB; entries older than {2} days are removed)",
   "ClearCache": "Clear cache",
   "CacheCleared": "Thumbnail cache cleared.",
   "About": "About",
@@ -194,5 +194,9 @@
   "PagePortrait": "10 × 15 cm (4 × 6 in), portrait  ·  1200 × 1800 px at 300 ppi",
   "PageLandscape": "10 × 15 cm (4 × 6 in), landscape  ·  1800 × 1200 px at 300 ppi",
   "IncludeStrip": "7 mm white strip below each photo",
-  "FinishHint": "every photo is done · keep or erase the originals"
+  "FinishHint": "every photo is done · keep or erase the originals",
+  "IdScale": "ID print scale correction (%)",
+  "IdScaleHint": "Leave at 100 % unless a printed calibration sheet measures a different size. Example: if 100 mm prints as 102 mm, set 98.",
+  "DataFilesTitle": "Print and ID sizes",
+  "DataFiles": "The physical print sizes (print-formats.json) and the ID photo sizes (id-sizes.json) are data files in {0}. Edit them only if print tests require it, then restart PhotoX."
 }

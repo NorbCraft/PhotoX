@@ -11,6 +11,7 @@ public sealed class AppServices
         Paths = paths;
         SettingsStore = new SettingsStore(paths);
         Settings = SettingsStore.Load();
+        foreach (var message in ConfigData.Load(paths)) Log.Information("{Message}", message);
         ThumbnailCache = new ThumbnailCache(paths.ThumbnailDir, (long)Settings.ThumbnailCacheMaxMb * 1048576, Settings.ThumbnailCacheDays);
     }
 

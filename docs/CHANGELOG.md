@@ -4,6 +4,18 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-29
+
+Remaining approved plan items, after reviewing the plan against the implementation (prompt_03 §11). Verified with automated tests on Linux; Windows CI runs on push.
+
+### Added
+- **Print and ID sizes as data files:** `print-formats.json` and `id-sizes.json` in the PhotoX settings folder, created with the planned values on first start. The physical size of a print preset or the ID sizes can be corrected after print tests without a new version. Settings shows where the files are.
+- **ID print scale correction (%)** in Settings (default 100, no change). If a calibration print measures 102 mm for 100 mm, setting 98 makes ID photos print at their nominal size.
+
+### Changed
+- The thumbnail-cache description in Settings shows the configured limits.
+- Data files are written with readable characters (× and Romanian letters) instead of escape codes.
+
 ## [0.5.0] - 2026-10-29
 
 The owner's feedback from testing 0.4.0 on Linux and Windows 11 ([prompt_03](prompts/prompt_03.md)). Verified with automated tests on Linux and in CI on Windows; the studio trial is pending.

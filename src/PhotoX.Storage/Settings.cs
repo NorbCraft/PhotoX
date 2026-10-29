@@ -28,6 +28,12 @@ public sealed class Settings
 
     public double IdPanelWidth { get; set; } = 360;
 
+    /// <summary>ID print scale correction in percent (FR-071); 100 = none. Set only after a calibration print.</summary>
+    public double IdScalePercent { get; set; } = 100;
+
+    /// <summary>The correction as a factor, limited to a plausible range.</summary>
+    public double IdScale => Math.Clamp(IdScalePercent, 90, 110) / 100;
+
     public void AddRecent(string folder)
     {
         RecentFolders.RemoveAll(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase));

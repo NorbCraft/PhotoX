@@ -190,11 +190,11 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 
 ## 7. ID Photo Creator
 
-- **Sizes** in `assets/id-sizes.json` (FR-061). Framing state = scale, rotation and centre of the portrait under a fixed frame.
+- **Sizes** are data (FR-061): `id-sizes.json` in the settings folder, created with the planned sizes on first start; implausible entries are ignored (DEC-049). Framing state = scale, rotation and centre of the portrait under a fixed frame.
 - **Render:** `Distort(ScaleRotateTranslate)` from the full-resolution portrait into exactly `round(mm·300/25.4)` px, then the tone adjustments of §5.2 and the background-brightness lift (FR-064: brightening of light, low-saturation pixels through a soft mask).
 - **Preview:** the framing preview uses the proxy, half or quarter copy whose scale to the screen is closest to 1, with fast bilinear lookups and preview curves; it is about three times faster than resampling the 1800-px proxy.
 - **Sheet layout (Core, FR-066/FR-074, DEC-046):** 4×6 in page, landscape for 3×4 and for any size where landscape fits more copies, otherwise portrait. Columns and rows are `⌊(avail + gap)/(cell + gap)⌋`. With the 3×4 strip the cell is 30 × 47 mm and the strip is also the gap to the next row. The grid is centred and copies fill row-major. No cut guides are drawn.
-- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG q95 or PNG, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
+- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG q95 or PNG, with the optional print scale correction of FR-071 applied to photo size and positions, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
 - **Auto Align (FR-063, 0.4.0):**
   - YuNet (MIT, ≈ 230 KB) runs on ONNX Runtime on a 640-px copy, giving face boxes and 5 landmarks.
   - With one face: roll comes from the eye line, and head height is estimated from the eye-to-mouth distance and fitted to the guides.
@@ -204,13 +204,14 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 
 ## 8. Settings, logging and errors
 
-- **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, last folder, recent folders, ID output folder, JPEG quality and cache limits.
+- **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, last folder, recent folders, ID output folder, JPEG quality, ID print scale correction, panel widths and cache limits.
+- **Configuration data:** `print-formats.json` (physical sizes of the three print presets) and `id-sizes.json` (ID sizes) in the same folder, created with the planned values if missing, read at startup. A damaged file is left untouched and the built-in values apply (DEC-049).
 - **Logs:** Serilog daily files in `%LOCALAPPDATA%/PhotoX/logs`, kept for 14 days. File paths are logged, never image content (FR-051).
 - **Errors:** unhandled exceptions are logged and shown as a localized message. Expected failures (save, load) return typed results with a message key.
 
 ## 9. Printing boundary (deferred, FR-050)
 
-Print formats are data (`print-formats.json`). A later version could copy finished files into a Citizen LinkServer hot folder chosen in Settings. No printing code exists now.
+Print formats are data (`print-formats.json`, see §8). A later version could copy finished files into a Citizen LinkServer hot folder chosen in Settings. No printing code exists now.
 
 ## 10. Performance notes
 

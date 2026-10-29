@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PhotoX.Imaging</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoX.Core\PhotoX.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-x64" />
+  </ItemGroup>
+</Project>

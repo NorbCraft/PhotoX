@@ -1,0 +1,56 @@
+namespace PhotoX.Storage;
+
+/// <summary>User settings (FR-009, FR-040). Stored as settings.json.</summary>
+public sealed class Settings
+{
+    public int Version { get; set; } = 1;
+
+    public string Language { get; set; } = "ro";
+
+    public string? LastFolder { get; set; }
+
+    public List<string> RecentFolders { get; set; } = [];
+
+    public string? IdOutputFolder { get; set; }
+
+    public int JpegQuality { get; set; } = 95;
+
+    public int ThumbnailCacheMaxMb { get; set; } = 1024;
+
+    public int ThumbnailCacheDays { get; set; } = 30;
+
+    public bool BrowseDetailsCollapsed { get; set; }
+
+    public void AddRecent(string folder)
+    {
+        RecentFolders.RemoveAll(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase));
+        RecentFolders.Insert(0, folder);
+        if (RecentFolders.Count > 8) RecentFolders.RemoveRange(8, RecentFolders.Count - 8);
+    }
+}
+
+public sealed class SettingsStore(AppPaths paths)
+{
+    public Settings Load()
+    {
+        try
+        {
+            return JsonFile.Read<Settings>(paths.SettingsFile) ?? new Settings();
+        }
+        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
+        {
+            // A damaged settings file must never stop the app; keep it aside and start with defaults.
+            try
+            {
+                File.Move(paths.SettingsFile, paths.SettingsFile + $".invalid-{DateTime.Now:yyyyMMddHHmmss}", true);
+            }
+            catch (IOException)
+            {
+            }
+
+            return new Settings();
+        }
+    }
+
+    public void Save(Settings settings) => JsonFile.WriteAtomic(paths.SettingsFile, settings);
+}

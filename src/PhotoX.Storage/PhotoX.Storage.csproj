@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PhotoX.Storage</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoX.Core\PhotoX.Core.csproj" />
+    <ProjectReference Include="..\PhotoX.Imaging\PhotoX.Imaging.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PhotoX.Tests" />
+  </ItemGroup>
+</Project>

@@ -295,3 +295,4 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
     - an exported sheet with 98 % entered in Settings has 347-px photos.
   - The app started on the Linux desktop with empty settings folders, created both files and logged no errors (stopped after 12 s).
 - **Not verified:** physical prints (no printer), Windows studio PC.
+- **Windows CI result for 0.6.0:** run 40955807735 passed on `windows-latest` (95 core and 32 UI tests; skipped: owner-sample tests and opt-in benchmarks) and on `ubuntu-latest`. The `windows-package` job produced the `PhotoX-windows` artifact (Velopack setup and portable zip), which has not been installed or tested on a Windows machine.

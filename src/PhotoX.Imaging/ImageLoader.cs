@@ -5,7 +5,7 @@ namespace PhotoX.Imaging;
 
 /// <summary>
 /// Loads JPEG/PNG photos upright and in sRGB (FR-030, FR-032, FR-034). With <paramref name="maxEdge"/>, a smaller
-/// proxy is produced (JPEG DCT downscaling) for previews.
+/// proxy is produced (JPEG DCT downscaling, then box averaging) for previews.
 /// </summary>
 public static class ImageLoader
 {
@@ -78,7 +78,8 @@ public static class ImageLoader
             ColorNormalizer.ToSrgb(image);
             if (maxEdge is int e && Math.Max(image.Width, image.Height) > e)
             {
-                image.Resize(new MagickGeometry((uint)e, (uint)e));
+                // Previews only: box averaging is a good downscale and about 2.5× faster than the default Lanczos.
+                image.Scale(new MagickGeometry((uint)e, (uint)e));
             }
 
             return image;

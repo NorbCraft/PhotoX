@@ -5,8 +5,8 @@ using PhotoX.Core.Geometry;
 namespace PhotoX.Imaging;
 
 /// <summary>
-/// Applies an <see cref="EditRecipe"/> with Magick.NET operations (DEC-026). Preview and save use the same steps;
-/// the preview omits crop and canvas because the crop is drawn as an overlay.
+/// Applies an <see cref="EditRecipe"/> with Magick.NET operations (DEC-026); tone adjustments run through
+/// <see cref="ToneProcessor"/>, which reproduces <see cref="ApplyTone"/> exactly but faster (DEC-044).
 /// </summary>
 public static class RecipeRenderer
 {
@@ -17,7 +17,7 @@ public static class RecipeRenderer
         ApplyRotation(image, recipe);
         if (applyTone)
         {
-            ApplyTone(image, recipe);
+            ToneProcessor.Apply(image, recipe);
         }
 
         return image;
@@ -38,7 +38,7 @@ public static class RecipeRenderer
                 image.ResetPage();
             }
 
-            ApplyTone(image, recipe);
+            ToneProcessor.Apply(image, recipe);
 
             var (canvasW, canvasH, _) = RenderPlan.CanvasFor(c.Width, c.Height, recipe);
             if (canvasW > c.Width || canvasH > c.Height)
@@ -82,13 +82,27 @@ public static class RecipeRenderer
         }
     }
 
+    /// <summary>
+    /// Reference implementation of the tone adjustments with Magick.NET operations: <see cref="ApplyCurves"/> then
+    /// <see cref="ApplySaturation"/>. Rendering uses <see cref="ToneProcessor"/>, which produces identical pixels faster.
+    /// </summary>
     public static void ApplyTone(MagickImage image, EditRecipe r)
+    {
+        ApplyCurves(image, r);
+        ApplySaturation(image, r);
+    }
+
+    /// <summary>
+    /// Steps 1–3 (white balance, tint, exposure, levels, contrast). Each output channel depends only on the same input
+    /// channel, which lets <see cref="ToneCurve"/> evaluate these operations once on a gradient.
+    /// </summary>
+    public static void ApplyCurves(MagickImage image, EditRecipe r)
     {
         // 1. White balance, tint and exposure as per-channel gains in linear light.
         var (gr, gg, gb) = ChannelGains(r);
         if (Math.Abs(gr - 1) > 1e-6 || Math.Abs(gg - 1) > 1e-6 || Math.Abs(gb - 1) > 1e-6)
         {
-            var wasGray = image.ColorType is ColorType.Grayscale or ColorType.GrayscaleAlpha;
+            var wasGray = !image.Channels.Contains(PixelChannel.Green);
             if (wasGray)
             {
                 image.ColorType = image.HasAlpha ? ColorType.TrueColorAlpha : ColorType.TrueColor;
@@ -122,8 +136,11 @@ public static class RecipeRenderer
                 image.InverseSigmoidalContrast(strength, new Percentage(50));
             }
         }
+    }
 
-        // 4. Saturation in a perceptual colour space.
+    /// <summary>Step 4: saturation as HCL chroma (Magick's modulate in the HCL colour space).</summary>
+    public static void ApplySaturation(MagickImage image, EditRecipe r)
+    {
         if (Math.Abs(r.Saturation) > 1e-6)
         {
             image.SetArtifact("modulate:colorspace", "HCL");

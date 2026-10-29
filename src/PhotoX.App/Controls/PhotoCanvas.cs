@@ -17,6 +17,7 @@ public sealed class PhotoCanvas : Control
     public static readonly StyledProperty<Rect> CropRectProperty = AvaloniaProperty.Register<PhotoCanvas, Rect>(nameof(CropRect));
     public static readonly StyledProperty<double> CropRatioProperty = AvaloniaProperty.Register<PhotoCanvas, double>(nameof(CropRatio), 1.5);
     public static readonly StyledProperty<bool> ShowCropProperty = AvaloniaProperty.Register<PhotoCanvas, bool>(nameof(ShowCrop), true);
+    public static readonly StyledProperty<Rect> CropBoundsProperty = AvaloniaProperty.Register<PhotoCanvas, Rect>(nameof(CropBounds));
 
     private const double Padding = 24;
     private const double HandleReach = 16;
@@ -53,6 +54,13 @@ public sealed class PhotoCanvas : Control
     {
         get => GetValue(CropRatioProperty);
         set => SetValue(CropRatioProperty, value);
+    }
+
+    /// <summary>Area the crop must stay inside (valid area after straightening), in preview pixels; empty = whole image.</summary>
+    public Rect CropBounds
+    {
+        get => GetValue(CropBoundsProperty);
+        set => SetValue(CropBoundsProperty, value);
     }
 
     public bool ShowCrop
@@ -132,7 +140,9 @@ public sealed class PhotoCanvas : Control
         }
 
         var ip = ToImage(p);
-        var bounds = RectD.FromSize(Source.Size.Width, Source.Size.Height);
+        var bounds = CropBounds.Width > 0
+            ? new RectD(CropBounds.X, CropBounds.Y, CropBounds.Width, CropBounds.Height)
+            : RectD.FromSize(Source.Size.Width, Source.Size.Height);
         var start = new RectD(_startCrop.X, _startCrop.Y, _startCrop.Width, _startCrop.Height);
         var next = _drag == CropHandle.Move
             ? CropMath.Move(start, ip.X - _startPoint.X, ip.Y - _startPoint.Y, bounds)

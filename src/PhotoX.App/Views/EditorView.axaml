@@ -5,33 +5,69 @@
              xmlns:s="using:PhotoX.App.Services"
              xmlns:c="using:PhotoX.App.Controls"
              xmlns:g="using:PhotoX.Core.Geometry"
+             xmlns:e="using:PhotoX.Core.Editing"
              x:Class="PhotoX.App.Views.EditorView"
              x:DataType="vm:EditorViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.value">
+      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <Style Selector="Slider">
+      <Setter Property="Margin" Value="0,-8,0,-6" />
+    </Style>
+  </UserControl.Styles>
   <Grid ColumnDefinitions="*,340" RowDefinitions="Auto,*,Auto">
 
-    <!-- Crop toolbar (FR-010, FR-012) -->
-    <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Button Focusable="False" Command="{Binding BackToFolderCommand}" ToolTip.Tip="Esc">
-            <TextBlock Text="{l:Tr BackToFolder}" />
-          </Button>
-          <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,2" />
-          <TextBlock Text="{l:Tr Crop}" Classes="muted" VerticalAlignment="Center" Margin="2,0,4,0" />
+    <!-- Crop toolbar (FR-010, FR-012, FR-015, FR-049) -->
+    <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+      <Grid ColumnDefinitions="*,Auto">
+        <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+          <Button Focusable="False" Command="{Binding BackToFolderCommand}" ToolTip.Tip="Esc" Content="{l:Tr BackToFolder}" />
+          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
           <Button Classes="chip" Focusable="False" Content="10 × 15" Command="{Binding SetFormatCommand}" CommandParameter="10x15"
                   Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
           <Button Classes="chip" Focusable="False" Content="15 × 20" Command="{Binding SetFormatCommand}" CommandParameter="15x20"
                   Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
           <Button Classes="chip" Focusable="False" Content="13 × 18" Command="{Binding SetFormatCommand}" CommandParameter="13x18"
                   Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=13x18}" />
-          <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,2" />
+          <Button Classes="chip" Focusable="False" Content="{l:Tr Custom}"
+                  Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=custom}">
+            <Button.Flyout>
+              <Flyout Placement="Bottom">
+                <StackPanel Spacing="10" Width="240">
+                  <TextBlock Text="{l:Tr CustomRatio}" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="*,Auto,*" >
+                    <NumericUpDown Value="{Binding CustomWidth}" Minimum="1" Maximum="200" Increment="0.5" FormatString="0.#" ToolTip.Tip="{l:Tr Width}" />
+                    <TextBlock Grid.Column="1" Text="×" VerticalAlignment="Center" Margin="8,0" />
+                    <NumericUpDown Grid.Column="2" Value="{Binding CustomHeight}" Minimum="1" Maximum="200" Increment="0.5" FormatString="0.#" ToolTip.Tip="{l:Tr Height}" />
+                  </Grid>
+                  <Button Classes="primary" HorizontalAlignment="Stretch" Content="{l:Tr Apply}" Command="{Binding ApplyCustomRatioCommand}" />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
           <Button Classes="chip" Focusable="False" Content="{l:Tr Portrait}" Classes.selected="{Binding IsPortrait}"
                   Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Portrait}" />
           <Button Classes="chip" Focusable="False" Content="{l:Tr Landscape}" Classes.selected="{Binding !IsPortrait}"
                   Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Landscape}" />
+          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
+          <Button Classes="chip" Focusable="False" Content="{l:Tr Fill}" Classes.selected="{Binding !IsWholeWithBorder}"
+                  Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.Fill}" />
+          <Button Classes="chip" Focusable="False" Content="{l:Tr Borders}" Classes.selected="{Binding IsWholeWithBorder}"
+                  Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.WholeWithBorder}" />
+          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="4,0" />
           <Button Classes="chip" Focusable="False" Content="{l:Tr ResetCrop}" Command="{Binding ResetCropCommand}" />
-        </StackPanel>
-        <ToggleButton Grid.Column="2" Classes="seg" Focusable="False" IsChecked="{Binding ShowBefore}" ToolTip.Tip="Space">
+          <Button Classes="chip" Focusable="False" Content="↺ 90°" Command="{Binding RotateLeftCommand}" ToolTip.Tip="{l:Tr RotateLeft}" />
+          <Button Classes="chip" Focusable="False" Content="↻ 90°" Command="{Binding RotateRightCommand}" ToolTip.Tip="{l:Tr RotateRight}" />
+        </WrapPanel>
+        <ToggleButton Grid.Column="1" Classes="seg" Focusable="False" IsChecked="{Binding ShowBefore}" ToolTip.Tip="Space" VerticalAlignment="Top" Margin="8,0,0,0">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Text="{l:Tr BeforeAfter}" />
             <Border Classes="kbd"><TextBlock Text="Space" /></Border>
@@ -42,9 +78,10 @@
 
     <!-- Canvas -->
     <Panel Grid.Row="1" Grid.Column="0" Background="{StaticResource CanvasBrush}">
-      <c:PhotoCanvas x:Name="Canvas" Source="{Binding Preview}" CropRect="{Binding CropRect}" CropRatio="{Binding CropRatio}" />
+      <c:PhotoCanvas x:Name="Canvas" Source="{Binding Preview}" CropRect="{Binding CropRect}" CropRatio="{Binding CropRatio}"
+                     CropBounds="{Binding CropBounds}" ShowCrop="{Binding ShowCrop}" />
       <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14" Spacing="6">
-        <Border Background="#A0000000" CornerRadius="14" Padding="12,5" IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <Border Background="#B0000000" CornerRadius="14" Padding="12,5" IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}">
           <TextBlock Text="{Binding CropInfo}" FontWeight="SemiBold" FontSize="13" Foreground="White" />
         </Border>
         <Border Background="#3A2C10" BorderBrush="#7A5714" BorderThickness="1" CornerRadius="14" Padding="12,4" IsVisible="{Binding ResolutionWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -53,6 +90,9 @@
       </StackPanel>
       <Border IsVisible="{Binding IsLoading}" Background="#A0000000" CornerRadius="8" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="{l:Tr Loading}" Foreground="White" FontSize="14" />
+      </Border>
+      <Border IsVisible="{Binding IsSaving}" Background="#A0000000" CornerRadius="8" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="{l:Tr Saving}" Foreground="White" FontSize="14" />
       </Border>
       <Border IsVisible="{Binding HasError}" Background="#4A1715" BorderBrush="#FF5A52" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="24"
               HorizontalAlignment="Center" VerticalAlignment="Bottom" MaxWidth="760">
@@ -93,27 +133,55 @@
       </DockPanel>
     </Border>
 
-    <!-- Adjustments and actions -->
+    <!-- Adjustments (scrolls on small screens) and fixed actions -->
     <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
-      <Grid RowDefinitions="*,Auto" Margin="18,16,18,18">
-        <StackPanel Spacing="10">
-          <Grid ColumnDefinitions="*,Auto,Auto">
-            <TextBlock Classes="section" Text="{l:Tr Adjustments}" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Ctrl+Z" />
-            <Button Grid.Column="2" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="Ctrl+Y" />
-          </Grid>
-          <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-            <TextBlock Text="{l:Tr Exposure}" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="1" Text="{Binding ExposureText}" Classes="muted" />
-          </Grid>
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <Button Classes="square" Focusable="False" Content="−" Command="{Binding ExposureMinusCommand}" />
-            <Slider Grid.Column="1" Margin="10,0" Minimum="-2" Maximum="2" Value="{Binding Exposure}" VerticalAlignment="Center" DoubleTapped="OnExposureDoubleTapped" />
-            <Button Grid.Column="2" Classes="square" Focusable="False" Content="+" Command="{Binding ExposurePlusCommand}" />
-          </Grid>
-          <Button Classes="link" Focusable="False" Margin="0,16,0,0" Content="{l:Tr ResetPhoto}" Command="{Binding ResetPhotoCommand}" />
-        </StackPanel>
-        <StackPanel Grid.Row="1" Spacing="10">
+      <Grid RowDefinitions="*,Auto">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="18,14,18,8">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="section" Text="{l:Tr Histogram}" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ResetLevels}" Command="{Binding ResetLevelsCommand}" FontSize="12" />
+            </Grid>
+            <c:HistogramView Height="96" Histogram="{Binding Histogram}" />
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Levels}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding LevelsText}" /></Grid>
+            <Grid ColumnDefinitions="92,*" RowDefinitions="30,30,30">
+              <TextBlock Classes="value" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{l:Tr Black}" />
+              <Slider Grid.Column="1" Minimum="0" Maximum="0.5" Value="{Binding LevelsBlack}" VerticalAlignment="Center" />
+              <TextBlock Grid.Row="1" Classes="value" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{l:Tr Midtones}" />
+              <Slider Grid.Row="1" Grid.Column="1" Minimum="0.5" Maximum="2" Value="{Binding LevelsMid}" VerticalAlignment="Center" />
+              <TextBlock Grid.Row="2" Classes="value" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{l:Tr White}" />
+              <Slider Grid.Row="2" Grid.Column="1" Minimum="0.5" Maximum="1" Value="{Binding LevelsWhite}" VerticalAlignment="Center" />
+            </Grid>
+            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr AutoCorrect}" Command="{Binding AutoCorrectCommand}" Margin="0,4,0,6" />
+
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <TextBlock Classes="section" Text="{l:Tr Adjustments}" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Ctrl+Z" />
+              <Button Grid.Column="2" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="Ctrl+Y" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Exposure}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ExposureText}" /></Grid>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Button Classes="square" Focusable="False" Content="−" Command="{Binding ExposureMinusCommand}" />
+              <Slider Grid.Column="1" Margin="10,0" Minimum="-2" Maximum="2" Value="{Binding Exposure}" VerticalAlignment="Center" DoubleTapped="OnExposureDoubleTapped" />
+              <Button Grid.Column="2" Classes="square" Focusable="False" Content="+" Command="{Binding ExposurePlusCommand}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Contrast}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ContrastText}" /></Grid>
+            <Slider Minimum="-100" Maximum="100" Value="{Binding Contrast}" DoubleTapped="OnSliderDoubleTapped" />
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Saturation}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding SaturationText}" /></Grid>
+            <Slider Minimum="-100" Maximum="100" Value="{Binding Saturation}" DoubleTapped="OnSliderDoubleTapped" />
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Temperature}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding TemperatureText}" /></Grid>
+            <Slider Minimum="-100" Maximum="100" Value="{Binding Temperature}" DoubleTapped="OnSliderDoubleTapped" />
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Tint}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding TintText}" /></Grid>
+            <Slider Minimum="-100" Maximum="100" Value="{Binding Tint}" DoubleTapped="OnSliderDoubleTapped" />
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Straighten}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding StraightenText}" /></Grid>
+            <Slider Minimum="-10" Maximum="10" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding Straighten}" DoubleTapped="OnSliderDoubleTapped" />
+            <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
+              <Button Classes="link" Focusable="False" Content="{l:Tr ResetColor}" Command="{Binding ResetColorCommand}" />
+              <Button Classes="link" Focusable="False" Content="{l:Tr ResetPhoto}" Command="{Binding ResetPhotoCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+        <StackPanel Grid.Row="1" Spacing="8" Margin="18,8,18,16">
           <Grid ColumnDefinitions="*,10,*">
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding PreviousCommand}" IsEnabled="{Binding !IsBusy}">
               <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="←" /><TextBlock Text="{l:Tr Previous}" /></StackPanel>
@@ -128,7 +196,7 @@
               <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Ctrl+S" /></Border>
             </Grid>
           </Button>
-          <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="72" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">
+          <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="68" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">
             <Grid ColumnDefinitions="*,Auto">
               <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="{l:Tr SaveAndNext}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />

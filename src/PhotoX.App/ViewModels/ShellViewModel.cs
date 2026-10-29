@@ -17,6 +17,7 @@ public sealed partial class ShellViewModel : ViewModelBase
         Editor = new EditorViewModel(services, Browse);
         Id = new IdViewModel();
         Browse.EditRequested += item => _ = OpenEditorAsync(item);
+        Browse.FinishRequested += () => _ = FinishOrderAsync();
         Editor.BackRequested += () => CurrentPage = Browse;
         Editor.PropertyChanged += (_, e) =>
         {
@@ -30,6 +31,12 @@ public sealed partial class ShellViewModel : ViewModelBase
     }
 
     public BrowseViewModel Browse { get; }
+
+    [ObservableProperty]
+    public partial DialogViewModel? Dialog { get; set; }
+
+    [ObservableProperty]
+    public partial SettingsViewModel? Settings { get; set; }
 
     public EditorViewModel Editor { get; }
 
@@ -87,6 +94,14 @@ public sealed partial class ShellViewModel : ViewModelBase
     }
 
     private ViewModelBase? _lastPhotosPage;
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        var vm = new SettingsViewModel(_services, Version);
+        vm.Closed += () => Settings = null;
+        Settings = vm;
+    }
 
     private async Task OpenEditorAsync(PhotoItemViewModel item)
     {

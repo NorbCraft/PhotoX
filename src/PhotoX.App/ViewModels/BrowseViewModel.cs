@@ -36,6 +36,16 @@ public sealed partial class BrowseViewModel : ViewModelBase
     /// <summary>Raised when a photo should open in the editor.</summary>
     public event Action<PhotoItemViewModel>? EditRequested;
 
+    /// <summary>Raised when the operator asks to finish the order (FR-072).</summary>
+    public event Action? FinishRequested;
+
+    [RelayCommand]
+    private void FinishOrder() => FinishRequested?.Invoke();
+
+    public int EditedCount => AllPhotos.Count(p => p.State == PhotoState.Edited);
+
+    public int ReviewedCount => AllPhotos.Count(p => p.State == PhotoState.Reviewed);
+
     public ObservableCollection<LocationItem> Locations { get; } = [];
 
     public ObservableCollection<FolderNodeViewModel> FolderRoots { get; } = [];
@@ -175,7 +185,14 @@ public sealed partial class BrowseViewModel : ViewModelBase
         var sidecar = new OrderStore(folder).Load();
         foreach (var entry in FolderScanner.Scan(folder))
         {
-            AllPhotos.Add(new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry)));
+            var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry));
+            item.ErrorText = entry.Kind switch
+            {
+                ImageKind.Heic => ErrorTexts.ForImage(ImageError.UnsupportedHeic),
+                ImageKind.OtherImage or ImageKind.Unknown => ErrorTexts.ForImage(ImageError.UnsupportedFormat),
+                _ => null,
+            };
+            AllPhotos.Add(item);
         }
 
         SelectedPhoto = AllPhotos.FirstOrDefault(p => p.IsToDo && p.IsOpenable) ?? AllPhotos.FirstOrDefault();
@@ -296,7 +313,8 @@ public sealed partial class BrowseViewModel : ViewModelBase
             try
             {
                 if (ct.IsCancellationRequested || !item.IsOpenable) return;
-                var (bytes, info, error) = await Task.Run(() => MakeThumbnail(item.Path), ct).ConfigureAwait(false);
+                var entry = item.Entry;
+                var (bytes, info, error) = await Task.Run(() => MakeThumbnail(entry), ct).ConfigureAwait(false);
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (ct.IsCancellationRequested) return;
@@ -331,13 +349,21 @@ public sealed partial class BrowseViewModel : ViewModelBase
         }
     }
 
-    private static (byte[]? Bytes, string Info, string? Error) MakeThumbnail(string path)
+    private (byte[]? Bytes, string Info, string? Error) MakeThumbnail(PhotoEntry entry)
     {
+        var path = entry.Path;
         try
         {
             var info = ImageProbe.Probe(path);
             var dims = info.OrientedWidth > 0 ? $"{info.OrientedWidth} × {info.OrientedHeight}" : string.Empty;
-            return (Thumbnailer.Create(path), dims, null);
+            var bytes = _services.ThumbnailCache.TryGet(entry);
+            if (bytes is null)
+            {
+                bytes = Thumbnailer.Create(path);
+                _services.ThumbnailCache.Put(entry, bytes);
+            }
+
+            return (bytes, dims, null);
         }
         catch (ImageLoadException ex)
         {

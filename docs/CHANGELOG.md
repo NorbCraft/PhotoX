@@ -4,6 +4,24 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
+Complete ordinary-photo editing. Verified with automated tests on Linux. Windows use is pending.
+
+### Added
+- Crop presets: 13×18 (photo centred on a white 15×20 canvas at true scale) and Custom ratio. Composition modes *Crop to fill* and *Whole photo with white borders*, the latter previewed as it will be saved.
+- Contrast, saturation, white balance and tint; levels (black, midtones, white); live luminance + RGB histogram of the crop.
+- Auto Correct: conservative exposure, levels and mild colour from the histogram; one undo step, fully adjustable.
+- 90° rotation and straightening (±10°). The crop stays inside the image content, and the geometry is identical in preview and output.
+- Finish Order: unsaved edits are saved or the operator returns to editing, then one confirmation with *Erase originals and edit history* (default) or *Keep*. Only PhotoX's own files are removed; unknown files and ID exports are kept.
+- Close prompt when photos have unsaved changes (save them, close without saving, or cancel).
+- Persistent thumbnail cache (1 GB, 30 days, Clear cache in Settings; Finish Order removes the order's entries); preloading of the next photo.
+- Settings: JPEG quality, thumbnail cache, about and log location.
+- HEIC and other unsupported files are listed with an explanation.
+
+### Changed
+- Straightening uses Magick.NET `Distort` with an explicit viewport, so the crop maps to the same content in the preview and the saved file.
+
 ## [0.1.0] - 2026-10-29
 
 First working version (vertical slice). Verified with automated tests on Linux. Windows use is pending.

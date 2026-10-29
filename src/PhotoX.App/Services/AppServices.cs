@@ -11,7 +11,7 @@ public sealed class AppServices
         Paths = paths;
         SettingsStore = new SettingsStore(paths);
         Settings = SettingsStore.Load();
-        Saver = new PhotoSaver(Settings.JpegQuality);
+        ThumbnailCache = new ThumbnailCache(paths.ThumbnailDir, (long)Settings.ThumbnailCacheMaxMb * 1048576, Settings.ThumbnailCacheDays);
     }
 
     public static AppServices Current { get; set; } = null!;
@@ -22,7 +22,10 @@ public sealed class AppServices
 
     public Settings Settings { get; }
 
-    public PhotoSaver Saver { get; }
+    /// <summary>A saver using the current JPEG quality setting.</summary>
+    public PhotoSaver Saver => new(Settings.JpegQuality);
+
+    public ThumbnailCache ThumbnailCache { get; }
 
     public void SaveSettings()
     {

@@ -66,8 +66,18 @@ public static class RecipeRenderer
 
         if (Math.Abs(recipe.Straighten) > 1e-6)
         {
+            // Distort with an explicit viewport gives exactly the planned bounding box at every resolution, so a
+            // normalized crop maps to the same content in the preview and in the saved photo (Rotate pads unevenly).
+            var (w, h) = CropMath.RotatedSize(image.Width, image.Height, recipe.Straighten);
+            var vw = (int)Math.Round(w);
+            var vh = (int)Math.Round(h);
+            var ox = (int)Math.Round((image.Width - vw) / 2.0);
+            var oy = (int)Math.Round((image.Height - vh) / 2.0);
             image.BackgroundColor = MagickColors.White;
-            image.Rotate(recipe.Straighten);
+            image.VirtualPixelMethod = VirtualPixelMethod.Background;
+            image.SetArtifact("distort:viewport", $"{vw}x{vh}{ox:+0;-0;+0}{oy:+0;-0;+0}");
+            image.Distort(DistortMethod.ScaleRotateTranslate, recipe.Straighten);
+            image.RemoveArtifact("distort:viewport");
             image.ResetPage();
         }
     }

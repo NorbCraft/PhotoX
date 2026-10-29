@@ -12,6 +12,7 @@ using PhotoX.Core.Geometry;
 using PhotoX.Imaging;
 using PhotoX.Storage;
 using Serilog;
+using PixelRect = PhotoX.Core.Geometry.PixelRect;
 
 namespace PhotoX.App.ViewModels;
 
@@ -37,6 +38,10 @@ public sealed partial class EditorViewModel : ViewModelBase
     private string? _lastUndoTag;
     private DateTime _lastUndoTime;
     private bool _syncing;
+    private PixelData? _lastPixels;
+    private (string Path, Task<Loaded> Task)? _preload;
+
+    private sealed record Loaded(FileStamp Stamp, EditRecipe? Saved, ImageInfo Info, MagickImage Proxy);
 
     public EditorViewModel(AppServices services, BrowseViewModel browse)
     {
@@ -84,6 +89,42 @@ public sealed partial class EditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial double Exposure { get; set; }
 
+    [ObservableProperty]
+    public partial double Contrast { get; set; }
+
+    [ObservableProperty]
+    public partial double Saturation { get; set; }
+
+    [ObservableProperty]
+    public partial double Temperature { get; set; }
+
+    [ObservableProperty]
+    public partial double Tint { get; set; }
+
+    [ObservableProperty]
+    public partial double LevelsBlack { get; set; }
+
+    [ObservableProperty]
+    public partial double LevelsMid { get; set; } = 1;
+
+    [ObservableProperty]
+    public partial double LevelsWhite { get; set; } = 1;
+
+    [ObservableProperty]
+    public partial double Straighten { get; set; }
+
+    [ObservableProperty]
+    public partial Histogram? Histogram { get; set; }
+
+    [ObservableProperty]
+    public partial Rect CropBounds { get; set; }
+
+    [ObservableProperty]
+    public partial decimal CustomWidth { get; set; } = 10;
+
+    [ObservableProperty]
+    public partial decimal CustomHeight { get; set; } = 15;
+
     public bool IsBusy => IsSaving || IsLoading;
 
     public bool HasError => ErrorMessage is not null;
@@ -91,6 +132,24 @@ public sealed partial class EditorViewModel : ViewModelBase
     public bool IsDirty => _recipe != _baseline;
 
     public string FormatId => _recipe.FormatId;
+
+    public bool IsWholeWithBorder => _recipe.Composition == Composition.WholeWithBorder;
+
+    public bool ShowCrop => _recipe.Composition == Composition.Fill && !ShowBefore;
+
+    public string ContrastText => Signed(Contrast);
+
+    public string SaturationText => Signed(Saturation);
+
+    public string TemperatureText => Signed(Temperature);
+
+    public string TintText => Signed(Tint);
+
+    public string LevelsText => string.Format(Localizer.Instance.Culture, "{0:0}  ·  {1:0.00}  ·  {2:0}", LevelsBlack * 255, LevelsMid, LevelsWhite * 255);
+
+    public string StraightenText => string.Format(Localizer.Instance.Culture, "{0:+0.0;−0.0;0.0}°", Straighten);
+
+    private static string Signed(double v) => v == 0 ? "0" : v.ToString("+0;−0", Localizer.Instance.Culture);
 
     public bool IsPortrait => _recipe.Orientation == CropOrientation.Portrait;
 
@@ -153,7 +212,39 @@ public sealed partial class EditorViewModel : ViewModelBase
         if (!_syncing) SetRecipe(_recipe with { Exposure = Math.Round(value, 3) }, "exposure");
     }
 
-    partial void OnShowBeforeChanged(bool value) => _ = RenderPreviewAsync();
+    partial void OnShowBeforeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowCrop));
+        _ = RenderPreviewAsync();
+    }
+
+    partial void OnContrastChanged(double value) => SliderChanged(nameof(ContrastText), r => r with { Contrast = Math.Round(value) }, "contrast");
+
+    partial void OnSaturationChanged(double value) => SliderChanged(nameof(SaturationText), r => r with { Saturation = Math.Round(value) }, "saturation");
+
+    partial void OnTemperatureChanged(double value) => SliderChanged(nameof(TemperatureText), r => r with { Temperature = Math.Round(value) }, "temperature");
+
+    partial void OnTintChanged(double value) => SliderChanged(nameof(TintText), r => r with { Tint = Math.Round(value) }, "tint");
+
+    partial void OnLevelsBlackChanged(double value) => SliderChanged(nameof(LevelsText), r => r with { LevelsBlack = Math.Round(value, 3) }, "levels-black");
+
+    partial void OnLevelsMidChanged(double value) => SliderChanged(nameof(LevelsText), r => r with { LevelsMid = Math.Round(value, 2) }, "levels-mid");
+
+    partial void OnLevelsWhiteChanged(double value) => SliderChanged(nameof(LevelsText), r => r with { LevelsWhite = Math.Round(value, 3) }, "levels-white");
+
+    partial void OnStraightenChanged(double value)
+    {
+        OnPropertyChanged(nameof(StraightenText));
+        if (_syncing || _proxy is null) return;
+        var next = _recipe with { Straighten = Math.Round(value, 1) };
+        SetRecipe(next with { Crop = KeepCropInside(_recipe, next) }, "straighten");
+    }
+
+    private void SliderChanged(string textProperty, Func<EditRecipe, EditRecipe> change, string tag)
+    {
+        OnPropertyChanged(textProperty);
+        if (!_syncing && _proxy is not null) SetRecipe(change(_recipe), tag);
+    }
 
     // ------------------------------------------------------------------ navigation and saving
 
@@ -168,22 +259,10 @@ public sealed partial class EditorViewModel : ViewModelBase
         IsLoading = true;
         try
         {
-            var store = new OrderStore(Path.GetDirectoryName(item.Path)!);
-            var loaded = await Task.Run(() =>
-            {
-                var stamp = FileStamp.Of(item.Path) ?? throw new ImageLoadException(ImageError.Unreadable, "File missing");
-                var sidecar = store.Load();
-                var backup = SourceSelector.TrustedBackup(store, sidecar, item.Name, stamp);
-                var saved = SourceSelector.SavedRecipe(store, sidecar, item.Name, stamp);
-                var source = backup ?? item.Path;
-                var info = ImageProbe.Probe(source);
-                var proxy = ImageLoader.Load(source, ProxyEdge);
-                return (stamp, saved, info, proxy);
-            });
-
+            var loaded = await TakePreloadedAsync(item) ?? await Task.Run(() => Load(item.Path));
             if (Current != item)
             {
-                loaded.proxy.Dispose();
+                loaded.Proxy.Dispose();
                 return;
             }
 
@@ -191,21 +270,22 @@ public sealed partial class EditorViewModel : ViewModelBase
             try
             {
                 _proxy?.Dispose();
-                _proxy = loaded.proxy;
+                _proxy = loaded.Proxy;
             }
             finally
             {
                 _renderGate.Release();
             }
 
-            _loadedStamp = loaded.stamp;
-            _sourceSize = (loaded.info.OrientedWidth, loaded.info.OrientedHeight);
-            _baseline = loaded.saved ?? DefaultRecipe();
+            _loadedStamp = loaded.Stamp;
+            _sourceSize = (loaded.Info.OrientedWidth, loaded.Info.OrientedHeight);
+            _baseline = loaded.Saved ?? DefaultRecipe();
             _recipe = item.PendingRecipe ?? _baseline;
             _undo.Clear();
             _redo.Clear();
             SyncUiFromRecipe();
             await RenderPreviewAsync();
+            StartPreload(item);
         }
         catch (ImageLoadException ex)
         {
@@ -219,6 +299,63 @@ public sealed partial class EditorViewModel : ViewModelBase
             IsLoading = false;
             RaiseAll();
         }
+    }
+
+    private static Loaded Load(string path)
+    {
+        var store = new OrderStore(Path.GetDirectoryName(path)!);
+        var stamp = FileStamp.Of(path) ?? throw new ImageLoadException(ImageError.Unreadable, "File missing");
+        var sidecar = store.Load();
+        var name = Path.GetFileName(path);
+        var backup = SourceSelector.TrustedBackup(store, sidecar, name, stamp);
+        var saved = SourceSelector.SavedRecipe(store, sidecar, name, stamp);
+        var source = backup ?? path;
+        return new Loaded(stamp, saved, ImageProbe.Probe(source), ImageLoader.Load(source, ProxyEdge));
+    }
+
+    /// <summary>Preloads the next photo in the background (FR-052): only one, to bound memory.</summary>
+    private void StartPreload(PhotoItemViewModel current)
+    {
+        var seq = Sequence;
+        var i = seq.IndexOf(current);
+        if (i < 0 || i >= seq.Count - 1) return;
+        var next = seq[i + 1];
+        if (_preload?.Path == next.Path) return;
+        DiscardPreload();
+        var path = next.Path;
+        _preload = (path, Task.Run(() => Load(path)));
+    }
+
+    private async Task<Loaded?> TakePreloadedAsync(PhotoItemViewModel item)
+    {
+        if (_preload is not { } p || p.Path != item.Path)
+        {
+            DiscardPreload();
+            return null;
+        }
+
+        _preload = null;
+        try
+        {
+            var loaded = await p.Task;
+            if (FileStamp.Of(item.Path) == loaded.Stamp) return loaded;
+            loaded.Proxy.Dispose();
+        }
+        catch (ImageLoadException)
+        {
+        }
+
+        return null;
+    }
+
+    private void DiscardPreload()
+    {
+        if (_preload is not { } p) return;
+        _preload = null;
+        _ = p.Task.ContinueWith(t =>
+        {
+            if (t.IsCompletedSuccessfully) t.Result.Proxy.Dispose();
+        }, TaskScheduler.Default);
     }
 
     /// <summary>Saves the current photo with its exact current crop and edits (FR-004). Returns true on success.</summary>
@@ -322,7 +459,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     }
 
     /// <summary>Keeps manual edits of the photo being left in memory, never saving them (FR-019).</summary>
-    private void KeepPending()
+    public void KeepPending()
     {
         if (Current is null || _proxy is null) return;
         if (IsDirty)
@@ -358,11 +495,70 @@ public sealed partial class EditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void SetComposition(Composition composition)
+    {
+        if (_proxy is null || composition == _recipe.Composition) return;
+        SetRecipe(_recipe with { Composition = composition }, null);
+        _ = RenderPreviewAsync();
+    }
+
+    /// <summary>Applies a custom ratio from width × height (FR-010).</summary>
+    [RelayCommand]
+    public void ApplyCustomRatio()
+    {
+        if (_proxy is null || CustomWidth <= 0 || CustomHeight <= 0) return;
+        var w = (double)Math.Min(CustomWidth, CustomHeight);
+        var h = (double)Math.Max(CustomWidth, CustomHeight);
+        var next = _recipe with { FormatId = PrintFormats.CustomId, CustomRatio = w / h };
+        SetRecipe(next with { Crop = RefitCrop(next) }, null);
+    }
+
+    [RelayCommand]
+    public void RotateLeft() => Rotate(3);
+
+    [RelayCommand]
+    public void RotateRight() => Rotate(1);
+
+    private void Rotate(int turns)
+    {
+        if (_proxy is null) return;
+        var next = _recipe with { QuarterTurns = (_recipe.QuarterTurns + turns) % 4 };
+        var (w, h) = RotatedFullSize(next with { Straighten = 0 });
+        next = next with { Orientation = CropMath.OrientationFor(w, h) };
+        var (bw, bh) = RotatedFullSize(next);
+        var valid = ValidArea(next);
+        SetRecipe(next with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(valid, next.CropRatio), bw, bh) }, null);
+    }
+
+    /// <summary>Auto Correct (FR-045): conservative values, one undo step, fully adjustable afterwards.</summary>
+    [RelayCommand]
+    public async Task AutoCorrectAsync()
+    {
+        if (_proxy is null || IsBusy) return;
+        var proxy = _proxy;
+        var recipe = _recipe;
+        var region = PreviewCropPixels();
+        var result = await Task.Run(() =>
+        {
+            using var plain = RecipeRenderer.RenderPreview(proxy, recipe, applyTone: false);
+            var data = PixelData.From(plain);
+            return AutoCorrect.Apply(recipe, ImageStatistics.Histogram(data, region), ImageStatistics.NeutralMeans(data, region));
+        });
+        SetRecipe(result with { Contrast = _recipe.Contrast, Saturation = _recipe.Saturation }, null);
+    }
+
+    [RelayCommand]
+    public void ResetLevels() => SetRecipe(_recipe with { LevelsBlack = 0, LevelsMid = 1, LevelsWhite = 1 }, null);
+
+    [RelayCommand]
+    public void ResetColor() => SetRecipe(_recipe with { Contrast = 0, Saturation = 0, Temperature = 0, Tint = 0 }, null);
+
+    [RelayCommand]
     public void ResetCrop()
     {
         if (_proxy is null) return;
         var (w, h) = RotatedFullSize(_recipe);
-        SetRecipe(_recipe with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(RectD.FromSize(w, h), _recipe.CropRatio), w, h) }, null);
+        SetRecipe(_recipe with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(ValidArea(_recipe), _recipe.CropRatio), w, h) }, null);
     }
 
     [RelayCommand]
@@ -409,6 +605,7 @@ public sealed partial class EditorViewModel : ViewModelBase
         var (pw, ph) = RotatedPreviewSize();
         var crop = new NormalizedRect(previewRect.X / pw, previewRect.Y / ph, previewRect.Width / pw, previewRect.Height / ph);
         SetRecipe(_recipe with { Crop = crop }, null);
+        UpdateHistogram();
     }
 
     private void SetRecipe(EditRecipe next, string? tag)
@@ -440,6 +637,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     {
         SyncUiFromRecipe();
         if (render) _ = RenderPreviewAsync();
+        else UpdateHistogram();
         RaiseAll();
     }
 
@@ -449,7 +647,25 @@ public sealed partial class EditorViewModel : ViewModelBase
         try
         {
             Exposure = _recipe.Exposure;
+            Contrast = _recipe.Contrast;
+            Saturation = _recipe.Saturation;
+            Temperature = _recipe.Temperature;
+            Tint = _recipe.Tint;
+            LevelsBlack = _recipe.LevelsBlack;
+            LevelsMid = _recipe.LevelsMid;
+            LevelsWhite = _recipe.LevelsWhite;
+            Straighten = _recipe.Straighten;
             CropRatio = _recipe.CropRatio;
+            if (_recipe.FormatId == PrintFormats.CustomId)
+            {
+                CustomWidth = Math.Round((decimal)(_recipe.CustomRatio * 15), 1);
+                CustomHeight = 15;
+            }
+
+            var (bw, bh) = RotatedFullSize(_recipe);
+            var (vw, vh) = RotatedPreviewSize();
+            var valid = ValidArea(_recipe);
+            CropBounds = new Rect(valid.X / bw * vw, valid.Y / bh * vh, valid.Width / bw * vw, valid.Height / bh * vh);
             var (pw, ph) = RotatedPreviewSize();
             CropRect = new Rect(_recipe.Crop.X * pw, _recipe.Crop.Y * ph, _recipe.Crop.Width * pw, _recipe.Crop.Height * ph);
         }
@@ -470,7 +686,38 @@ public sealed partial class EditorViewModel : ViewModelBase
     {
         var (w, h) = RotatedFullSize(next);
         var current = next.Crop.ToPixels(w, h);
-        return NormalizedRect.FromPixels(CropMath.Refit(current, next.CropRatio, RectD.FromSize(w, h)), w, h);
+        return NormalizedRect.FromPixels(CropMath.Refit(current, next.CropRatio, ValidArea(next)), w, h);
+    }
+
+    /// <summary>Area of the rotated photo that contains image content (no empty corners after straightening).</summary>
+    private RectD ValidArea(EditRecipe r)
+    {
+        var (w, h) = r.QuarterTurns % 2 == 1 ? (_sourceSize.H, _sourceSize.W) : (_sourceSize.W, _sourceSize.H);
+        return CropMath.ValidAreaAfterRotation(w, h, r.Straighten);
+    }
+
+    /// <summary>Keeps the crop's size and centre when the straightening angle changes, fitted inside the new valid area.</summary>
+    private NormalizedRect KeepCropInside(EditRecipe previous, EditRecipe next)
+    {
+        var (pw, ph) = RotatedFullSize(previous);
+        var (nw, nh) = RotatedFullSize(next);
+        var crop = previous.Crop.ToPixels(pw, ph).Offset((nw - pw) / 2, (nh - ph) / 2);
+        return NormalizedRect.FromPixels(CropMath.Refit(crop, next.CropRatio, ValidArea(next)), nw, nh);
+    }
+
+    private PixelRect PreviewCropPixels()
+    {
+        var (pw, ph) = RotatedPreviewSize();
+        return CropMath.ToPixelRect(_recipe.Composition == Composition.Fill ? _recipe.Crop : NormalizedRect.Full, (int)Math.Round(pw), (int)Math.Round(ph));
+    }
+
+    private void UpdateHistogram()
+    {
+        if (_lastPixels is not { } data) return;
+        var region = _recipe.Composition == Composition.Fill
+            ? CropMath.ToPixelRect(_recipe.Crop, data.Width, data.Height)
+            : (PixelRect?)null;
+        Histogram = ImageStatistics.Histogram(data, region);
     }
 
     private (double W, double H) RotatedFullSize(EditRecipe r)
@@ -501,9 +748,22 @@ public sealed partial class EditorViewModel : ViewModelBase
                 using var img = RecipeRenderer.RenderPreview(proxy, recipe, applyTone);
                 return PixelData.From(img);
             });
+            var display = data;
+            if (recipe.Composition == Composition.WholeWithBorder && !ShowBefore)
+            {
+                // Show the bordered result as it will be saved.
+                display = await Task.Run(() =>
+                {
+                    using var img = RecipeRenderer.RenderFinal(proxy, recipe);
+                    return PixelData.From(img);
+                });
+            }
+
+            _lastPixels = data;
             var old = Preview;
-            Preview = BitmapFactory.Create(data);
+            Preview = BitmapFactory.Create(display);
             (old as IDisposable)?.Dispose();
+            UpdateHistogram();
             OnPropertyChanged(nameof(PreviewWidth));
             OnPropertyChanged(nameof(PreviewHeight));
         }
@@ -564,6 +824,8 @@ public sealed partial class EditorViewModel : ViewModelBase
 
     private void RaiseInfo()
     {
+        OnPropertyChanged(nameof(LevelsText));
+        OnPropertyChanged(nameof(StraightenText));
         OnPropertyChanged(nameof(CropInfo));
         OnPropertyChanged(nameof(ResolutionWarning));
         OnPropertyChanged(nameof(PositionText));
@@ -575,6 +837,8 @@ public sealed partial class EditorViewModel : ViewModelBase
         RaiseInfo();
         OnPropertyChanged(nameof(IsDirty));
         OnPropertyChanged(nameof(FormatId));
+        OnPropertyChanged(nameof(IsWholeWithBorder));
+        OnPropertyChanged(nameof(ShowCrop));
         OnPropertyChanged(nameof(IsPortrait));
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));

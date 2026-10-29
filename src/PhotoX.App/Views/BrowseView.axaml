@@ -167,6 +167,7 @@
               </Grid>
             </Button>
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding EditPhotoCommand}" CommandParameter="{Binding SelectedPhoto}" IsEnabled="{Binding HasSelection}" Content="{l:Tr EditSelected}" />
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding FinishOrderCommand}" IsEnabled="{Binding HasFolder}" Content="{l:Tr FinishOrder}" />
           </StackPanel>
         </Grid>
       </Panel>

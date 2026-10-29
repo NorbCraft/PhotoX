@@ -112,6 +112,16 @@
       <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
       <Setter Property="BorderThickness" Value="3" />
     </Style>
+    <Style Selector="Button.choice">
+      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="Button.choice.selected">
+      <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
     <Style Selector="Button.square">
       <Setter Property="Width" Value="34" />
       <Setter Property="Height" Value="34" />

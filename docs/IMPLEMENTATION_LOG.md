@@ -78,3 +78,40 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Contrast, colour, histogram, levels, rotation/straighten UI and Finish Order are not done.
   - The gallery is not virtualised; to be measured with large folders in 0.2.0.
 - **Commits:** see `git log v0.1.0`.
+
+### 2026-10-29: Version 0.2.0, complete ordinary editing
+- **Milestone:** 0.2.0. All ordinary-photo requirements are implemented (see PLAN.md Progress).
+- **Work done:**
+  - Colour adjustments with tint, levels, histogram, Auto Correct, rotation and straighten, composition modes, 13×18 canvas, Custom ratio.
+  - Finish Order with keep or erase, close prompt, in-window dialogs.
+  - Thumbnail cache, next-photo preload, settings.
+- **Verification (actually run, Linux Mint, .NET SDK 10.0.403):**
+  - 50 core tests and 20 headless UI tests pass. One opt-in benchmark is skipped by default.
+  - New UI tests cover:
+    - rotate → portrait output;
+    - whole-photo borders → 900×600 canvas from 800×600 with white borders;
+    - 13×18 canvas size and ratio;
+    - Custom 9:13 saved ratio;
+    - Auto Correct is undoable;
+    - Finish Order saves pending edits first, has Erase selected by default, removes `Original/` and keeps finished photos;
+    - Keep mode deletes nothing;
+    - a HEIC file is listed with an explanation.
+  - Real desktop start (X11, about 8 s): started and logged without errors.
+  - A Windows x64 self-contained build was cross-published from Linux to `publish/win-x64/` (not run on Windows).
+- **Measurements** (`PHOTOX_PERF=1`):
+  - Setup: 300 synthetic 4000×3000 JPEGs (3.2 MB each), headless, development PC (16 logical CPUs, 30 GB). These are **not** reference-machine numbers.
+
+  | Measurement | Result |
+  |---|---|
+  | Folder scan | 77 ms |
+  | First 20 thumbnails, cold | 0.99 s |
+  | All 300 thumbnails, cold | 3.8 s |
+  | All 300 thumbnails, warm cache | 0.8 s |
+  | First editor open | 0.53 s |
+  | Save & Next (12 MP save, then open the preloaded next photo) | median 1.82 s, max 1.89 s |
+  | Peak working set | 707 MB (482 MB after the run) |
+- **Limitations:**
+  - Save time is dominated by single-threaded Magick work. Expect it to be slower on a 4-core PC; candidate for optimisation in 0.4.0.
+  - The gallery is not virtualised (fine at 300 photos; to be checked at 1000+).
+  - Display colour assumes an sRGB monitor.
+  - Windows not yet tried by the owner.

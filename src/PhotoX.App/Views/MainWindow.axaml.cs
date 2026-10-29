@@ -15,6 +15,28 @@ public sealed partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnKeyDownTunnel, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUpTunnel, RoutingStrategies.Tunnel);
         Deactivated += (_, _) => _held.Clear();
+        Closing += OnClosing;
+    }
+
+    private bool _closeConfirmed;
+
+    /// <summary>Unsaved manual edits are never discarded silently (FR-019): ask once before closing.</summary>
+    private async void OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_closeConfirmed || DataContext is not ShellViewModel shell || !shell.HasPendingEdits || shell.Dialog is not null) return;
+        e.Cancel = true;
+        var count = shell.Browse.AllPhotos.Count(p => p.PendingRecipe is not null);
+        var names = string.Join(", ", shell.Browse.AllPhotos.Where(p => p.PendingRecipe is not null).Take(6).Select(p => p.Name));
+        var d = new DialogViewModel(Localization.Localizer.Instance["UnsavedTitle"], Localization.Localizer.Instance.Format("UnsavedMessage", count, names));
+        d.Buttons.Add(new DialogButton("cancel", Localization.Localizer.Instance["Cancel"], false));
+        d.Buttons.Add(new DialogButton("discard", Localization.Localizer.Instance["CloseWithoutSaving"], false));
+        d.Buttons.Add(new DialogButton("save", Localization.Localizer.Instance["SaveAndClose"], true));
+        var answer = await shell.ShowDialogAsync(d);
+        if (answer == "discard" || (answer == "save" && await shell.SavePendingAsync()))
+        {
+            _closeConfirmed = true;
+            Close();
+        }
     }
 
     /// <summary>
@@ -25,6 +47,7 @@ public sealed partial class MainWindow : Window
     {
         var repeat = !_held.Add(e.Key);
         if (DataContext is not ShellViewModel shell || IsInputFocused()) return;
+        if (shell.Dialog is not null || shell.Settings is not null) return;
         if (repeat)
         {
             if (shell.CurrentPage is EditorViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.PageDown or Key.PageUp or Key.Space)

@@ -1,0 +1,52 @@
+# --- Guard: never commit customer photos -------------------------------------
+# Image files are ignored everywhere except in whitelisted documentation,
+# asset and test-fixture folders.
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[jJ][pP][eE]
+*.[pP][nN][gG]
+*.[hH][eE][iI][cCfF]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+*.[dD][nN][gG]
+!docs/**/*.png
+!assets/**/*.png
+!tests/**/fixtures/**
+samples/
+customer-photos/
+Original/
+
+# --- .NET build output ----------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+TestResults/
+*.trx
+coverage*.xml
+*.coverage
+BenchmarkDotNet.Artifacts/
+
+# --- IDE / editor ----------------------------------------------------------------
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# --- OS ----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# --- Tooling -----------------------------------------------------------------------
+__pycache__/
+*.py[cod]

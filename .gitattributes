@@ -1,0 +1,24 @@
+# Normalise line endings in the repository; check out natively per OS.
+* text=auto
+
+*.cs      text diff=csharp
+*.axaml   text
+*.xaml    text
+*.csproj  text
+*.props   text
+*.targets text
+*.slnx    text
+*.json    text
+*.md      text
+*.svg     text
+*.py      text eol=lf
+*.sh      text eol=lf
+*.yml     text eol=lf
+
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.ico     binary
+*.onnx    binary
+*.ttf     binary
+*.otf     binary

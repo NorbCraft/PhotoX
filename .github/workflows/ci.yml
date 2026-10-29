@@ -1,0 +1,41 @@
+# Build and test on Linux and Windows (NFR-011). Runs once the GitHub remote exists.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore PhotoX.slnx
+      - run: dotnet build PhotoX.slnx -c Release --no-restore
+      - run: dotnet test PhotoX.slnx -c Release --no-build
+
+  windows-package:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet tool restore
+      - run: dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -p:DebugSymbols=false -o publish/win-x64
+      - shell: pwsh
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          dotnet vpk pack --packId PhotoX --packVersion $version --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX --outputDir releases/win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PhotoX-windows
+          path: releases/win

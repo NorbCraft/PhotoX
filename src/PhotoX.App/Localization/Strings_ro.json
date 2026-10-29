@@ -172,5 +172,14 @@
   "StripNote": "bandă albă de 7 mm dedesubt",
   "UseForId": "Folosește pentru foto acte",
   "CustomSize": "Dimensiune personalizată (mm)",
-  "Undo2": "Anulare"
+  "Undo2": "Anulare",
+  "AutoAlignNoFace": "Nu a fost găsită nicio față. Încadrați fotografia manual.",
+  "AutoAlignDone": "Aliniată automat. Verificați ghidurile și corectați dacă e nevoie.",
+  "AutoAlignSeveral": "Au fost găsite mai multe fețe. Alegeți persoana sau păstrați încadrarea manuală.",
+  "FaceN": "Persoana {0} ({1})",
+  "PosLeft": "stânga",
+  "PosMiddle": "mijloc",
+  "PosRight": "dreapta",
+  "KeepManual": "Păstrează încadrarea manuală",
+  "AutoAlignUnavailable": "Alinierea automată nu este disponibilă pe acest calculator (detecția fețelor nu a pornit). Încadrarea manuală funcționează în continuare."
 }

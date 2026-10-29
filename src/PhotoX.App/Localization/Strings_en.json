@@ -172,5 +172,14 @@
   "StripNote": "7 mm white strip below",
   "UseForId": "Use for ID photo",
   "CustomSize": "Custom size (mm)",
-  "Undo2": "Undo"
+  "Undo2": "Undo",
+  "AutoAlignNoFace": "No face was found. Please frame the photo manually.",
+  "AutoAlignDone": "Aligned automatically. Check the guides and correct if needed.",
+  "AutoAlignSeveral": "Several faces were found. Choose the person, or keep the manual framing.",
+  "FaceN": "Person {0} ({1})",
+  "PosLeft": "left",
+  "PosMiddle": "middle",
+  "PosRight": "right",
+  "KeepManual": "Keep manual framing",
+  "AutoAlignUnavailable": "Auto Align is not available on this computer (face detection could not start). Manual framing still works."
 }

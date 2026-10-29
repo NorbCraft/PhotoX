@@ -4,6 +4,18 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
+Auto Align and Windows packaging. Verified with automated tests on Linux. Windows installation is pending.
+
+### Added
+- **Auto Align** in the ID Photo Creator. It runs only when the button is pressed. It uses offline face detection (YuNet on ONNX Runtime, both MIT) to level the eyes, scale the head to the guides and centre it. The result is undoable and adjustable. When several faces are found, the operator chooses a person or keeps the manual framing; when none is found, a clear message is shown.
+- Windows installer and portable package built with Velopack (unsigned; updates are manual).
+- A CI workflow (Linux and Windows build and test, plus the Windows package) that runs once the GitHub remote exists.
+
+### Not included
+- Automatic background whitening: evaluated and not included (DEC-041). The manual background-brightness lift remains.
+
 ## [0.3.0] - 2026-10-29
 
 ID Photo Creator. Verified with automated tests on Linux. Windows use and physical prints are pending.

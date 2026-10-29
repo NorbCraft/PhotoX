@@ -8,11 +8,14 @@ using PhotoX.App.Localization;
 using PhotoX.App.Services;
 using PhotoX.Core.Id;
 using PhotoX.Imaging;
+using PhotoX.Imaging.Faces;
 using PhotoX.Imaging.Id;
 using PhotoX.Storage;
 using Serilog;
 
 namespace PhotoX.App.ViewModels;
+
+public sealed record FaceChoice(int Number, string Text, DetectedFace Face);
 
 public sealed partial class IdSizeItem(IdSize size) : ViewModelBase
 {
@@ -72,6 +75,112 @@ public sealed partial class IdViewModel : ViewModelBase
     public Func<Task<string?>>? PickFolder { get; set; }
 
     public ObservableCollection<IdSizeItem> Sizes { get; } = [];
+
+    /// <summary>Faces to choose from when Auto Align finds more than one (FR-063).</summary>
+    public ObservableCollection<FaceChoice> FaceChoices { get; } = [];
+
+    public bool HasFaceChoices => FaceChoices.Count > 0;
+
+    private static readonly Lazy<FaceDetector?> Detector = new(() =>
+    {
+        try
+        {
+            return File.Exists(FaceDetector.DefaultModelPath) ? new FaceDetector(FaceDetector.DefaultModelPath) : null;
+        }
+        catch (Exception ex) when (ex is Microsoft.ML.OnnxRuntime.OnnxRuntimeException or DllNotFoundException or TypeInitializationException)
+        {
+            Log.Error(ex, "Face detector unavailable");
+            return null;
+        }
+    });
+
+    /// <summary>Auto Align (FR-063): runs only when pressed; the result is ordinary, undoable framing.</summary>
+    [RelayCommand]
+    public async Task AutoAlignAsync()
+    {
+        if (_proxy is null || IsBusy) return;
+        IsBusy = true;
+        ErrorMessage = null;
+        StatusMessage = null;
+        ClearFaceChoices();
+        try
+        {
+            await _renderGate.WaitAsync();
+            IReadOnlyList<DetectedFace> faces;
+            try
+            {
+                var proxy = _proxy;
+                var detector = Detector.Value;
+                if (detector is null)
+                {
+                    ErrorMessage = Localizer.Instance["AutoAlignUnavailable"];
+                    return;
+                }
+
+                faces = await Task.Run(() =>
+                {
+                    lock (detector) return detector.Detect(proxy);
+                });
+            }
+            finally
+            {
+                _renderGate.Release();
+            }
+
+            Log.Information("Auto Align: {Count} face(s)", faces.Count);
+            switch (faces.Count)
+            {
+                case 0:
+                    ErrorMessage = Localizer.Instance["AutoAlignNoFace"];
+                    break;
+                case 1:
+                    ApplyFace(faces[0]);
+                    break;
+                default:
+                    for (var i = 0; i < faces.Count; i++)
+                    {
+                        var pos = faces.Count == 2 ? (i == 0 ? "PosLeft" : "PosRight") : (i == 0 ? "PosLeft" : i == faces.Count - 1 ? "PosRight" : "PosMiddle");
+                        FaceChoices.Add(new FaceChoice(i + 1, Localizer.Instance.Format("FaceN", i + 1, Localizer.Instance[pos]), faces[i]));
+                    }
+
+                    OnPropertyChanged(nameof(HasFaceChoices));
+                    StatusMessage = Localizer.Instance["AutoAlignSeveral"];
+                    break;
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void ChooseFace(FaceChoice choice)
+    {
+        ClearFaceChoices();
+        ApplyFace(choice.Face);
+    }
+
+    [RelayCommand]
+    private void KeepManualFraming()
+    {
+        ClearFaceChoices();
+        StatusMessage = null;
+    }
+
+    private void ClearFaceChoices()
+    {
+        FaceChoices.Clear();
+        OnPropertyChanged(nameof(HasFaceChoices));
+    }
+
+    private void ApplyFace(DetectedFace face)
+    {
+        var k = _proxyScale;
+        var f = IdFraming.FromFace(face.LeftEye.X / k, face.LeftEye.Y / k, face.RightEye.X / k, face.RightEye.Y / k, face.HeadHeightEstimate / k, SelectedSize.Size);
+        SetFraming(f, null);
+        StatusMessage = Localizer.Instance["AutoAlignDone"];
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FrameRatio), nameof(Capacity), nameof(FamiliarCounts))]

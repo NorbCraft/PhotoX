@@ -103,3 +103,66 @@ public class IdWorkflowTests
         window.Close();
     }
 }
+
+/// <summary>TS-13 through the UI: Auto Align on the owner's sample (copy), several faces, no face.</summary>
+public class AutoAlignUiTests
+{
+    [AvaloniaFact]
+    public async Task Auto_align_sample_then_choose_between_two_people()
+    {
+        var sample = SampleTests.SamplePath();
+        Assert.SkipWhen(sample is null, "Owner sample not available");
+        using var dir = new TempDir();
+        var copy = Path.Combine(dir.Path, "s.jpg");
+        File.Copy(sample!, copy);
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
+        shell.ShowIdCommand.Execute(null);
+        var id = shell.Id;
+        await id.LoadSourceAsync(copy);
+        var before = id.Framing;
+        await id.AutoAlignCommand.ExecuteAsync(null);
+        Assert.NotEqual(before, id.Framing);
+        Assert.False(id.HasFaceChoices);
+        await UiHelpers.WaitUntil(() => id.Preview is not null);
+        await Task.Delay(300);
+        UiHelpers.Capture(window, "id-sample-auto-align");
+        id.UndoCommand.Execute(null);
+        Assert.Equal(before, id.Framing); // undoable
+
+        // Two people side by side: the operator chooses.
+        var two = Path.Combine(dir.Path, "two.jpg");
+        using (var one = new MagickImage(copy))
+        {
+            one.Resize(new MagickGeometry(900, 900));
+            using var both = new MagickImage(MagickColors.White, one.Width * 2, one.Height);
+            both.Composite(one, 0, 0);
+            both.Composite(one, (int)one.Width, 0);
+            both.Write(two, MagickFormat.Jpeg);
+        }
+
+        await id.LoadSourceAsync(two);
+        await id.AutoAlignCommand.ExecuteAsync(null);
+        Assert.Equal(2, id.FaceChoices.Count);
+        var start = id.Framing;
+        id.ChooseFaceCommand.Execute(id.FaceChoices[1]);
+        Assert.False(id.HasFaceChoices);
+        Assert.True(id.Framing!.CenterX > start!.CenterX); // the right-hand person
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Auto_align_without_a_face_explains_and_keeps_framing()
+    {
+        using var dir = new TempDir();
+        var path = Path.Combine(dir.Path, "plain.jpg");
+        Fixtures.WriteJpeg(dir.Path, "plain.jpg", 800, 1000);
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
+        shell.ShowIdCommand.Execute(null);
+        await shell.Id.LoadSourceAsync(path);
+        var before = shell.Id.Framing;
+        await shell.Id.AutoAlignCommand.ExecuteAsync(null);
+        Assert.Equal(before, shell.Id.Framing);
+        Assert.Equal(Localization.Localizer.Instance["AutoAlignNoFace"], shell.Id.ErrorMessage);
+        window.Close();
+    }
+}

@@ -143,3 +143,25 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Physical prints of the calibration and ID sheets through the Citizen software (owner).
   - Auto Align (0.4.0).
   - The background lift is tuned only on synthetic images and one sample.
+
+### 2026-10-29: Version 0.4.0, Auto Align and packaging
+- **Milestone:** 0.4.0. FR-063 and FR-077 implemented; FR-065 not included (DEC-041).
+- **Work done:**
+  - YuNet face detector on ONNX Runtime: anchor decoding as in OpenCV's FaceDetectorYN, plus non-maximum suppression.
+  - Auto Align: levels the eye line, scales the head from the eye-to-mouth distance (× 3.4) and centres it. With several faces the operator chooses; with none a message is shown.
+  - Velopack hook and a Windows installer cross-built on Linux.
+  - CI workflow file.
+  - Third-party notices updated.
+- **Verification (actually run, Linux):**
+  - 76 core tests and 26 headless UI tests pass. One benchmark is skipped by default.
+  - Decoder unit test with a synthetic output.
+  - No face found in a plain image.
+  - On a copy of the owner's sample: one face, score 0.93. After Auto Align the eye line is at 0.451 of the photo height (target 0.460) and centred horizontally, roll 0.3°. The Auto Align screenshot was inspected: chin on the chin guide, top of hair at the crown line.
+  - Two copies side by side: two faces, ordered left to right; choosing "Person 2" frames the right-hand person.
+  - Auto Align is undoable.
+  - Layout screenshots at 1280×720 logical (1920×1080 at 150 %), in Romanian, were inspected.
+  - `releases/win/PhotoX-win-Setup.exe` (79 MB) and `PhotoX-win-Portable.zip` were built. **Not run on Windows.** Unsigned, so SmartScreen may warn.
+- **Limitations:**
+  - Head-height estimation uses a fixed proportion and is validated on one real portrait only.
+  - Save & Next takes about 1.8 s for 12 MP on the development PC (single-threaded Magick work).
+  - CI has not run (no remote yet).

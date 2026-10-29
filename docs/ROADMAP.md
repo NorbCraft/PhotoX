@@ -7,14 +7,14 @@ Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md
 - A version is finished only when its scope is implemented, its tests pass and the docs are updated.
 - Owner-dependent checks (Windows studio PC, physical prints, Romanian review) do not block other work. They are listed as pending.
 
-| Version | Milestone | Scope (FR) | Done when |
-|---|---|---|---|
-| **0.1.0** | **Vertical slice** | FR-001, 002, 003, 004, 005, 008, 009, 010 (10×15, 15×20), 011, 012, 013, 017, 018, 019, 021, 022, 023, 024, 026, 027, 030, 032, 033, 034, 035, 036, 039, 051, 053 (generation) | A folder can be browsed, a photo cropped and exposure-corrected, Save & Next writes the exact crop with the original preserved, and the next photo opens. EN/RO switch works. Tests are green. |
-| **0.2.0** | **Complete ordinary editing** | FR-010 (13×18, Custom), 014 (incl. tint), 015, 016, 031 (message), 037, 040, 042, 043, 044, 045, 047, 049, 052, 053 (cache), 054, 072, 073 | All ordinary-photo requirements implemented, including Finish Order and the 13×18 canvas; tests green |
-| **0.3.0** | **ID Photo Creator** | FR-007, 061, 062, 064, 066, 067, 068, 071, 074, 075 | Framing, adjustments, sheets (incl. the 7 mm strip), export with timestamp names, calibration sheet; tests green |
-| **0.4.0** | **Auto Align and packaging** | FR-063, 065 (bounded evaluation), 077; Velopack/folder build; measurements (NFR-003/004); UI scaling checks | Auto Align works on the sample portrait and synthetic tests; Windows build artifact produced; measurements recorded |
-| 0.5.x+ | Owner trials and fixes | — | Feedback from Windows use, prints and Romanian review incorporated |
-| **1.0.0** | Stable | — | [PLAN.md §10](PLAN.md#10-release-acceptance-100) acceptance met |
+| Version | Milestone | Scope (FR) | Done when | Status |
+|---|---|---|---|---|
+| **0.1.0** | **Vertical slice** | FR-001, 002, 003, 004, 005, 008, 009, 010 (10×15, 15×20), 011, 012, 013, 017, 018, 019, 021, 022, 023, 024, 026, 027, 030, 032, 033, 034, 035, 036, 039, 051, 053 (generation) | A folder can be browsed, a photo cropped and exposure-corrected, Save & Next writes the exact crop with the original preserved, and the next photo opens. EN/RO switch works. Tests are green. | Done 2026-10-29 (Linux tests) |
+| **0.2.0** | **Complete ordinary editing** | FR-010 (13×18, Custom), 014 (incl. tint), 015, 016, 031 (message), 037, 040, 042, 043, 044, 045, 047, 049, 052, 053 (cache), 054, 072, 073 | All ordinary-photo requirements implemented, including Finish Order and the 13×18 canvas; tests green | Done 2026-10-29 (Linux tests) |
+| **0.3.0** | **ID Photo Creator** | FR-007, 061, 062, 064, 066, 067, 068, 071, 074, 075 | Framing, adjustments, sheets (incl. the 7 mm strip), export with timestamp names, calibration sheet; tests green | Done 2026-10-29 (Linux tests; prints pending) |
+| **0.4.0** | **Auto Align and packaging** | FR-063, 065 (bounded evaluation), 077; Velopack/folder build; measurements (NFR-003/004); UI scaling checks | Auto Align works on the sample portrait and synthetic tests; Windows build artifact produced; measurements recorded | Done 2026-10-29 (whitening not included, DEC-041) |
+| 0.5.x+ | Owner trials and fixes | — | Feedback from Windows use, prints and Romanian review incorporated | Waiting for owner feedback |
+| **1.0.0** | Stable | — | [PLAN.md §10](PLAN.md#10-release-acceptance-100) acceptance met | — |
 
 **Pending owner actions** (never blocking):
 - Create the GitHub remote (then CI runs on Windows and Linux).

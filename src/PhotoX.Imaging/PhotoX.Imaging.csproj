@@ -7,5 +7,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-x64" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\assets\models\face_detection_yunet_2023mar.onnx" Link="models\face_detection_yunet_2023mar.onnx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\models\face_detection_yunet.LICENSE.txt" Link="models\face_detection_yunet.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PhotoX.Tests" />
   </ItemGroup>
 </Project>

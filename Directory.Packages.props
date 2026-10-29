@@ -12,6 +12,10 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <!-- Imaging (DEC-032: 14.17.2 rather than 15.0.0) -->
     <PackageVersion Include="Magick.NET-Q16-x64" Version="14.17.2" />
+    <!-- Face detection for Auto Align (DEC-038) -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
+    <!-- Installer (DEC-037): install/uninstall hooks only; no automatic update checks -->
+    <PackageVersion Include="Velopack" Version="1.2.161" />
     <!-- Logging -->
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />

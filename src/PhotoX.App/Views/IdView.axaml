@@ -93,7 +93,18 @@
         <Grid RowDefinitions="*,Auto" IsVisible="{Binding IsFraming}">
           <ScrollViewer Padding="18,16,18,8">
             <StackPanel Spacing="8" IsEnabled="{Binding HasSource}">
-              <TextBlock Classes="section" Text="{l:Tr Framing}" />
+              <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="44" FontSize="15" Content="{l:Tr AutoAlign}" Command="{Binding AutoAlignCommand}" IsEnabled="{Binding !IsBusy}" />
+              <TextBlock Text="{Binding StatusMessage}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" IsVisible="{Binding StatusMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <ItemsControl ItemsSource="{Binding FaceChoices}" IsVisible="{Binding HasFaceChoices}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FaceChoice">
+                    <Button Focusable="False" HorizontalAlignment="Stretch" Margin="0,0,0,6" Content="{Binding Text}"
+                            Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).ChooseFaceCommand}" CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Button Classes="link" Focusable="False" Content="{l:Tr KeepManual}" Command="{Binding KeepManualFramingCommand}" IsVisible="{Binding HasFaceChoices}" />
+              <TextBlock Classes="section" Text="{l:Tr Framing}" Margin="0,8,0,0" />
               <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Zoom}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding ZoomText}" /></Grid>
               <Slider Minimum="30" Maximum="400" Value="{Binding Zoom}" />
               <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr IdRotation}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding RotationText}" /></Grid>

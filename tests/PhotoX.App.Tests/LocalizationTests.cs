@@ -91,3 +91,28 @@ public class LocalizationTests
             .ToList();
     }
 }
+
+/// <summary>TS-18: layouts at small logical sizes (e.g. 1920×1080 at 150 % scaling = 1280×720).</summary>
+public class ScalingTests
+{
+    [AvaloniaFact]
+    public async Task Screens_fit_at_1280x720_logical()
+    {
+        using var dir = new TempDir();
+        var order = Path.Combine(dir.Path, "order");
+        Directory.CreateDirectory(order);
+        Fixtures.WriteJpeg(order, "a.jpg", 800, 600);
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1280, 720, "ro");
+        shell.Browse.OpenFolder(order);
+        await UiHelpers.WaitUntil(() => shell.Browse.AllPhotos.All(p => p.Thumbnail is not null));
+        UiHelpers.Capture(window, "small-browse-ro-1280x720");
+        shell.Browse.StartEditingCommand.Execute(null);
+        await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
+        UiHelpers.Capture(window, "small-editor-ro-1280x720");
+        shell.ShowIdCommand.Execute(null);
+        await shell.Id.LoadSourceAsync(Path.Combine(order, "a.jpg"));
+        await UiHelpers.WaitUntil(() => shell.Id.Preview is not null);
+        UiHelpers.Capture(window, "small-id-ro-1280x720");
+        window.Close();
+    }
+}

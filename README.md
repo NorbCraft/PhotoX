@@ -9,7 +9,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 
 ## Current status
 
-> **Implementation in progress** (plan revision P-2, approved by [prompt_02](docs/prompts/prompt_02.md)). See [CHANGELOG](docs/CHANGELOG.md) for released versions and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md) for what actually works and what has been verified.
+> **Version 0.4.0**: ordinary-photo editing, Finish Order, ID Photo Creator with Auto Align, and a Windows installer. Everything is verified by automated tests on Linux. **Windows use, physical Citizen prints and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -55,7 +55,9 @@ The UI is in Romanian and English. All processing is local and no customer photo
 export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
-dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -o publish/win-x64   # Windows trial build
+dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.4.0 --packDir publish/win-x64 \
+  --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --outputDir releases/win          # Windows installer
 ```
 
 ## Repository hosting

@@ -9,6 +9,8 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Velopack install/uninstall hooks (DEC-037). Updates are manual: no update check is made.
+        Velopack.VelopackApp.Build().Run();
         var paths = new AppPaths();
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()

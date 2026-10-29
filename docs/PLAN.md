@@ -106,7 +106,7 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | FR-041 | **Multiple selection** in the gallery. | C | Owner (“consider”) | Deferred | Deferred | — |
 | FR-053 | **Thumbnails:** generated in the background (visible first); persistent cache capped at 1 GB, 30-day retention, with *Clear cache*. Cache entries of an order are removed by Finish Order where practical. | M | Owner | 0.1.0 (gen), 0.2.0 (cache) | Implemented | TS-11 |
 | FR-054 | **Removable-media warning:** opening a folder on removable media shows a clear warning recommending a local working copy. Editing is allowed. | S | Owner | 0.2.0 | Implemented | TS-18 |
-| FR-077 | **Logo and application icon:** a simple original PhotoX logo used in the main window, About screen and Windows installation (editable SVG source). | S | Owner | 0.4.0 | Planned | — |
+| FR-077 | **Logo and application icon:** a simple original PhotoX logo used in the main window, About screen and Windows installation (editable SVG source). | S | Owner | 0.4.0 | Implemented | — |
 
 ### 5.2 Editor navigation and saving workflow
 
@@ -167,9 +167,9 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | FR-007 | **ID workspace** with two steps: **1. Framing & adjustments → 2. Sheet preview & save**. The imported portrait is never overwritten. | M | Owner | 0.3.0 | Implemented | TS-14, TS-18 |
 | FR-061 | **Geometric sizes:** 3×4 cm, 3.5×4.5 cm, **2×2 in** (50.8×50.8 mm, shown as ≈ 5.1 × 5.1 cm), **4×6 cm**, **5×7 cm**, 9×12 cm, Custom. No country-specific templates and no compliance claims. Data, not code. | M | Owner | 0.3.0 | Implemented | TS-14 |
 | FR-062 | **Framing:** fixed frame of the size's ratio; the photo is moved, zoomed and rotated underneath (mouse, wheel, keys, sliders). Face oval plus crown, eye, chin and centre guides. | M | Owner | 0.3.0 | Implemented | TS-14 |
-| FR-063 | **Auto Align** only on button press: offline face detection positions, scales and levels the face to the guides. The result is adjustable and undoable. **With several faces the operator chooses** (or keeps manual framing). No face found gives a clear message. | M | Owner | 0.4.0 | Planned | TS-13 |
+| FR-063 | **Auto Align** only on button press: offline face detection positions, scales and levels the face to the guides. The result is adjustable and undoable. **With several faces the operator chooses** (or keeps manual framing). No face found gives a clear message. | M | Owner | 0.4.0 | Implemented | TS-13 |
 | FR-064 | **ID adjustments:** exposure, contrast, white balance, tint, manual **background brightness**. Undo/reset and before/after where useful. | M | Owner | 0.3.0 | Implemented | TS-04, TS-14 |
-| FR-065 | **Automatic background whitening:** experimental; bounded investigation. Included only if useful, otherwise the limitation is recorded. It never delays other work. | C | Owner | 0.4.0 (evaluate) | Planned | TS-13 |
+| FR-065 | **Automatic background whitening:** experimental; bounded investigation. Included only if useful, otherwise the limitation is recorded. It never delays other work. | C | Owner | 0.4.0 (evaluate) | Not included (evaluated; DEC-041) | TS-13 |
 | FR-066 | **Sheet layouts:** simple uniform grids on a portrait 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. | M | Owner | 0.3.0 | Implemented | TS-15 |
 | FR-074 | **3×4 with 7 mm strip:** the 3×4 sheet reserves at least **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. Cut guides keep the strip. The copy count is reduced if needed. | M | Owner | 0.3.0 | Implemented | TS-15 |
 | FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; optional cut guides. | M | Owner | 0.3.0 | Implemented | TS-15, TS-18 |
@@ -188,17 +188,17 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | Src | Progress | Tests |
 |---|---|---|---|---|
-| NFR-001 | **Offline and private.** No network use. No customer data leaves the machine. | Owner | Planned | review |
+| NFR-001 | **Offline and private.** No network use. No customer data leaves the machine. | Owner | Implemented | review |
 | NFR-002 | **Platforms:** Windows 11 x64 production; Linux development. | Owner | In progress (Linux verified; Windows pending owner) | TS-17 |
 | NFR-003 | **Responsiveness:** the UI never freezes during loading, thumbnails or saving. Performance is reported from **measurements** on the reference machine, not assumed. | Owner | In progress (measured on the development PC; reference PC pending) | TS-11 |
 | NFR-004 | **Memory:** bounded caches. Memory is checked before large operations. | Owner | Implemented | TS-12 |
 | NFR-005 | **Save safety:** a failed save never damages the existing photo or its preserved original (FR-005, FR-021–FR-023). | Owner | Implemented | TS-08 |
 | NFR-006 | **Image fidelity:** no unintended resampling; no colour shift for sRGB sources; one JPEG generation from the original while history is kept. | Owner | Planned | TS-05, TS-06 |
-| NFR-007 | **Usability:** large primary actions; usable at common Windows resolutions (1366×768 to 4K) and 100–200 % scaling; mouse and keyboard first. | Owner | Planned | TS-18 |
+| NFR-007 | **Usability:** large primary actions; usable at common Windows resolutions (1366×768 to 4K) and 100–200 % scaling; mouse and keyboard first. | Owner | In progress (headless 1280×720 to 1920×1080 checked; Windows scaling pending) | TS-18 |
 | NFR-008 | **Localization quality:** no hard-coded UI text; key parity between EN and RO; Romanian wording reviewed by the owner. | Owner | In progress (owner review pending) | TS-16 |
-| NFR-009 | **Maintainability:** modest separation of UI, image processing, file handling and pure geometry. No abstractions without a concrete use. | Owner | Planned | review |
-| NFR-010 | **Licences:** free dependencies whose terms permit use in a paid studio (personal-use-only terms do not qualify). Notices retained. | Owner | Planned | review |
-| NFR-011 | **Builds:** pinned package versions. Windows/Linux CI once the GitHub remote exists. | Owner | Planned | TS-17 |
+| NFR-009 | **Maintainability:** modest separation of UI, image processing, file handling and pure geometry. No abstractions without a concrete use. | Owner | Implemented | review |
+| NFR-010 | **Licences:** free dependencies whose terms permit use in a paid studio (personal-use-only terms do not qualify). Notices retained. | Owner | Implemented (notices) | review |
+| NFR-011 | **Builds:** pinned package versions. Windows/Linux CI once the GitHub remote exists. | Owner | In progress (versions pinned; CI file ready, runs when the remote exists) | TS-17 |
 
 ## 7. Removed or superseded requirements (P-1 → P-2)
 

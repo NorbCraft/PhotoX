@@ -4,11 +4,12 @@
     <RootNamespace>PhotoX.App</RootNamespace>
     <AssemblyName>PhotoX</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\photox.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\assets\logo\photox.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="..\..\assets\logo\photox.ico" Link="Assets\photox.ico" />
+    <AvaloniaResource Include="..\..\assets\logo\photox-icon-256.png" Link="Assets\photox-icon-256.png" />
     <EmbeddedResource Include="Localization\Strings_*.json" LogicalName="PhotoX.Strings.%(Filename).json" WithCulture="false" />
   </ItemGroup>
   <ItemGroup>
@@ -18,6 +19,7 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Serilog" />
+    <PackageReference Include="Velopack" />
     <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
   <ItemGroup>

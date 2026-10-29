@@ -12,5 +12,6 @@ PhotoX uses the following third-party components. Their licences permit use in a
 | ImageMagick (bundled in Magick.NET) | 7.1.x | ImageMagick License (Apache-2.0 style) | https://imagemagick.org/script/license.php |
 | Libraries bundled in Magick.NET's native library | — | various permissive and LGPL licences; see the `Notice.txt` file shipped in the Magick.NET package | https://github.com/dlemstra/Magick.Native |
 | Serilog, Serilog.Sinks.File | 4.4.0 / 7.0.0 | Apache-2.0 | https://github.com/serilog |
-
-Components added later (for example ONNX Runtime and the YuNet face-detection model for Auto Align) are listed here when they are introduced.
+| ONNX Runtime (Microsoft.ML.OnnxRuntime) | 1.31.1 | MIT | https://github.com/microsoft/onnxruntime |
+| YuNet face-detection model (`face_detection_yunet_2023mar.onnx`) | 2023mar | MIT (© 2020 Shiqi Yu); licence file shipped in `models/` | https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet |
+| Velopack | 1.2.161 | MIT | https://github.com/velopack/velopack |

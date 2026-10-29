@@ -83,4 +83,6 @@ Prompts are stored as `docs/prompts/prompt_NN.md`, sequential and never edited. 
 
 - The .NET 10 SDK is installed user-locally at `~/.dotnet` on the development machine (`export PATH="$HOME/.dotnet:$PATH"`).
 - Build: `dotnet build PhotoX.slnx`. Test: `dotnet test PhotoX.slnx`. Run: `dotnet run --project src/PhotoX.App`.
-- Windows trial build: `dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -o publish/win-x64`.
+- Windows trial build: `dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64`.
+- Windows installer (cross-built on Linux): `dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion <version> --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --outputDir releases/win`. This gives `releases/win/PhotoX-win-Setup.exe` and `PhotoX-win-Portable.zip` (both git-ignored).
+- Performance measurements: `PHOTOX_PERF=1 dotnet test tests/PhotoX.App.Tests --filter PerformanceTests --logger "console;verbosity=detailed"`.

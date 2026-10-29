@@ -191,7 +191,13 @@ public sealed partial class BrowseViewModel : ViewModelBase
         RefreshRecent();
 
         AllPhotos.Clear();
-        var sidecar = new OrderStore(folder).Load();
+        var store = new OrderStore(folder);
+        var sidecar = store.Load();
+        if (store.UnhideRecordedPhotos(sidecar) is > 0 and var unhidden)
+        {
+            Log.Warning("Made {Count} saved photos visible again in {Folder} (hidden by PhotoX 0.4.0)", unhidden, folder);
+        }
+
         foreach (var entry in FolderScanner.Scan(folder))
         {
             var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry));

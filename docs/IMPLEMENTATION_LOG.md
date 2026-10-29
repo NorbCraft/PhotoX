@@ -165,3 +165,28 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Head-height estimation uses a fixed proportion and is validated on one real portrait only.
   - Save & Next takes about 1.8 s for 12 MP on the development PC (single-threaded Magick work).
   - CI has not run (no remote yet).
+
+### 2026-10-29: Version 0.4.1, Finish Order data-loss fix
+- **Prompt:** [docs/prompts/prompt_03.md](prompts/prompt_03.md) §6 (highest priority). The owner tested 0.4.0 on Windows 11: after Finish Order (both *Keep* and *Erase*) all photos seemed to disappear.
+- **Root cause:**
+  - `PhotoSaver` marked its temporary output file Hidden on Windows, then replaced the photo by renaming the temp file over it. A rename keeps the file's attributes, so **every saved photo became hidden**.
+  - The PhotoX scanner skips hidden files, and Windows Explorer hides them by default. The photos were still listed during editing (the gallery was not rescanned) and vanished when Finish Order reloaded the folder.
+  - *Keep* deleted nothing. *Erase* deleted only the backups recorded in the sidecar, as designed. So the edited photos were still on disk, hidden. After *Erase*, the originals in `Original/` were gone.
+  - The `Original` folder is never shown in the PhotoX explorer, so from inside PhotoX nothing seemed left.
+  - **Evidence:** the GitHub Actions run of 0.4.0 (run 40935422945, the first CI run after the owner created the remote) failed on `windows-latest` in `Erase_removes_only_known_originals_history_temps_and_cache`. The folder scan returned no photos after two saves. The UI Finish tests passed on Windows only because they checked the state of every photo in an (empty) list.
+- **Fix:**
+  - The temp file is no longer marked Hidden, and the Hidden attribute is cleared after the replace.
+  - Opening a folder clears the Hidden attribute of photos listed in its sidecar. This repairs folders finished with *Keep* in 0.4.0. After *Erase*, the photos must be unhidden by hand (Explorer → View → Show → Hidden items, then Properties → uncheck Hidden).
+  - *Erase* is stricter (DEC-043): it deletes a backup only when the sidecar names are plain file names inside `Original/`, the finished photo still exists, and the backup still has the recorded size and write time. Kept backups stay in the sidecar and are reported. No recursive deletion anywhere.
+  - Separately fixed: a localization test switched the UI language off the UI thread and failed intermittently on Linux CI.
+- **Verification (actually run, Linux):**
+  - 81 core tests and 26 headless UI tests pass. Skipped by default: the Windows-only hidden-repair test and the opt-in benchmark.
+  - New tests cover:
+    - three photos (two edited, one reviewed) with the customer's own `Original/P1.jpg`, `Original/notes.txt`, `Original/Older/P2.jpg` and `Prints/P1.jpg`;
+    - *Keep* changes no file;
+    - *Erase* deletes exactly the two PhotoX backups and the sidecar, and every other file is byte-identical;
+    - a backup is kept when its photo is missing or the backup was replaced;
+    - a sidecar path pointing outside `Original/` is ignored;
+    - saved photos are not hidden and stay listed;
+    - the UI Finish tests now check that the gallery still lists all photos and that files are byte-identical with *Keep*.
+  - Windows: see the CI result recorded for this commit in the next entry.

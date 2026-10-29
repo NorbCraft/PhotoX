@@ -15,7 +15,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 |---|---|
 | Plan | revision P-2 (simplified; all open questions decided) |
 | UI mockups | concept screens, EN and RO, in `docs/mockups/` |
-| GitHub repository | **to be created by the owner**, see [Repository hosting](#repository-hosting) |
+| GitHub repository | <https://github.com/NorbCraft/PhotoX> (private); CI on Linux and Windows |
 
 ## Documentation
 
@@ -62,28 +62,7 @@ dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.4
 
 ## Repository hosting
 
-The local Git repository is on branch `main`. **The GitHub repository will be created by the owner.** The development environment has no GitHub CLI, token or verified SSH host key, and the agent does not change credentials. Once the remote exists, push with one of the options below; CI is then added.
-
-**Option A: GitHub CLI**
-
-```bash
-sudo apt install gh                  # Linux Mint / Ubuntu
-gh auth login                        # choose GitHub.com, SSH, existing key ~/.ssh/id_ed25519.pub
-cd ~/Documents/PhotoX
-gh repo create PhotoX --private --source=. --remote=origin --push
-```
-
-**Option B: web UI + SSH**
-
-1. Create an empty **private** repository named `PhotoX` at <https://github.com/new>, with no README, licence or .gitignore.
-2. Make sure `~/.ssh/id_ed25519.pub` is added to your GitHub account (Settings → SSH keys).
-3. Run `ssh -T git@github.com` and accept the host key **only after** checking its fingerprint against GitHub's published SSH fingerprints.
-4. Push:
-
-   ```bash
-   git remote add origin git@github.com:<your-account>/PhotoX.git
-   git push -u origin main
-   ```
+The repository is hosted on GitHub at `NorbCraft/PhotoX`. GitHub Actions builds and tests every push on `ubuntu-latest` and `windows-latest` and produces the Windows package ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## Licence
 

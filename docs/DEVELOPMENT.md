@@ -17,7 +17,7 @@ Plan revision **P-2** (2026-10-29). [PLAN.md](PLAN.md) is authoritative for *wha
 
   - `type`: feat, fix, test, docs, refactor, perf, build, chore.
   - `scope`: core, imaging, storage, app, editor, id, l10n, docs, …
-- The remote is created by the owner. Until then, commits stay local. Never alter credentials or claim a remote exists.
+- The remote is `origin` = `github.com/NorbCraft/PhotoX` (created by the owner). Push `main` and version tags after each verified milestone. Never alter credentials.
 - Never commit customer photos, the owner's sample (`id_photo/`), derivatives of it, secrets or build output. `.gitignore` blocks image files outside whitelisted folders.
 
 ## 2. Versioning

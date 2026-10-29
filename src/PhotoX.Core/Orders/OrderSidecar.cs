@@ -14,6 +14,11 @@ public sealed class PhotoRecord
     /// <summary>File name of the preserved original inside <c>Original/</c>, or null when none was made.</summary>
     public string? Backup { get; set; }
 
+    /// <summary>Size and write time of the backup when PhotoX created it; Finish Order deletes it only if they still match.</summary>
+    public long? BackupLength { get; set; }
+
+    public DateTime? BackupWriteTimeUtc { get; set; }
+
     public SavedState State { get; set; }
 
     public EditRecipe? Recipe { get; set; }

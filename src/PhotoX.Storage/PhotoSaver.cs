@@ -85,6 +85,8 @@ public sealed class PhotoSaver
 
             // 3. First save: preserve the untouched original under a collision-safe name (FR-005, FR-021).
             var backupName = backupPath is not null ? Path.GetFileName(backupPath) : null;
+            long? backupLength = record?.BackupLength;
+            DateTime? backupWriteTime = record?.BackupWriteTimeUtc;
             string? createdBackup = null;
             if (backupName is null)
             {
@@ -95,6 +97,10 @@ public sealed class PhotoSaver
                 File.SetLastWriteTimeUtc(backupTemp, now.Value.LastWriteUtc);
                 createdBackup = Path.Combine(store.OriginalDir, backupName);
                 File.Move(backupTemp, createdBackup, overwrite: false);
+                ClearHidden(createdBackup);
+                var info = new FileInfo(createdBackup);
+                backupLength = info.Length;
+                backupWriteTime = info.LastWriteTimeUtc;
             }
 
             // 4. Record the edit before the photo changes, so the original is always known.
@@ -103,6 +109,8 @@ public sealed class PhotoSaver
             sidecar.Photos[name] = new PhotoRecord
             {
                 Backup = backupName,
+                BackupLength = backupLength,
+                BackupWriteTimeUtc = backupWriteTime,
                 State = unchanged ? SavedState.Reviewed : SavedState.Edited,
                 Recipe = recipe,
                 SavedUtc = DateTime.UtcNow,
@@ -116,6 +124,7 @@ public sealed class PhotoSaver
             {
                 BeforeReplace?.Invoke(photoPath);
                 File.Move(temp, photoPath, overwrite: true);
+                ClearHidden(photoPath);
             }
             catch
             {
@@ -154,10 +163,16 @@ public sealed class PhotoSaver
         using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, FileOptions.WriteThrough);
         fs.Write(bytes);
         fs.Flush(true);
-        if (OperatingSystem.IsWindows())
-        {
-            File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.Hidden);
-        }
+    }
+
+    /// <summary>
+    /// A rename keeps the attributes of the moved file. PhotoX 0.4.0 marked its temp files Hidden on Windows, so
+    /// saved photos became hidden and seemed to vanish (prompt_03 §6); make sure a written photo is never hidden.
+    /// </summary>
+    internal static void ClearHidden(string path)
+    {
+        var attributes = File.GetAttributes(path);
+        if ((attributes & FileAttributes.Hidden) != 0) File.SetAttributes(path, attributes & ~FileAttributes.Hidden);
     }
 
     internal static bool HasFreeSpace(string folder, long needed)

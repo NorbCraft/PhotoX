@@ -1,5 +1,6 @@
 using PhotoX.Core.Editing;
 using PhotoX.Core.Geometry;
+using PhotoX.Core.Orders;
 using PhotoX.Storage;
 
 namespace PhotoX.Tests;
@@ -57,14 +58,144 @@ public class OrderLifecycleTests
         Assert.Equal(hash, Fixtures.Sha(Path.Combine(dir.Path, "Original", "a.jpg")));
     }
 
+    /// <summary>
+    /// An order with three photos (two edited, one reviewed), a customer's own <c>Original/P1.jpg</c> from before
+    /// PhotoX, unrelated files in <c>Original/</c> and an unrelated subfolder.
+    /// </summary>
+    private static (string Order, string[] Photos, Dictionary<string, string> Customer) SavedOrderWithPreExistingOriginals(TempDir dir)
+    {
+        var order = dir.File("order");
+        Directory.CreateDirectory(order);
+        var photos = new[] { "P1.jpg", "P2.jpg", "P3.jpg" }.Select(n => Fixtures.WriteJpeg(order, n, 300, 200)).ToArray();
+        var original = Path.Combine(order, "Original");
+        Directory.CreateDirectory(Path.Combine(original, "Older"));
+        Fixtures.WriteJpeg(original, "P1.jpg", 120, 80);                      // the customer's own file, same name
+        File.WriteAllText(Path.Combine(original, "notes.txt"), "customer notes");
+        Fixtures.WriteJpeg(Path.Combine(original, "Older"), "P2.jpg", 90, 60);
+        Directory.CreateDirectory(Path.Combine(order, "Prints"));
+        Fixtures.WriteJpeg(Path.Combine(order, "Prints"), "P1.jpg", 100, 100);
+        var customer = new[] { "Original/P1.jpg", "Original/notes.txt", "Original/Older/P2.jpg", "Prints/P1.jpg" }
+            .ToDictionary(r => r, r => Fixtures.Sha(Path.Combine(order, r)));
+
+        var saver = new PhotoSaver();
+        Assert.Equal(SaveOutcome.Saved, saver.Save(photos[0], Crop, FileStamp.Of(photos[0])!.Value).Outcome);
+        Assert.Equal(SaveOutcome.Saved, saver.Save(photos[1], Crop, FileStamp.Of(photos[1])!.Value).Outcome);
+        Assert.Equal(SaveOutcome.Reviewed, saver.Save(photos[2], new EditRecipe { Crop = NormalizedRect.Full }, FileStamp.Of(photos[2])!.Value).Outcome);
+        Assert.True(File.Exists(Path.Combine(original, "P1 (2).jpg")));        // PhotoX never reused the customer's name
+        return (order, photos, customer);
+    }
+
+    private static Dictionary<string, string> Snapshot(string folder) =>
+        Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+            .ToDictionary(f => Path.GetRelativePath(folder, f).Replace('\\', '/'), Fixtures.Sha);
+
     [Fact]
-    public void Keep_mode_is_simply_not_calling_erase_and_nothing_changes()
+    public void Saved_photos_are_never_hidden_and_stay_listed()
+    {
+        using var dir = new TempDir();
+        var (order, photos, _) = SavedOrderWithPreExistingOriginals(dir);
+
+        // 0.4.0 bug (prompt_03 §6): on Windows the saved photos inherited the Hidden attribute of the temp file,
+        // so the gallery and Explorer no longer showed them.
+        foreach (var p in photos) Assert.Equal(0, (int)(File.GetAttributes(p) & FileAttributes.Hidden));
+        Assert.Equal(["P1.jpg", "P2.jpg", "P3.jpg"], FolderScanner.Scan(order).Select(e => e.Name));
+    }
+
+    [Fact]
+    public void Keep_changes_no_file_and_reopening_restores_the_order()
+    {
+        using var dir = new TempDir();
+        var (order, _, _) = SavedOrderWithPreExistingOriginals(dir);
+        var before = Snapshot(order);
+
+        // Keep performs no file operation; the order reopens with every photo and its state.
+        var entries = FolderScanner.Scan(order);
+        Assert.Equal(3, entries.Count);
+        var sidecar = new OrderStore(order).Load();
+        Assert.Equal(3, sidecar.Photos.Count);
+        Assert.Equal(before, Snapshot(order));
+    }
+
+    [Fact]
+    public void Erase_with_pre_existing_files_deletes_only_photox_backups_and_history()
+    {
+        using var dir = new TempDir();
+        var (order, photos, customer) = SavedOrderWithPreExistingOriginals(dir);
+        var finished = photos.ToDictionary(p => p, Fixtures.Sha);
+
+        var result = OrderCleanup.Erase(order, null);
+
+        Assert.True(result.Complete);
+        Assert.Equal(2, result.DeletedOriginals);
+        Assert.False(result.OriginalFolderRemoved);
+        foreach (var (p, sha) in finished) Assert.Equal(sha, Fixtures.Sha(p));                   // finished photos untouched
+        foreach (var (rel, sha) in customer) Assert.Equal(sha, Fixtures.Sha(Path.Combine(order, rel))); // customer files untouched
+        Assert.Equal(["P1.jpg", "P2.jpg", "P3.jpg"], FolderScanner.Scan(order).Select(e => e.Name));
+        Assert.Equal(
+            ["Original/Older/P2.jpg", "Original/P1.jpg", "Original/notes.txt", "P1.jpg", "P2.jpg", "P3.jpg", "Prints/P1.jpg"],
+            Snapshot(order).Keys.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Erase_keeps_a_backup_whose_finished_photo_is_missing()
     {
         using var dir = new TempDir();
         var a = Fixtures.WriteJpeg(dir.Path, "a.jpg", 300, 200);
         Assert.True(new PhotoSaver().Save(a, Crop, FileStamp.Of(a)!.Value).Succeeded);
-        Assert.True(File.Exists(Path.Combine(dir.Path, "Original", "a.jpg")));
-        Assert.True(File.Exists(Path.Combine(dir.Path, "Original", ".photox-order.json")));
+        File.Delete(a); // the backup is now the only copy
+
+        var result = OrderCleanup.Erase(dir.Path, null);
+
+        var backup = Path.Combine(dir.Path, "Original", "a.jpg");
+        Assert.True(File.Exists(backup));
+        Assert.Equal([backup], result.Remaining);
+        Assert.NotNull(new OrderStore(dir.Path).Load().Find("a.jpg")); // still identifiable later
+    }
+
+    [Fact]
+    public void Erase_keeps_a_backup_replaced_since_photox_made_it()
+    {
+        using var dir = new TempDir();
+        var a = Fixtures.WriteJpeg(dir.Path, "a.jpg", 300, 200);
+        Assert.True(new PhotoSaver().Save(a, Crop, FileStamp.Of(a)!.Value).Succeeded);
+        var backup = Path.Combine(dir.Path, "Original", "a.jpg");
+        File.Delete(backup);
+        Fixtures.WriteJpeg(Path.Combine(dir.Path, "Original"), "a.jpg", 640, 480); // someone else's file now
+
+        var result = OrderCleanup.Erase(dir.Path, null);
+
+        Assert.True(File.Exists(backup));
+        Assert.Equal(0, result.DeletedOriginals);
+    }
+
+    [Fact]
+    public void Erase_ignores_sidecar_names_that_point_outside_original()
+    {
+        using var dir = new TempDir();
+        var a = Fixtures.WriteJpeg(dir.Path, "a.jpg", 300, 200);
+        var store = new OrderStore(dir.Path);
+        var sidecar = new OrderSidecar();
+        sidecar.Photos["a.jpg"] = new PhotoRecord { Backup = "../a.jpg", State = SavedState.Edited };
+        store.Save(sidecar);
+
+        OrderCleanup.Erase(dir.Path, null);
+
+        Assert.True(File.Exists(a));
+    }
+
+    [Fact]
+    public void Photos_hidden_by_040_are_made_visible_again()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The Hidden attribute exists only on Windows.");
+        using var dir = new TempDir();
+        var a = Fixtures.WriteJpeg(dir.Path, "a.jpg", 300, 200);
+        Assert.True(new PhotoSaver().Save(a, Crop, FileStamp.Of(a)!.Value).Succeeded);
+        File.SetAttributes(a, File.GetAttributes(a) | FileAttributes.Hidden);
+        Assert.Empty(FolderScanner.Scan(dir.Path));
+
+        var store = new OrderStore(dir.Path);
+        Assert.Equal(1, store.UnhideRecordedPhotos(store.Load()));
+        Assert.Single(FolderScanner.Scan(dir.Path));
     }
 
     [Fact]

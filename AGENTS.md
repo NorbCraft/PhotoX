@@ -1,6 +1,6 @@
 # Instructions for AI coding agents
 
-## Current phase: IMPLEMENTATION (approved by `docs/prompts/prompt_02.md`)
+## Current phase: IMPLEMENTATION (approved by `docs/prompts/prompt_02.md`; owner feedback in `docs/prompts/prompt_03.md` takes precedence where it conflicts)
 
 Work autonomously through [docs/ROADMAP.md](docs/ROADMAP.md) under the rules in [docs/DEVELOPMENT.md §6](docs/DEVELOPMENT.md#6-agent-rules-autonomous-implementation-prompt_02-20). Ask the owner only for genuine contradictions, infeasible major requirements, unsuitable dependency terms, scope or user-data risks, or missing access.
 

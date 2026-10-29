@@ -1,6 +1,6 @@
 # PhotoX — Roadmap
 
-Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md](prompts/prompt_02.md) and proceeds autonomously in this order. Requirement IDs refer to [PLAN.md](PLAN.md).
+Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md](prompts/prompt_02.md) and proceeds autonomously in this order. [prompt_03.md](prompts/prompt_03.md) added the owner's feedback from testing 0.4.0 (milestones 0.4.1–0.6.0); it takes precedence where it conflicts with older requirements. Requirement IDs refer to [PLAN.md](PLAN.md).
 
 **Principles:**
 - Deliver the vertical workflow first (open folder → open photo → adjust crop → basic correction → save → next photo), then widen it.
@@ -13,12 +13,14 @@ Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md
 | **0.2.0** | **Complete ordinary editing** | FR-010 (13×18, Custom), 014 (incl. tint), 015, 016, 031 (message), 037, 040, 042, 043, 044, 045, 047, 049, 052, 053 (cache), 054, 072, 073 | All ordinary-photo requirements implemented, including Finish Order and the 13×18 canvas; tests green | Done 2026-10-29 (Linux tests) |
 | **0.3.0** | **ID Photo Creator** | FR-007, 061, 062, 064, 066, 067, 068, 071, 074, 075 | Framing, adjustments, sheets (incl. the 7 mm strip), export with timestamp names, calibration sheet; tests green | Done 2026-10-29 (Linux tests; prints pending) |
 | **0.4.0** | **Auto Align and packaging** | FR-063, 065 (bounded evaluation), 077; Velopack/folder build; measurements (NFR-003/004); UI scaling checks | Auto Align works on the sample portrait and synthetic tests; Windows build artifact produced; measurements recorded | Done 2026-10-29 (whitening not included, DEC-041) |
-| 0.5.x+ | Owner trials and fixes | — | Feedback from Windows use, prints and Romanian review incorporated | Waiting for owner feedback |
+| **0.4.1** | **Finish Order data-loss fix** ([prompt_03](prompts/prompt_03.md) §6) | FR-005, FR-072, NFR-005 | Root cause found and fixed, regression tests for Keep and Erase with pre-existing files, Windows CI green | Done 2026-10-29 |
+| **0.5.0** | **Responsiveness and editor feedback** (prompt_03 §§3–5, 9) | FR-004, 006, 012–015, 017, 043, 044, 049, 052; NFR-003 | Measured before/after; fast preview path for sliders, straighten and crop; crop applied in preview; levels bar; visual sliders; fixed toolbar; resizable panel; Close and Finish Order at the end of an order | Planned |
+| **0.6.0** | **Browsing, ID consistency, window** (prompt_03 §§2, 7, 8) | FR-001, 002, 039, 062, 064, 066, 067, 074; NFR-007 | Conventional folder tree; four collapsible recent orders; clear selection; ID editor uses the same controls; landscape sheets; 7 mm strip option only for 3×4; single title and icon | Planned |
+| 0.6.x+ | Owner trials and fixes | — | Feedback from Windows use, prints and Romanian review incorporated | Waiting for owner feedback |
 | **1.0.0** | Stable | — | [PLAN.md §10](PLAN.md#10-release-acceptance-100) acceptance met | — |
 
 **Pending owner actions** (never blocking):
-- Create the GitHub remote (then CI runs on Windows and Linux).
-- Run Windows 11 trials on the studio PC.
+- Run Windows 11 trials on the studio PC (first trial of 0.4.0 done; feedback in prompt_03).
 - Print physical test sheets through Citizen software (FR-071).
 - Review the Romanian wording.
 

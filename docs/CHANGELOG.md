@@ -4,6 +4,15 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-29
+
+Critical fix for photos disappearing after Finish Order on Windows (owner report, prompt_03 §6).
+
+### Fixed
+- **Saved photos became hidden on Windows.** PhotoX marked its temporary save file as Hidden, and replacing the photo with that file kept the attribute. Every saved photo was therefore hidden: Windows Explorer and the PhotoX gallery stopped showing it, which became visible when the folder was reloaded after Finish Order. With *Keep*, nothing was deleted; with *Erase*, only the backups in `Original/` were deleted, as designed. Saved photos are now never hidden, and opening a folder whose sidecar still lists hidden photos makes them visible again.
+- Finish Order *Erase* is stricter. It deletes a backup only if the finished photo is still in the order folder and the backup still has the size and time recorded when PhotoX created it. Names in the sidecar must be plain file names inside `Original/`. Anything kept is listed, and its history stays so it can be identified later.
+- A UI test switched the language off the UI thread. This caused an intermittent failure on the Linux CI.
+
 ## [0.4.0] - 2026-10-29
 
 Auto Align and Windows packaging. Verified with automated tests on Linux. Windows installation is pending.

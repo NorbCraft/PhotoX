@@ -17,7 +17,8 @@ public class LocalizationTests
         Assert.Empty(ro.Except(en));
     }
 
-    [Fact]
+    // The language is process-wide and view models react to a switch, so switching tests run on the UI thread.
+    [AvaloniaFact]
     public void Romanian_uses_comma_below_diacritics_only()
     {
         Localizer.Instance.SetLanguage("ro");
@@ -34,7 +35,7 @@ public class LocalizationTests
         }
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(1, "A rămas 1 fotografie")]
     [InlineData(2, "Au rămas 2 fotografii")]
     [InlineData(19, "Au rămas 19 fotografii")]

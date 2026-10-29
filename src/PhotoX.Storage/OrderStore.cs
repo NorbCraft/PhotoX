@@ -43,6 +43,37 @@ public sealed class OrderStore(string folder)
     }
 
     /// <summary>
+    /// Repairs photos that PhotoX 0.4.0 left hidden on Windows (prompt_03 §6): clears the Hidden attribute of
+    /// photos recorded in the sidecar. Returns how many were repaired. Nothing else is touched.
+    /// </summary>
+    public int UnhideRecordedPhotos(OrderSidecar sidecar)
+    {
+        if (!OperatingSystem.IsWindows()) return 0;
+        var repaired = 0;
+        foreach (var name in sidecar.Photos.Keys)
+        {
+            if (!IsPlainFileName(name)) continue;
+            var path = Path.Combine(Folder, name);
+            try
+            {
+                if (!File.Exists(path) || (File.GetAttributes(path) & FileAttributes.Hidden) == 0) continue;
+                PhotoSaver.ClearHidden(path);
+                repaired++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return repaired;
+    }
+
+    /// <summary>True for a bare file name: no directory parts, no "." or "..". Sidecar names must be bare.</summary>
+    public static bool IsPlainFileName(string? name) =>
+        !string.IsNullOrWhiteSpace(name) && name is not "." and not ".." && Path.GetFileName(name) == name
+        && name.IndexOfAny(['/', '\\', ':']) < 0;
+
+    /// <summary>
     /// Backup name for a first save: the file's own name, unless a file of that name (case-insensitive) already
     /// exists in <c>Original/</c>; then "name (2).ext", "name (3).ext" … (FR-021). Never an existing name.
     /// </summary>

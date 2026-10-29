@@ -120,7 +120,9 @@ public class EditingTests
             Assert.Equal(800u, p2.Width); // finished photo kept (cropped to 3:2)
         }
 
+        Assert.Equal(3, shell.Browse.AllPhotos.Count);              // every photo is still in the gallery
         Assert.All(shell.Browse.AllPhotos, p => Assert.Equal(PhotoState.ToDo, p.State));
+        Assert.All(Directory.GetFiles(order), f => Assert.Equal(0, (int)(File.GetAttributes(f) & FileAttributes.Hidden)));
         window.Close();
     }
 
@@ -160,9 +162,15 @@ public class EditingTests
     public async Task Finish_order_keep_deletes_nothing()
     {
         using var dir = new TempDir();
-        var (window, shell, order) = await OpenEditor(dir, 1);
+        var (window, shell, order) = await OpenEditor(dir, 3);
+        Directory.CreateDirectory(Path.Combine(order, "Original"));
+        File.WriteAllText(Path.Combine(order, "Original", "P1.jpg"), "customer's own file");
+        Assert.True(await shell.Editor.SaveCurrentAsync());
+        await shell.Editor.NextAsync();
         Assert.True(await shell.Editor.SaveCurrentAsync());
         shell.Editor.BackToFolderCommand.Execute(null);
+        var before = Directory.GetFiles(order, "*", SearchOption.AllDirectories).ToDictionary(f => f, Fixtures.Sha);
+
         var finish = shell.FinishOrderAsync();
         await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: true });
         shell.Dialog!.SelectedChoice = shell.Dialog.Choices.Single(c => c.Id == "keep");
@@ -170,8 +178,12 @@ public class EditingTests
         await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: false });
         shell.Dialog!.PressCommand.Execute("ok");
         await finish;
-        Assert.True(File.Exists(Path.Combine(order, "Original", "P1.jpg")));
-        Assert.NotNull(new OrderStore(order).Load().Find("P1.jpg"));
+
+        Assert.Equal(before, Directory.GetFiles(order, "*", SearchOption.AllDirectories).ToDictionary(f => f, Fixtures.Sha));
+        Assert.Equal(3, shell.Browse.AllPhotos.Count);
+        Assert.Equal(2, shell.Browse.EditedCount);
+        Assert.Equal("customer's own file", File.ReadAllText(Path.Combine(order, "Original", "P1.jpg")));
+        Assert.True(File.Exists(Path.Combine(order, "Original", "P1 (2).jpg")));
         window.Close();
     }
 }

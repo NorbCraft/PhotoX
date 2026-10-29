@@ -2,21 +2,20 @@
 
 PhotoX is a lightweight, offline photo-preparation desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software with one focused tool:
 
-- **Photos:** open an order folder, crop to 10×15 / 15×20, correct exposure, colour and levels, then **Save & Next**. Originals are kept safely in an `Original` subfolder.
-- **ID Photos:** frame a portrait with face guides and optional Auto Align, adjust it, and export an exact-size print sheet.
+- **Photos:** open an order folder, crop to 10×15 / 15×20 / 13×18 (centred on 15×20), correct exposure, colour and levels, then **Enter = Save & Next**. Originals are kept temporarily in an `Original` subfolder for re-editing until **Finish Order**.
+- **ID Photos:** frame a portrait with face guides and optional Auto Align, adjust it, and export a 10×15 sheet with timestamped filenames to a chosen folder.
 
 The UI is in Romanian and English. All processing is local and no customer photo ever leaves the computer.
 
 ## Current status
 
-> **Planning phase. Nothing is implemented yet.** The plan (revision P-1, 2026-10-29) is waiting for the owner's review and explicit approval. The first implementation version will be **0.1.0** (Foundation). No software release or tag exists.
+> **Implementation in progress** (plan revision P-2, approved by [prompt_02](docs/prompts/prompt_02.md)). See [CHANGELOG](docs/CHANGELOG.md) for released versions and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md) for what actually works and what has been verified.
 
 | Item | State |
 |---|---|
-| Requirements, architecture, roadmap | drafted, awaiting review |
-| UI mockups | 4 screens × 2 languages (concepts) |
-| Application code | none (by design) |
-| GitHub repository | **not created yet**, see [Repository hosting](#repository-hosting) |
+| Plan | revision P-2 (simplified; all open questions decided) |
+| UI mockups | concept screens, EN and RO, in `docs/mockups/` |
+| GitHub repository | **to be created by the owner**, see [Repository hosting](#repository-hosting) |
 
 ## Documentation
 
@@ -46,13 +45,22 @@ The UI is in Romanian and English. All processing is local and no customer photo
 |---|---|
 | Production platform | **Windows 11 x64** |
 | Development platform | Linux Mint (with a Windows 11 VM and physical Windows PCs for testing) |
-| Stack (proposed / validated) | C# · .NET 10 LTS · Avalonia UI 12 · MVVM (CommunityToolkit.Mvvm) · Magick.NET 15 · ONNX Runtime (ID features) |
-| CI (planned) | GitHub Actions on `ubuntu-latest` and `windows-latest` |
-| Future printer | Citizen CY-02 (direct printing deferred beyond 1.0) |
+| Stack | C# · .NET 10 LTS · Avalonia UI 12.1 · CommunityToolkit.Mvvm · Magick.NET 14.17 · ONNX Runtime (Auto Align) |
+| CI | GitHub Actions on `ubuntu-latest` and `windows-latest` once the remote exists |
+| Printing | via Citizen software (CY-02); future: LinkServer hot folders |
+
+## Build and run
+
+```bash
+export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
+dotnet test PhotoX.slnx                # run tests
+dotnet run --project src/PhotoX.App    # start PhotoX
+dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -o publish/win-x64   # Windows trial build
+```
 
 ## Repository hosting
 
-The local Git repository is initialised on branch `main`. **The GitHub repository has not been created**, because the planning environment had no GitHub CLI, no access token, and no verified SSH host key for github.com. To finish, choose one option.
+The local Git repository is on branch `main`. **The GitHub repository will be created by the owner.** The development environment has no GitHub CLI, token or verified SSH host key, and the agent does not change credentials. Once the remote exists, push with one of the options below; CI is then added.
 
 **Option A: GitHub CLI**
 
@@ -77,4 +85,4 @@ gh repo create PhotoX --private --source=. --remote=origin --push
 
 ## Licence
 
-Proprietary. All rights reserved until the owner decides otherwise (see OQ-027). Third-party licences will be listed in `THIRD-PARTY-NOTICES.md` from version 0.1.0.
+Private software for a single studio, not distributed (OQ-027). Third-party licences are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

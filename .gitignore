@@ -14,6 +14,7 @@
 !tests/**/fixtures/**
 samples/
 customer-photos/
+id_photo/
 Original/
 
 # --- .NET build output ----------------------------------------------------------

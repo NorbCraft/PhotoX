@@ -177,12 +177,17 @@ def badge_check(cx, cy, rad=10):
     )
 
 
+LOGO_MARK = (
+    '<rect width="64" height="64" rx="16" fill="url(#g-logo)"/>'
+    '<path d="M14 24V14h10M40 14h10v10M50 40v10H40M24 50H14V40" fill="none" stroke="#FFFFFF" '
+    'stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>'
+    '<circle cx="32" cy="32" r="10.5" fill="none" stroke="#FFFFFF" stroke-width="5"/>'
+    '<circle cx="32" cy="32" r="3.2" fill="#FFFFFF"/>'
+)
+
+
 def logo(x, y, s):
-    return (
-        f'<rect x="{f(x)}" y="{f(y)}" width="{f(s)}" height="{f(s)}" rx="{f(s * 0.26)}" fill="url(#g-logo)"/>'
-        f'<circle cx="{f(x + s / 2)}" cy="{f(y + s / 2)}" r="{f(s * 0.24)}" fill="none" stroke="#FFFFFF" stroke-width="{f(s * 0.1)}"/>'
-        f'<circle cx="{f(x + s / 2)}" cy="{f(y + s / 2)}" r="{f(s * 0.07)}" fill="#FFFFFF"/>'
-    )
+    return f'<g transform="translate({f(x)},{f(y)}) scale({s / 64:.4f})">{LOGO_MARK}</g>'
 
 
 # --------------------------------------------------------------------------- widgets
@@ -342,6 +347,7 @@ def scene_defs():
     d = [
         _lg("g-logo", "#3B82F6", "#8B5CF6"),
         _lg("g-temp", "#4C8DF6", "#F5B54A", vertical=False),
+        _lg("g-tint", "#3FB950", "#D25FB8", vertical=False),
         _lg("g-levels", "#000000", "#FFFFFF", vertical=False),
         _lg("g-bright", "#3A3A3A", "#F2F2F2", vertical=False),
         _lg("sk-lake", "#5B98D4", "#D3E7F7"),
@@ -467,7 +473,7 @@ def label_strip(num, title, lang):
         + r(16, 11, 90, 22, C["warn"], rx=4)
         + t(61, 27, "CONCEPT", 12, "#1A1A1A", 800, "middle", extra='letter-spacing="1"')
         + t(120, 28, f"Mockup {num} — {title}  ·  {lang_name}", 15, "#1A1A1A", 650)
-        + t(WIN_W - 16, 28, "PhotoX planning (pre-0.1.0) · not an implemented interface · synthetic placeholder images", 12.5, "#5A5A54", 400, "end")
+        + t(WIN_W - 16, 28, "PhotoX plan P-2 · concept, not a screenshot · synthetic placeholder images", 12.5, "#5A5A54", 400, "end")
     )
 
 
@@ -644,7 +650,7 @@ def mockup_main(L, lang):
             out.append(icon("chev_r", cx - 2, 109, 14, C["text3"]))
             cx += 18
     x = 324
-    for lab, n, on in [(L["f_all"], 85, False), (L["f_todo"], 62, True), (L["f_done"], 23, False)]:
+    for lab, n, on in [(L["f_all"], 85, True), (L["f_todo"], 62, False), (L["f_done"], 23, False)]:
         s, w = chip(x, 140, lab, on, count=n)
         out.append(s)
         x += w + 8
@@ -684,6 +690,8 @@ def mockup_main(L, lang):
     out.append(r(px, 88, 330, 884, C["panel"]))
     out.append(ln(px + 0.5, 88, px + 0.5, 972, C["border"]))
     out.append(section(px + 20, 120, L["selected_photo"]))
+    out.append(r(px + 284, 104, 26, 24, C["panel2"], rx=5, stroke=C["border2"]))
+    out.append(icon("chev_r", px + 289, 108, 16, C["text2"]))
     out.append(r(px + 20, 134, 290, 218, C["canvas"], rx=8))
     img, _ = place("sc-lake", px + 26, 140, 278, 206)
     out.append(img)
@@ -706,7 +714,7 @@ def mockup_main(L, lang):
     out.append(t(px + 20, 644, L["todo_line"], 12.5, C["text2"]))
 
     out.append(button(px + 20, 760, 290, 64, L["start"], "primary", ic="crop", hint="Enter", size=16, sub=L["start_sub"]))
-    out.append(button(px + 20, 834, 290, 42, L["edit_sel"], "secondary", ic="image"))
+    out.append(button(px + 20, 834, 290, 42, L["finish"], "secondary", ic="check"))
     out.append(button(px + 20, 886, 290, 42, L["to_id"], "ghost", ic="idcard"))
 
     # ---- status bar
@@ -766,18 +774,20 @@ def mockup_editor(L, lang):
     out.append(ln(0, 137.5, 1240, 137.5, C["border"]))
     out.append(icon("crop", 18, 104, 18, C["text2"]))
     x = 46
-    for lab, on in [("10 × 15", True), ("15 × 20", False), (L["custom"], False)]:
+    for lab, on in [("10 × 15", True), ("15 × 20", False), ("13 × 18", False), (L["custom"], False)]:
         s, w = chip(x, 98, lab, on)
         out.append(s)
         x += w + 8
     x += 10
-    s, w = segmented(x, 96, [L["portrait"], L["landscape"]], 1)
+    s, w = segmented(x, 96, [L["portrait"], L["landscape"]], 1, pad=12)
     out.append(s)
-    x += w + 18
-    for lab, ic in [(L["fit"], None), (L["reset_crop"], "reset")]:
-        s, w = chip(x, 98, lab, False, ic=ic)
-        out.append(s)
-        x += w + 8
+    x += w + 10
+    s, w = segmented(x, 96, [L["fill"], L["borders"]], 0, pad=12)
+    out.append(s)
+    x += w + 10
+    for ic in ("reset", "rot_ccw", "rot_cw"):
+        out.append(icon_btn(x, 97, ic, 32, C["text"]))
+        x += 38
     s, w = chip(0, 98, L["before_after"], False, ic="eye")
     out.append(chip(1240 - 16 - w - 60, 98, L["before_after"], False, ic="eye")[0])
     out.append(kbd(1240 - 16 - 52, 103.5, L["space"])[0])
@@ -860,11 +870,8 @@ def mockup_editor(L, lang):
     out.append(slider(ix0, 460, iw0, 0.56, "Contrast", "+6", bipolar=True))
     out.append(slider(ix0, 512, iw0, 0.5, L["saturation"], "0", bipolar=True))
     out.append(slider(ix0, 564, iw0, 0.55, L["wb"], "+5", grad="g-temp", bipolar=True))
-
-    out.append(section(ix0, 630, L["rotate"]))
-    out.append(button(ix0, 642, iw0 / 2 - 5, 36, "90°", "secondary", ic="rot_ccw"))
-    out.append(button(ix0 + iw0 / 2 + 5, 642, iw0 / 2 - 5, 36, "90°", "secondary", ic="rot_cw"))
-    out.append(slider(ix0, 704, iw0, 0.47, L["straighten"], L["deg"], bipolar=True))
+    out.append(slider(ix0, 616, iw0, 0.47, L["tint"], "−3", grad="g-tint", bipolar=True))
+    out.append(slider(ix0, 680, iw0, 0.47, L["straighten"], L["deg"], bipolar=True))
     out.append(icon("reset", ix0, 748, 16, C["accent"]))
     out.append(t(ix0 + 24, 761, L["reset_photo"], 13, C["accent"], 500))
 
@@ -885,27 +892,31 @@ POR_X = FRAME[0] + FRAME[2] / 2 - 150 * POR_SCALE
 POR_Y = FRAME[1] + 0.085 * FRAME[3] - 92 * POR_SCALE
 
 
+ID_SIZES = [("3 × 4 cm", 30, 40, None), ("s35", 35, 45, None), ("2 × 2 in", 50.8, 50.8, "approx51"),
+            ("4 × 6 cm", 40, 60, None), ("5 × 7 cm", 50, 70, None), ("9 × 12 cm", 90, 120, None)]
+
+
 def id_left_panel(L, lang, selected=1):
     out = [r(0, 88, 240, 912, C["panel"]), ln(240.5, 88, 240.5, 1000, C["border"])]
-    out.append(section(18, 118, L["id_format"]))
-    sizes = [("3 × 4 cm", 30, 40), (L["s35"], 35, 45), ("5 × 5 cm", 50, 50), ("9 × 12 cm", 90, 120)]
-    y = 132
-    for i, (lab, w, h) in enumerate(sizes):
+    out.append(section(18, 116, L["id_format"]))
+    y = 128
+    for i, (lab, w, h, extra) in enumerate(ID_SIZES):
+        lab = L.get(lab, lab)
         on = i == selected
-        out.append(r(12, y, 216, 56, C["accent_tint"] if on else C["panel2"], rx=8, stroke=C["accent"] if on else C["border"], sw=1.5 if on else 1))
-        k = 30 / max(w, h)
-        out.append(r(24 + (30 - w * k) / 2, y + 13 + (30 - h * k) / 2, w * k, h * k, "none", rx=2, stroke="#D6E6FF" if on else C["text2"], sw=1.5))
-        out.append(t(66, y + 25, lab, 14.5, C["text"], 650 if on else 500))
-        px = f"{round(w / 25.4 * 300)} × {round(h / 25.4 * 300)} px @ 300 ppi"
-        out.append(t(66, y + 43, px, 11.5, C["text2"]))
-        y += 64
-    out.append(r(12, y, 216, 44, "none", rx=8, stroke=C["border2"], extra='stroke-dasharray="4 4"'))
-    out.append(icon("plus", 24, y + 13, 18, C["text2"]))
-    out.append(t(52, y + 27, L["custom"], 14, C["text2"], 500))
-    y += 64
+        out.append(r(12, y, 216, 50, C["accent_tint"] if on else C["panel2"], rx=8, stroke=C["accent"] if on else C["border"], sw=1.5 if on else 1))
+        k = 26 / max(w, h)
+        out.append(r(24 + (26 - w * k) / 2, y + 12 + (26 - h * k) / 2, w * k, h * k, "none", rx=2, stroke="#D6E6FF" if on else C["text2"], sw=1.5))
+        out.append(t(62, y + 22, lab, 14, C["text"], 650 if on else 500))
+        px = f"{round(w / 25.4 * 300)} × {round(h / 25.4 * 300)} px" + (f"  ·  {L[extra]}" if extra else "")
+        out.append(t(62, y + 39, px, 11.5, C["text2"]))
+        y += 56
+    out.append(r(12, y, 216, 40, "none", rx=8, stroke=C["border2"], extra='stroke-dasharray="4 4"'))
+    out.append(icon("plus", 24, y + 11, 18, C["text2"]))
+    out.append(t(52, y + 25, L["custom"], 14, C["text2"], 500))
+    y += 60
     out.append(icon("warn", 16, y - 2, 16, C["warn"]))
     out.append(t(40, y + 10, L["disclaimer"], 12, C["text2"]))
-    y += 104
+    y += 100
     out.append(section(18, y, L["source"]))
     out.append(r(18, y + 14, 64, 84, C["canvas"], rx=4))
     out.append(place("sc-por", 20, y + 16, 60, 80)[0])
@@ -944,7 +955,7 @@ def id_stepper(L, step):
 def portrait_frame_symbol():
     fx, fy, fw, fh = FRAME
     return (
-        f'<symbol id="id-crop" viewBox="0 0 {f(fw)} {f(fh)}">'
+        f'<symbol id="id-crop" viewBox="0 0 {f(fw)} {f(fh)}" preserveAspectRatio="xMidYMid slice">'
         f'<use href="#sc-por" x="{f(POR_X - fx)}" y="{f(POR_Y - fy)}" width="{f(300 * POR_SCALE)}" height="{f(400 * POR_SCALE)}"/>'
         f'<rect width="{f(fw)}" height="{f(fh)}" fill="#FFFFFF" opacity="0.14"/>'
         "</symbol>"
@@ -1017,16 +1028,17 @@ def mockup_id_editor(L, lang):
     out.append(slider(ix0, 426, iw0, 0.55, L["exposure"], L["ev2"], bipolar=True, minus_plus=True))
     out.append(slider(ix0, 484, iw0, 0.53, "Contrast", "+4", bipolar=True))
     out.append(slider(ix0, 536, iw0, 0.48, L["wb"], "−3", grad="g-temp", bipolar=True))
+    out.append(slider(ix0, 588, iw0, 0.5, L["tint"], "0", grad="g-tint", bipolar=True))
 
-    out.append(section(ix0, 602, L["background"]))
-    out.append(slider(ix0, 630, iw0, 0.68, L["bg_bright"], "+18", grad="g-bright"))
-    out.append(r(ix0, 676, iw0, 112, C["panel2"], rx=8, stroke=C["border"]))
-    out.append(t(ix0 + 14, 702, L["auto_white"], 14, C["text"], 600))
-    out.append(toggle(ix0 + iw0 - 52, 688, False))
+    out.append(section(ix0, 654, L["background"]))
+    out.append(slider(ix0, 682, iw0, 0.68, L["bg_bright"], "+18", grad="g-bright"))
+    out.append(r(ix0, 728, iw0, 112, C["panel2"], rx=8, stroke=C["border"]))
+    out.append(t(ix0 + 14, 754, L["auto_white"], 14, C["text"], 600))
+    out.append(toggle(ix0 + iw0 - 52, 740, False))
     bw = measure("EXPERIMENTAL", 10.5, 700) + 14
-    out.append(r(ix0 + 14, 714, bw, 18, "#4A3510", rx=4, stroke="#8A6514"))
-    out.append(t(ix0 + 14 + bw / 2, 727, "EXPERIMENTAL", 10.5, "#F8D48A", 700, "middle", extra='letter-spacing="0.5"'))
-    out.append(t(ix0 + 14, 754, L["auto_white_note"], 12, C["text2"]))
+    out.append(r(ix0 + 14, 766, bw, 18, "#4A3510", rx=4, stroke="#8A6514"))
+    out.append(t(ix0 + 14 + bw / 2, 779, "EXPERIMENTAL", 10.5, "#F8D48A", 700, "middle", extra='letter-spacing="0.5"'))
+    out.append(t(ix0 + 14, 806, L["auto_white_note"], 12, C["text2"]))
 
     out.append(ln(px, 896.5, px + pw, 896.5, C["border"]))
     out.append(button(ix0, 912, 110, 48, L["reset"], "secondary", ic="reset"))
@@ -1036,31 +1048,43 @@ def mockup_id_editor(L, lang):
 
 def mockup_id_sheet(L, lang):
     out = [r(0, 0, WIN_W, WIN_H, C["bg"]), titlebar(), appbar(L, lang, 1, center="portret_client.jpg")]
-    out.append(id_left_panel(L, lang))
+    out.append(id_left_panel(L, lang, selected=0))
     out.append(id_stepper(L, 1))
     out.append(r(241, 138, 999, 862, C["canvas"]))
 
-    # page preview: 101.6 × 152.4 mm at 4.8 px/mm
+    # page preview: 101.6 × 152.4 mm at 4.8 px/mm; 3×4 cm photos with a 7 mm strip below each
     k = 4.8
     pw_mm, ph_mm = 101.6, 152.4
     pgw, pgh = pw_mm * k, ph_mm * k
     pgx, pgy = 740 - pgw / 2, 186
     out.append(r(pgx + 6, pgy + 8, pgw, pgh, "#000000", op=0.45, rx=2))
     out.append(r(pgx, pgy, pgw, pgh, "#FFFFFF", rx=2))
-    cols, rows, gap = 2, 3, 2.0
-    pw, ph = 35.0, 45.0
-    gw, gh = cols * pw + (cols - 1) * gap, rows * ph + (rows - 1) * gap
+    cols, rows, gap, strip = 3, 3, 2.0, 7.0
+    pw, ph = 30.0, 40.0
+    cell_h = ph + strip
+    gw, gh = cols * pw + (cols - 1) * gap, rows * cell_h + (rows - 1) * gap
     ox, oy = (pw_mm - gw) / 2, (ph_mm - gh) / 2
     xs = [ox + c * (pw + gap) for c in range(cols)]
-    ys = [oy + rr * (ph + gap) for rr in range(rows)]
+    ys = [oy + rr * (cell_h + gap) for rr in range(rows)]
     guide = "#9A9A9A"
     for xmm in sorted({v for x0 in xs for v in (x0, x0 + pw)}):
         out.append(ln(pgx + xmm * k, pgy, pgx + xmm * k, pgy + pgh, guide, 0.8, dash="3 3"))
-    for ymm in sorted({v for y0 in ys for v in (y0, y0 + ph)}):
+    for ymm in sorted({v for y0 in ys for v in (y0, y0 + cell_h)}):
         out.append(ln(pgx, pgy + ymm * k, pgx + pgw, pgy + ymm * k, guide, 0.8, dash="3 3"))
-    for y0 in ys:
-        for x0 in xs:
+    copies = 8
+    for i in range(cols * rows):
+        x0, y0 = xs[i % cols], ys[i // cols]
+        if i < copies:
             out.append(f'<use href="#id-crop" x="{f(pgx + x0 * k)}" y="{f(pgy + y0 * k)}" width="{f(pw * k)}" height="{f(ph * k)}"/>')
+        else:
+            out.append(r(pgx + x0 * k + 1, pgy + y0 * k + 1, pw * k - 2, ph * k - 2, "none", stroke="#C8C8C8", extra='stroke-dasharray="4 4"'))
+    # 7 mm strip bracket on the bottom row (left side)
+    sy0, sy1 = pgy + (ys[2] + ph) * k, pgy + (ys[2] + cell_h) * k
+    bx = pgx - 12
+    out.append(ln(bx, sy0, bx, sy1, C["warn"], 1.5))
+    out.append(ln(bx - 5, sy0, bx + 5, sy0, C["warn"], 1.5))
+    out.append(ln(bx - 5, sy1, bx + 5, sy1, C["warn"], 1.5))
+    out.append(t(bx - 10, (sy0 + sy1) / 2 + 5, "7 mm", 13, "#F8D48A", 650, "end"))
     # dimensions
     out.append(ln(pgx, pgy - 16, pgx + pgw, pgy - 16, C["text2"], 1))
     out.append(ln(pgx, pgy - 22, pgx, pgy - 10, C["text2"], 1))
@@ -1073,11 +1097,12 @@ def mockup_id_sheet(L, lang):
     out.append(ln(vx - 6, pgy + pgh, vx + 6, pgy + pgh, C["text2"], 1))
     out.append(t(vx + 12, pgy + pgh / 2 + 4, L["mm_h"], 12.5, C["text"], 600))
     # callout to one photo
-    cx, cy = pgx + (xs[0] + pw) * k, pgy + ys[0] * k + 40
+    cy = pgy + ys[0] * k + 60
     out.append(ln(pgx - 10, cy, pgx + xs[0] * k, cy, C["accent"], 1))
-    out.append(r(pgx - 236, cy - 32, 226, 64, C["panel2"], rx=8, stroke=C["accent_tint_b"]))
-    out.append(t(pgx - 222, cy - 9, L["each_photo"], 12.5, C["text2"]))
-    out.append(t(pgx - 222, cy + 13, L["each_dims"], 13.5, C["text"], 650))
+    out.append(r(pgx - 236, cy - 40, 226, 80, C["panel2"], rx=8, stroke=C["accent_tint_b"]))
+    out.append(t(pgx - 222, cy - 17, L["each_photo"], 12.5, C["text2"]))
+    out.append(t(pgx - 222, cy + 5, L["each_dims"], 13.5, C["text"], 650))
+    out.append(t(pgx - 222, cy + 26, L["each_strip"], 12.5, "#F8D48A", 500))
     out.append(t(740, pgy + pgh + 40, L["page_line"], 13, C["text2"], 400, "middle"))
 
     # ---- right panel
@@ -1087,51 +1112,67 @@ def mockup_id_sheet(L, lang):
     out.append(ln(px + 0.5, 88, px + 0.5, 1000, C["border"]))
     out.append(section(ix0, 116, L["page"]))
     out.append(dropdown(ix0, 128, iw0, L["page_val"]))
-    out.append(t(ix0, 182, L["page_note"], 12, C["text3"]))
 
-    out.append(section(ix0, 224, L["layout"]))
-    cards = [("6", "2 × 3", True, None), ("8", "4 × 2", False, L["tight"]), ("4", "2 × 2", False, None), ("2", "1 × 2", False, None)]
-    cw, chh = (iw0 - 10) / 2, 96
-    for i, (n, grid, on, warn) in enumerate(cards):
-        x = ix0 + (i % 2) * (cw + 10)
-        y = 238 + (i // 2) * (chh + 10)
-        out.append(r(x, y, cw, chh, C["accent_tint"] if on else C["panel2"], rx=8, stroke=C["accent"] if on else C["border"], sw=1.5 if on else 1))
-        # mini page
-        mw, mh = (28, 42) if grid != "4 × 2" else (42, 28)
-        mx, my = x + 12 + (42 - mw) / 2, y + (chh - mh) / 2
-        out.append(r(mx, my, mw, mh, "#FFFFFF", rx=2, op=0.9))
-        gc, gr = (int(v) for v in grid.split(" × "))
-        cellw, cellh = (mw - 6) / gc, (mh - 6) / gr
-        for a in range(gc):
-            for b in range(gr):
-                out.append(r(mx + 3 + a * cellw + 1, my + 3 + b * cellh + 1, cellw - 2, cellh - 2, "#8FA2B5"))
-        out.append(t(x + 64, y + 40, n, 22, C["text"], 700))
-        out.append(t(x + 64 + measure(n, 22, 700) + 6, y + 40, L["photos_word"], 13, C["text2"]))
-        out.append(t(x + 64, y + 62, grid, 12.5, C["text2"]))
-        if warn:
-            out.append(icon("warn", x + 64, y + 70, 13, C["warn"]))
-            out.append(t(x + 81, y + 81, warn, 11, C["warn"]))
+    out.append(section(ix0, 196, L["layout"]))
+    out.append(r(ix0, 208, iw0, 64, C["panel2"], rx=8, stroke=C["border"]))
+    out.append(t(ix0 + 14, 232, L["layout_info"], 14, C["text"], 600))
+    out.append(icon("check", ix0 + 14, 244, 14, C["ok"], 2.5))
+    out.append(t(ix0 + 34, 256, L["strip_note"], 12, C["text2"]))
 
-    out.append(section(ix0, 474, L["copies"]))
-    out.append(stepper(ix0, 486, "6", L["of_places"]))
-    out.append(t(ix0, 556, L["spacing"], 13.5, C["text"], 500))
-    out.append(dropdown(ix0 + iw0 - 110, 536, 110, "2 mm", 32))
-    out.append(t(ix0, 598, L["margins"], 13.5, C["text"], 500))
-    out.append(dropdown(ix0 + iw0 - 176, 578, 176, L["auto_center"], 32))
-    out.append(icon("scissors", ix0, 624, 18, C["text2"]))
-    out.append(t(ix0 + 28, 638, L["cut_guides"], 13.5, C["text"], 500))
-    out.append(toggle(ix0 + iw0 - 40, 622, True))
+    out.append(section(ix0, 304, L["copies"]))
+    out.append(stepper(ix0, 316, "8", L["of_places"]))
+    x = ix0
+    for n in ("4", "6", "8", "9"):
+        s_, w = chip(x, 360, n, n == "8", h=28)
+        out.append(s_)
+        x += w + 8
+    out.append(t(ix0, 428, L["spacing"], 13.5, C["text"], 500))
+    out.append(dropdown(ix0 + iw0 - 110, 408, 110, "2 mm", 32))
+    out.append(t(ix0, 470, L["margins"], 13.5, C["text"], 500))
+    out.append(dropdown(ix0 + iw0 - 176, 450, 176, L["auto_center"], 32))
+    out.append(icon("scissors", ix0, 496, 18, C["text2"]))
+    out.append(t(ix0 + 28, 510, L["cut_guides"], 13.5, C["text"], 500))
+    out.append(toggle(ix0 + iw0 - 40, 494, True))
 
-    out.append(section(ix0, 688, L["output"]))
-    out.append(r(ix0, 700, iw0, 92, C["panel2"], rx=8, stroke=C["border"]))
-    out.append(t(ix0 + 14, 724, "JPEG  ·  300 ppi  ·  1200 × 1800 px", 13.5, C["text"], 600))
-    out.append(t(ix0 + 14, 746, "Popescu_Maria_ID_35x45_6.jpg", 12.5, C["text2"]))
-    out.append(icon("lock", ix0 + 14, 758, 14, C["ok"]))
-    out.append(t(ix0 + 32, 770, L["out_note"], 12, C["ok"]))
+    out.append(section(ix0, 562, L["output"]))
+    out.append(t(ix0, 588, L["out_folder"], 12.5, C["text2"]))
+    out.append(r(ix0, 598, iw0 - 100, 34, C["panel2"], rx=7, stroke=C["border2"]))
+    out.append(icon("folder", ix0 + 10, 606, 18, C["accent"]))
+    out.append(t(ix0 + 36, 620, L["out_path"], 13.5, C["text"], 500))
+    out.append(button(ix0 + iw0 - 92, 598, 92, 34, L["change"], "secondary", size=13))
+    out.append(t(ix0, 660, L["file_name"], 12.5, C["text2"]))
+    out.append(t(ix0, 682, "ID_20261029_1845.jpg", 14, C["text"], 600))
+    s_, w = segmented(ix0, 700, ["JPEG", "PNG"], 0, h=28, pad=14)
+    out.append(s_)
+    out.append(t(ix0 + iw0, 720, "1200 × 1800 px  ·  300 ppi", 12.5, C["text2"], 400, "end"))
+    out.append(icon("lock", ix0, 748, 14, C["ok"]))
+    out.append(t(ix0 + 20, 760, L["out_note"], 12, C["ok"]))
 
     out.append(ln(px, 896.5, px + pw_, 896.5, C["border"]))
     out.append(button(ix0, 912, 104, 48, L["back"], "secondary", ic="arrow_l"))
     out.append(button(ix0 + 112, 912, iw0 - 112, 48, L["save_layout"], "primary", ic="save", hint="Ctrl+S", size=14.5))
+    return "".join(out)
+
+
+def mockup_finish(L, lang):
+    body = mockup_main(L, lang)
+    dx, dy, dw, dh = 520, 250, 560, 420
+    out = [body, r(0, 0, WIN_W, WIN_H, "#000000", op=0.6)]
+    out.append(r(dx, dy, dw, dh, C["panel"], rx=12, stroke=C["border2"]))
+    out.append(icon("check", dx + 24, dy + 24, 22, C["ok"], 2.6))
+    out.append(t(dx + 56, dy + 42, L["fin_title"], 19, C["text"], 700))
+    out.append(t(dx + 24, dy + 78, L["fin_status"], 13.5, C["text2"]))
+    for i, (key, on) in enumerate([("fin_erase", True), ("fin_keep", False)]):
+        y = dy + 104 + i * 104
+        out.append(r(dx + 24, y, dw - 48, 92, C["accent_tint"] if on else C["panel2"], rx=9, stroke=C["accent"] if on else C["border"], sw=1.5 if on else 1))
+        out.append(f'<circle cx="{dx + 50}" cy="{y + 28}" r="9" fill="none" stroke="{C["accent"] if on else C["text2"]}" stroke-width="2"/>')
+        if on:
+            out.append(f'<circle cx="{dx + 50}" cy="{y + 28}" r="4.5" fill="{C["accent"]}"/>')
+        out.append(t(dx + 72, y + 33, L[key], 15, C["text"], 650))
+        out.append(t(dx + 72, y + 56, L[key + "_d"], 12.5, C["text2"]))
+    out.append(t(dx + 24, dy + 336, L["fin_note"], 12, C["text3"]))
+    out.append(button(dx + dw - 24 - 150 - 12 - 120, dy + dh - 64, 120, 42, L["cancel"], "secondary"))
+    out.append(button(dx + dw - 24 - 150, dy + dh - 64, 150, 42, L["fin_btn"], "primary", ic="check"))
     return "".join(out)
 
 
@@ -1140,10 +1181,21 @@ def mockup_id_sheet(L, lang):
 STR = {
     "en": {
         "tab_photos": "Photos", "tab_id": "ID Photos",
+        "finish": "Finish order…", "f_done_lbl": "",
+        "fill": "Crop to fill", "borders": "Whole + borders", "tint": "Tint",
+        "approx51": "≈ 5.1 × 5.1 cm",
+        "layout_info": "3 × 3 grid  ·  up to 9 photos", "strip_note": "7 mm white strip below each photo",
+        "out_folder": "Output folder", "out_path": "D:\\Foto acte", "change": "Change…", "file_name": "File name",
+        "each_strip": "+ 7 mm strip → cut 30 × 47 mm",
+        "fin_title": "Finish order — Popescu Maria", "fin_status": "All 85 photos are saved (62 edited, 23 reviewed).",
+        "fin_erase": "Erase originals and edit history", "fin_erase_d": "Deletes the 62 originals PhotoX kept in “Original” and the\nedit history. Finished photos and ID exports stay.",
+        "fin_keep": "Keep originals and edit history", "fin_keep_d": "Keeps everything so photos can still be re-edited\nfrom the original.",
+        "fin_note": "Unknown files in “Original” are never touched.", "cancel": "Cancel", "fin_btn": "Finish order",
+
         "locations": "LOCATIONS", "disk_c": "Local Disk (C:)", "disk_d": "Orders (D:)", "usb": "USB drive KINGSTON (E:)",
         "recent": "RECENT ORDERS", "folders": "FOLDERS",
-        "originals_note": "23 originals kept in “Original” (hidden)",
-        "f_all": "All", "f_todo": "To do", "f_done": "Edited", "sort": "Sort: name",
+        "originals_note": "Originals kept until Finish order",
+        "f_all": "All", "f_todo": "To do", "f_done": "Done", "sort": "Sort: name",
         "edited": "Edited ✓", "lowres": "Low resolution for 10×15",
         "selected_photo": "SELECTED PHOTO",
         "d_dims": "4000 × 3000 px  ·  12 MP", "d_file": "3.4 MB  ·  JPEG  ·  sRGB", "d_taken": "Taken 12 Oct 2026, 14:35",
@@ -1154,13 +1206,13 @@ STR = {
         "status_right": "Thumbnails cached  ·  PhotoX 0.1.0 (concept)",
         "custom": "Custom…", "portrait": "Portrait", "landscape": "Landscape", "fit": "Fit", "reset_crop": "Reset crop",
         "before_after": "Before / After", "space": "Space", "unsaved": "Unsaved changes",
-        "canvas_hint": "Drag inside the frame to move  ·  drag handles to resize  ·  ratio locked to 10 × 15",
-        "order_name": "Popescu Maria", "saved_toast": "IMG_0423.jpg saved  ·  original kept in Original/",
+        "canvas_hint": "Drag inside the frame to move  ·  drag handles to resize  ·  ratio locked  ·  Enter = Save & Next",
+        "order_name": "Popescu Maria", "saved_toast": "IMG_0423.jpg saved",
         "hist": "HISTOGRAM & LEVELS", "reset": "Reset", "black": "Black", "gamma": "Midtones", "g_val": "1.04", "white": "White",
         "auto": "Auto Correct", "adjust": "ADJUSTMENTS", "exposure": "Exposure", "ev": "+0.30 EV", "ev2": "+0.15 EV",
         "saturation": "Saturation", "wb": "White balance", "rotate": "ROTATE & STRAIGHTEN", "straighten": "Straighten", "deg": "−1.2°",
         "reset_photo": "Reset this photo", "prev": "Previous", "skip": "Skip", "save": "Save",
-        "save_next": "Save & Next", "save_next_sub": "then opens IMG_0425.jpg",
+        "save_next": "Save & Next", "save_next_sub": "saves this crop, then opens the next",
         "id_format": "ID FORMAT", "s35": "3.5 × 4.5 cm",
         "disclaimer": "Geometric sizes only.\nAlways check the official\nrequirements of the document\n(passport, ID card, visa…).",
         "source": "SOURCE PHOTO", "src_safe": "Original is never modified",
@@ -1175,18 +1227,29 @@ STR = {
         "to_sheet": "Continue to sheet",
         "page": "PAGE", "page_val": "10 × 15 cm  (4 × 6 in)", "page_note": "Exact media size is set per printer in Settings",
         "layout": "LAYOUT", "tight": "Tight margins", "photos_word": "photos",
-        "copies": "COPIES", "of_places": "of 6 places", "spacing": "Spacing", "margins": "Margins", "auto_center": "Auto (centred)",
-        "cut_guides": "Cut guides", "output": "OUTPUT", "out_note": "New file — source photo untouched",
-        "back": "Back", "save_layout": "Save layout",
-        "mm_w": "101.6 mm", "mm_h": "152.4 mm", "each_photo": "Each photo", "each_dims": "35.0 × 45.0 mm  ·  413 × 531 px",
+        "copies": "COPIES", "of_places": "of 9 places", "spacing": "Spacing", "margins": "Margins", "auto_center": "Auto (centred)",
+        "cut_guides": "Cut guides", "output": "OUTPUT", "out_note": "Never overwrites  ·  source photo untouched",
+        "back": "Back", "save_layout": "Save sheet",
+        "mm_w": "101.6 mm", "mm_h": "152.4 mm", "each_photo": "Each photo", "each_dims": "30.0 × 40.0 mm  ·  354 × 472 px",
         "page_line": "Page 10 × 15 cm (4 × 6 in)  ·  1200 × 1800 px at 300 ppi",
     },
     "ro": {
         "tab_photos": "Fotografii", "tab_id": "Foto acte",
+        "finish": "Finalizare comandă…", "f_done_lbl": "",
+        "fill": "Decupare", "borders": "Întreagă + margini", "tint": "Nuanță",
+        "approx51": "≈ 5,1 × 5,1 cm",
+        "layout_info": "Grilă 3 × 3  ·  maximum 9 fotografii", "strip_note": "Bandă albă de 7 mm sub fiecare fotografie",
+        "out_folder": "Dosar de salvare", "out_path": "D:\\Foto acte", "change": "Schimbă…", "file_name": "Nume fișier",
+        "each_strip": "+ bandă 7 mm → tăiere 30 × 47 mm",
+        "fin_title": "Finalizare comandă — Popescu Maria", "fin_status": "Toate cele 85 de fotografii sunt salvate (62 editate, 23 verificate).",
+        "fin_erase": "Șterge originalele și istoricul", "fin_erase_d": "Șterge cele 62 de originale păstrate în „Original” și istoricul\neditărilor. Fotografiile finale și pozele de acte rămân.",
+        "fin_keep": "Păstrează originalele și istoricul", "fin_keep_d": "Păstrează totul, ca fotografiile să poată fi reeditate\npornind de la original.",
+        "fin_note": "Fișierele necunoscute din „Original” nu sunt atinse.", "cancel": "Anulare", "fin_btn": "Finalizează",
+
         "locations": "LOCAȚII", "disk_c": "Disc local (C:)", "disk_d": "Comenzi (D:)", "usb": "Stick USB KINGSTON (E:)",
         "recent": "COMENZI RECENTE", "folders": "DOSARE",
-        "originals_note": "23 originale păstrate în „Original” (ascuns)",
-        "f_all": "Toate", "f_todo": "De editat", "f_done": "Editate", "sort": "Sortare: nume",
+        "originals_note": "Originale păstrate până la finalizare",
+        "f_all": "Toate", "f_todo": "De editat", "f_done": "Gata", "sort": "Sortare: nume",
         "edited": "Editată ✓", "lowres": "Rezoluție mică pentru 10×15",
         "selected_photo": "FOTOGRAFIA SELECTATĂ",
         "d_dims": "4000 × 3000 px  ·  12 MP", "d_file": "3,4 MB  ·  JPEG  ·  sRGB", "d_taken": "Făcută la 12 oct. 2026, 14:35",
@@ -1197,13 +1260,13 @@ STR = {
         "status_right": "Miniaturi în cache  ·  PhotoX 0.1.0 (concept)",
         "custom": "Personalizat…", "portrait": "Portret", "landscape": "Peisaj", "fit": "Potrivire", "reset_crop": "Resetare decupare",
         "before_after": "Înainte / După", "space": "Spațiu", "unsaved": "Modificări nesalvate",
-        "canvas_hint": "Trageți în cadru pentru mutare  ·  trageți de margini pentru redimensionare  ·  raport fix 10 × 15",
-        "order_name": "Popescu Maria", "saved_toast": "IMG_0423.jpg salvată  ·  originalul păstrat în Original/",
+        "canvas_hint": "Trageți în cadru pentru mutare  ·  trageți de margini pentru redimensionare  ·  raport fix  ·  Enter = Salvează și următoarea",
+        "order_name": "Popescu Maria", "saved_toast": "IMG_0423.jpg salvată",
         "hist": "HISTOGRAMĂ ȘI NIVELURI", "reset": "Resetare", "black": "Negru", "gamma": "Tonuri medii", "g_val": "1,04", "white": "Alb",
         "auto": "Corecție automată", "adjust": "AJUSTĂRI", "exposure": "Expunere", "ev": "+0,30 EV", "ev2": "+0,15 EV",
         "saturation": "Saturație", "wb": "Balans de alb", "rotate": "ROTIRE ȘI ÎNDREPTARE", "straighten": "Îndreptare", "deg": "−1,2°",
         "reset_photo": "Resetează fotografia", "prev": "Anterioara", "skip": "Sari peste", "save": "Salvează",
-        "save_next": "Salvează și următoarea", "save_next_sub": "apoi deschide IMG_0425.jpg",
+        "save_next": "Salvează și următoarea", "save_next_sub": "salvează decupajul, apoi următoarea",
         "id_format": "FORMAT ACT", "s35": "3,5 × 4,5 cm",
         "disclaimer": "Doar dimensiuni geometrice.\nVerificați mereu cerințele\noficiale ale actului\n(pașaport, buletin, viză…).",
         "source": "FOTOGRAFIE SURSĂ", "src_safe": "Originalul nu se modifică",
@@ -1218,10 +1281,10 @@ STR = {
         "to_sheet": "Continuă la coală",
         "page": "COALĂ", "page_val": "10 × 15 cm  (4 × 6 in)", "page_note": "Dimensiunea exactă a hârtiei se setează în Setări",
         "layout": "ARANJARE", "tight": "Margini mici", "photos_word": "fotografii",
-        "copies": "NUMĂR DE COPII", "of_places": "din 6 locuri", "spacing": "Spațiere", "margins": "Margini", "auto_center": "Automat (centrat)",
-        "cut_guides": "Linii de tăiere", "output": "FIȘIER REZULTAT", "out_note": "Fișier nou — fotografia sursă rămâne neatinsă",
+        "copies": "NUMĂR DE COPII", "of_places": "din 9 locuri", "spacing": "Spațiere", "margins": "Margini", "auto_center": "Automat (centrat)",
+        "cut_guides": "Linii de tăiere", "output": "FIȘIER REZULTAT", "out_note": "Nu suprascrie  ·  fotografia sursă rămâne neatinsă",
         "back": "Înapoi", "save_layout": "Salvează coala",
-        "mm_w": "101,6 mm", "mm_h": "152,4 mm", "each_photo": "Fiecare fotografie", "each_dims": "35,0 × 45,0 mm  ·  413 × 531 px",
+        "mm_w": "101,6 mm", "mm_h": "152,4 mm", "each_photo": "Fiecare fotografie", "each_dims": "30,0 × 40,0 mm  ·  354 × 472 px",
         "page_line": "Coală 10 × 15 cm (4 × 6 in)  ·  1200 × 1800 px la 300 ppi",
     },
 }
@@ -1231,6 +1294,7 @@ MOCKUPS = [
     ("02", "photo-editor", "Ordinary photo editor", mockup_editor),
     ("03", "id-editor", "ID photo editor", mockup_id_editor),
     ("04", "id-sheet", "ID photo print-sheet preview", mockup_id_sheet),
+    ("05", "finish-order", "Finish order", mockup_finish),
 ]
 
 

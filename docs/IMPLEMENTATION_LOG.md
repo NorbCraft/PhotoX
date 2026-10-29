@@ -47,3 +47,13 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
 - **Commits:** the initial planning commit (see `git log`).
 - **Prompt:** [docs/prompts/prompt_01.md](prompts/prompt_01.md)
 - **Implementation status:** **not started; awaiting owner approval.**
+
+### 2026-10-29: Plan revision P-2 (no version)
+- **Prompt:** [docs/prompts/prompt_02.md](prompts/prompt_02.md). Approves the plan revision and autonomous implementation.
+- **Work done:**
+  1. Simplified the plan: saving became copy-original → temp file → atomic replace (no journal or recovery framework), and Magick.NET now performs the adjustments (no custom pipeline).
+  2. Applied all owner decisions (OQ-001 … OQ-029), with new requirement IDs FR-072 to FR-077 and removed items listed in PLAN §7.
+  3. Updated the mockups.
+  4. Installed the .NET 10 SDK 10.0.403 user-locally and pinned package versions.
+- **Verification:** documentation consistency check (IDs and links); mockups re-rendered and inspected.
+- **Implementation status:** starting 0.1.0 (vertical slice).

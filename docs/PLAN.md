@@ -2,314 +2,285 @@
 
 | | |
 |---|---|
-| **Document status** | DRAFT for owner review. Nothing in this plan is approved for implementation yet. |
-| **Plan revision** | P-1 (initial planning) |
-| **Date** | 2026-10-29 |
-| **Intended first implementation version** | 0.1.0 (not yet started, not tagged) |
-| **Originating prompt** | [docs/prompts/prompt_01.md](prompts/prompt_01.md) |
+| **Plan revision** | **P-2** (2026-10-29). Supersedes P-1. |
+| **Approval** | Approved for implementation by the owner in [prompt_02.md](prompts/prompt_02.md), which supersedes conflicting parts of [prompt_01.md](prompts/prompt_01.md). |
+| **Current version** | see `Directory.Build.props` and [CHANGELOG.md](CHANGELOG.md) |
 
-This file is the **authoritative** description of what PhotoX must do. Supporting documents explain *how* and *when*, and they reference requirement IDs from here instead of restating them:
+This file states **what** PhotoX must do. Supporting documents reference its IDs:
 
 | Document | Purpose |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture, technology choices, image pipeline, save algorithm, diagrams |
-| [ROADMAP.md](ROADMAP.md) | Milestones, version boundaries, dependencies, risks |
-| [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) | Unresolved decisions (`OQ-xxx`) with options and recommended defaults |
-| [DECISIONS.md](DECISIONS.md) | Decision log (`DEC-xxx`) |
-| [TEST_PLAN.md](TEST_PLAN.md) | Verification strategy, test suites (`TS-xx`), release acceptance |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Conventions: Git, versioning, coding, agent workflow |
-| [mockups/README.md](mockups/README.md) | UI concept mockups and navigation structure |
-| [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md) / [CHANGELOG.md](CHANGELOG.md) | Progress and release history (empty until implementation starts) |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | How it is built: projects, image processing, saving, ID photos |
+| [ROADMAP.md](ROADMAP.md) | Milestones and versions |
+| [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) | Questions and their decisions (all P-1 questions decided) |
+| [DECISIONS.md](DECISIONS.md) | Decision log |
+| [TEST_PLAN.md](TEST_PLAN.md) | Verification |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Conventions and agent rules |
+| [mockups/README.md](mockups/README.md) | UI concepts |
 
-**Conflict rule:** if a supporting document contradicts this plan, this plan wins. The contradiction must be recorded in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) and fixed, never silently resolved.
+If documents conflict, this plan wins. The conflict is recorded in OPEN_QUESTIONS.md and fixed.
 
----
+## 1. Vocabulary
 
-## 1. Status vocabulary
+Requirements have two **independent** attributes:
 
-Each requirement carries one status:
+- **Source** (provenance): **Owner** means stated by the owner in a prompt. **Planner** means a detail added during planning and approved with the plan.
+- **Progress:**
+  - **Planned:** not started.
+  - **In progress.**
+  - **Implemented:** code exists and is covered by automated tests.
+  - **Verified:** also confirmed manually or physically, as stated in [TEST_PLAN.md](TEST_PLAN.md).
+  - **Deferred:** after 1.0.
 
-| Status | Meaning |
+Removed requirements are listed in §9 and are not active. Priority: **M**ust / **S**hould / **C**ould. **MS** is the target version ([ROADMAP.md](ROADMAP.md)).
+
+## 2. Product and scope
+
+PhotoX is a simple, offline desktop tool for **one small photo studio**, used daily by the owner's mother. It is not a product for sale or distribution. Possible future sharing must not add requirements now.
+
+**Priorities:**
+1. A simple, reliable daily workflow.
+2. Good photographic output.
+3. Straightforward implementation and maintenance.
+4. Responsive operation on typical studio hardware.
+5. Minimal unnecessary complexity.
+
+The operator works on **copies** of customer photos, and independent backups exist outside PhotoX. PhotoX keeps essential safeguards against incomplete saves, but no transaction or crash-recovery framework.
+
+**Not in scope:**
+- a general-purpose photo editor;
+- a file manager;
+- a printing platform;
+- an extensible framework;
+- batch editing;
+- direct printing;
+- HEIC/HEIF;
+- country-specific biometric templates;
+- monitor colour management;
+- touch optimisation.
+
+## 3. Environment
+
+| Item | Value |
 |---|---|
-| **Owner** | Stated by the project owner in the originating prompt. Treated as required. The planner may still have raised a question about its exact form; see the linked `OQ`. |
-| **Proposed** | Added or made concrete by the planner. Becomes required only after the owner approves the plan. |
-| **Deferred** | Deliberately out of 1.0 scope. Architecture leaves room for it. |
-| **Open** | Cannot be specified until an `OQ` is decided. The default in brackets is what implementation will assume if the owner accepts the recommendation. |
+| Production | Windows 11 x64 (reference: 4-core CPU, 16 GB RAM, SSD, 1080p display) |
+| Development | Linux Mint. Windows 10, macOS and ARM are not required. |
+| Stack | C#, .NET 10, Avalonia UI, MVVM, Magick.NET ([ARCHITECTURE.md](ARCHITECTURE.md)) |
+| Printing | Saved files are printed with Citizen's software (CY-02 printer). Future integration via Citizen LinkServer hot folders. |
+| Languages | Romanian and English, switchable on the main screen and remembered |
 
-Priorities follow MoSCoW: **M**ust, **S**hould, **C**ould. Each requirement also names its milestone (see [ROADMAP.md](ROADMAP.md)) and its verifying test suites (see [TEST_PLAN.md](TEST_PLAN.md)).
+## 4. Workflows
 
----
+**W-1: Ordinary order.**
+1. Open the order folder in the built-in explorer and see thumbnails with status and progress.
+2. Open a photo. On an unedited photo the crop tool is active with **10×15**, oriented like the photo, using the largest centred rectangle; the ratio is locked.
+3. Adjust the crop and corrections.
+4. Press **Enter** (= **Save & Next**). PhotoX saves with *exactly* the current crop and edits, **waits for success**, then opens the next photo.
+5. Repeat until the order is done. At the end there is no wrap-around.
 
-## 2. Product vision and scope
+**W-2: Re-edit.** Reopening a saved photo restores its saved crop and adjustments, and re-renders from the preserved original (no cumulative JPEG loss).
 
-PhotoX is a lightweight, offline desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software. The operator prepares customer photos for printing quickly and safely: open a folder, crop to the print format, correct exposure and colour where needed, press **Save & Next**, and repeat for 100+ photos. A second workspace produces ID-photo print sheets.
+**W-3: Finish Order.** When the order is done, **Finish Order** saves or resolves pending edits, then by default **erases the temporary originals and edit history**. The operator can choose to keep them.
 
-Priorities, in order: **reliability and safe saving → photo quality → speed of the workflow → simplicity → feature count.**
+**W-4: ID photo.**
+1. Open a portrait in the ID workspace.
+2. Choose a size.
+3. Frame the face using the oval and guides; optionally press **Auto Align**, then correct by hand.
+4. Adjust the photo.
+5. Go to the sheet, choose the copy count and options, and press **Save**. A timestamped file is written to the remembered ID output folder. The portrait is never modified.
 
-### 2.1 Version 1.0 goals
+## 5. Functional requirements
 
-1. An operator can process a 100–300-photo order with crop and basic corrections and never loses an original.
-2. Every edited photo is saved at full resolution with no unintended resampling, colour shift or metadata loss.
-3. Moving to the next photo after Save & Next feels instant, because saving runs in the background.
-4. ID photos can be framed with guides, aligned automatically or by hand, and exported as an exact-size 10×15 print sheet.
-5. The UI is fully usable in Romanian and English, switchable from the main screen.
-6. It runs natively on Windows 11 x64 (production) and Linux (development), built and tested in CI on both.
+Columns: P = priority; Src = source; MS = target version; Progress; Tests = suites in [TEST_PLAN.md](TEST_PLAN.md).
 
-### 2.2 Out of scope for 1.0
+### 5.1 Shell, browsing and language
 
-- Direct printing and printer integration (deferred; see FR-050).
-- HEIC/HEIF, TIFF and RAW input (deferred; see FR-031 and OQ-004).
-- Layers, retouching, healing, text, filters, and anything else Photoshop-like.
-- Cloud features, accounts, telemetry, online updates that send data. No customer photo ever leaves the machine.
-- A general-purpose file manager. The explorer serves photo orders only.
-- Windows 10, macOS and touch-first operation.
+| ID | Requirement | P | Src | MS | Progress | Tests |
+|---|---|---|---|---|---|---|
+| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, short list of recent folders. Hidden/system folders and `Original` are not shown as part of an order. | M | Owner | 0.1.0 | Planned | TS-10, TS-18 |
+| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. | M | Owner | 0.1.0 | Planned | TS-10, TS-18 |
+| FR-008 | **Two workspaces**, *Photos* and *ID Photos*, switched from a persistent top bar. | M | Owner | 0.1.0 | Planned | TS-18 |
+| FR-009 | **English/Romanian**, switchable at runtime from the top bar; choice remembered; culture-correct numbers (RO `3,5 × 4,5 cm`); comma-below ș/ț; consistent terminology and form of address. | M | Owner | 0.1.0 | Planned | TS-16 |
+| FR-039 | **Neutral dark theme**, large clear primary actions, collapsible browse details panel, clear *Back to folder* action. | M | Owner | 0.1.0 | Planned | TS-18 |
+| FR-040 | **Settings** for infrequent options: print-format dimensions (data file), JPEG quality, thumbnail cache (size, age, *Clear cache*), ID output folder. Not needed for daily work. | M | Planner | 0.2.0 | Planned | TS-18 |
+| FR-041 | **Multiple selection** in the gallery. | C | Owner (“consider”) | Deferred | Deferred | — |
+| FR-053 | **Thumbnails:** generated in the background (visible first); persistent cache capped at 1 GB, 30-day retention, with *Clear cache*. Cache entries of an order are removed by Finish Order where practical. | M | Owner | 0.1.0 (gen), 0.2.0 (cache) | Planned | TS-11 |
+| FR-054 | **Removable-media warning:** opening a folder on removable media shows a clear warning recommending a local working copy. Editing is allowed. | S | Owner | 0.2.0 | Planned | TS-18 |
+| FR-077 | **Logo and application icon:** a simple original PhotoX logo used in the main window, About screen and Windows installation (editable SVG source). | S | Owner | 0.4.0 | Planned | — |
 
----
+### 5.2 Editor navigation and saving workflow
 
-## 3. Users and environment
+| ID | Requirement | P | Src | MS | Progress | Tests |
+|---|---|---|---|---|---|---|
+| FR-003 | **Default crop on an unedited photo:** crop tool active, preset **10×15**, orientation matching the photo, **largest centred rectangle** of the ratio, ratio locked. If the photo already has the ratio, the whole image. Opening a photo never writes to disk. | M | Owner | 0.1.0 | Planned | TS-01, TS-07 |
+| FR-004 | **Save & Next (Enter and button):** save using the **current edits and exactly the currently selected crop** (never reset, re-centred or enlarged), **wait until the save succeeds**, then open the next photo. On failure: stay on the photo, keep the edits, explain the problem. No background save queue. Work runs off the UI thread so the UI stays responsive (a progress indicator is shown). | M | Owner | 0.1.0 | Planned | TS-07 |
+| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. | M | Owner | 0.1.0 | Planned | TS-07, TS-18 |
+| FR-018 | **Keyboard:** Enter = Save & Next; Ctrl+S = Save; ←/→ (or PgUp/PgDn) = Previous / Next; Ctrl+Z / Ctrl+Y = Undo / Redo; Space (hold) = before/after. Auto-repeat of held keys is ignored. Editor shortcuts never act while a dialog, text field, numeric input or a control that uses the key has focus. | M | Owner | 0.1.0 | Planned | TS-07, TS-18 |
+| FR-019 | **Unsaved changes** are clearly indicated (editor and filmstrip/gallery). Skip/Previous keep *manual* edits in memory for the session (marked Unsaved) and never save them silently. Skipping never accepts or saves the default crop. | M | Owner | 0.1.0 | Planned | TS-07 |
+| FR-016 | **Undo/redo** of edit steps for the current photo; **Reset** returns to the default state. | M | Owner | 0.2.0 | Planned | TS-04 |
+| FR-042 | **Before/after** comparison (hold Space or toggle). | M | Owner | 0.2.0 | Planned | TS-18 |
+| FR-052 | **Preloading** of adjacent photos where useful, within a memory budget. | S | Owner | 0.2.0 | Planned | TS-11, TS-12 |
+| FR-047 | **Low-resolution warning:** effective ppi of the crop at the selected print size is shown, with a warning below 200 ppi and a strong warning below 150 ppi. No automatic upscaling. | S | Planner | 0.2.0 | Planned | TS-01 |
 
-| Item | Assumption | Status |
+### 5.3 Crop, composition and adjustments
+
+| ID | Requirement | P | Src | MS | Progress | Tests |
+|---|---|---|---|---|---|---|
+| FR-010 | **Crop presets:** **10×15** (default), **15×20**, **13×18**, **Custom** (ratio or W×H). Definitions are simple configuration data (§8.1). | M | Owner | 0.1.0 (10×15, 15×20), 0.2.0 (13×18, Custom) | Planned | TS-01 |
+| FR-011 | **Print-format data:** ratio and physical size per preset (10×15 = 4×6 in = 101.6×152.4 mm, 2:3; 15×20 = 6×8 in = 152.4×203.2 mm, 3:4). Used for ratio, effective ppi and the 13×18 canvas. Independent of printer overscan. | M | Owner | 0.1.0 | Planned | TS-01 |
+| FR-012 | **Crop interaction:** move; resize with locked ratio; portrait/landscape toggle; dimmed outside area; thirds grid; *Fit* (largest frame) and *Reset crop*. The frame stays inside the image. Output pixel size and ppi are shown. | M | Owner | 0.1.0 | Planned | TS-01, TS-18 |
+| FR-049 | **Composition modes:** **Crop to fill** (default) and **Whole photo with white borders**. The latter keeps the entire photo and extends the canvas with white to the output ratio, without resampling its pixels. | M | Owner | 0.2.0 | Planned | TS-01, TS-06 |
+| FR-073 | **13×18 on 15×20:** crop to exactly 130:180 (or 180:130 landscape), then centre it on a white 15×20 canvas at a consistent physical scale, so that printing the canvas at 15×20 reproduces the photo at 130×180 mm. Photo pixels are preserved. | M | Owner | 0.2.0 | Planned | TS-01, TS-06 |
+| FR-006 | **Exposure and histogram correction** (umbrella): detailed by FR-013, FR-043, FR-044 and FR-045. | M | Owner | 0.1.0–0.2.0 | Planned | TS-03, TS-04 |
+| FR-013 | **Exposure:** slider plus − / + buttons (±1/6 EV per step, range ±2 EV). | M | Owner | 0.1.0 | Planned | TS-04 |
+| FR-014 | **Contrast, saturation, white balance (temperature) and tint** (green–magenta) sliders with neutral centre and double-click reset. | M | Owner | 0.2.0 | Planned | TS-04 |
+| FR-015 | **Rotation** 90° left/right and **straightening** (±10°); the crop stays inside the valid area. | M | Owner | 0.2.0 | Planned | TS-01, TS-02 |
+| FR-043 | **Live histogram:** luminance plus R, G and B of the edited preview. | M | Owner | 0.2.0 | Planned | TS-03 |
+| FR-044 | **Levels:** black point, white point and midtones, with reset. | M | Owner | 0.2.0 | Planned | TS-03 |
+| FR-045 | **Auto Correct (single photo):** conservative exposure/levels (and mild colour) correction. It sets ordinary slider values, so the result stays adjustable and undoable. No histogram equalisation. | M | Owner | 0.2.0 | Planned | TS-04 |
+
+### 5.4 Files, saving and order lifecycle
+
+| ID | Requirement | P | Src | MS | Progress | Tests |
+|---|---|---|---|---|---|---|
+| FR-005 | **Temporary original:** on the first effective save, the untouched source is preserved in `Original/` (inside the opened folder), and the edited photo is written at the original location and filename. Later saves keep that original and re-render from it. Originals are temporary, per order (see FR-072). | M | Owner | 0.1.0 | Planned | TS-08 |
+| FR-021 | **Backup identity:** an existing file in `Original/` whose identity is uncertain is never overwritten. A fresh collision-safe name is used and the association is recorded in the sidecar. Names are compared case-insensitively. | M | Owner | 0.1.0 | Planned | TS-08 |
+| FR-022 | **Safe write:** output is written to a temporary file in the same folder, then replaces the destination only after the write and a read-back check succeed. If anything fails, the existing photo is unchanged. | M | Owner | 0.1.0 | Planned | TS-08 |
+| FR-023 | **Ordinary failures** are explained in plain language: insufficient disk space, read-only file or folder, file changed or removed externally since loading, unreadable source. | M | Owner | 0.1.0 | Planned | TS-08 |
+| FR-024 | **Effectively unchanged photo:** if the recipe is a no-op (the crop keeps all pixels and there are no adjustments), Save marks the photo **Reviewed** without re-encoding or creating a backup. A crop that removes pixels is an effective change. | M | Owner | 0.1.0 | Planned | TS-07, TS-08 |
+| FR-026 | **Edit history (sidecar):** a small, versioned `Original/.photox-order.json` stores the backup mapping, saved crop and adjustments, and Reviewed marks. Reopening restores them. No database. | M | Owner | 0.1.0 | Planned | TS-08 |
+| FR-027 | **Order state** (To do / Edited / Reviewed) survives restarts via `Original/` and the sidecar. Unsaved edits exist only in memory. | M | Owner | 0.1.0 | Planned | TS-07 |
+| FR-072 | **Finish Order:** first completes or resolves required saves. If manual edits are unsaved, the operator chooses *Save them* or *Return to editing*; nothing is discarded silently. Then a single confirmation with **Erase originals and edit history (default)** or **Keep**. Erase deletes only originals and history known to belong to this order (from the sidecar), PhotoX temp files and the order's cached thumbnails. It keeps finished photos, exported ID images and unrelated files (including unknown files in `Original/`), and removes `Original/` only if empty. Failures are reported with what remains. Afterwards, editing starts from the saved photo. | M | Owner | 0.2.0 | Planned | TS-09 |
+| FR-030 | **Formats:** JPEG and PNG in, same format out. The real format is detected from content. Supported variants are listed in §8.3. | M | Owner | 0.1.0 | Planned | TS-06, TS-09 |
+| FR-031 | **HEIC/HEIF:** unsupported initially; shown in the gallery as *Unsupported (HEIC)* with an explanation instead of disappearing. Future point. | M (message) | Owner | 0.2.0 (message) | Planned | TS-09 |
+| FR-032 | **EXIF orientation** applied on load; saved pixels are upright with Orientation = 1. | M | Owner | 0.1.0 | Planned | TS-02 |
+| FR-033 | **Metadata:** keep appropriate source metadata (EXIF/IPTC/XMP); update orientation and dimensions; remove the stale embedded EXIF preview. Effective-ppi density is written when the format defines a physical size. Metadata is not treated as a guarantee of printed size. | M | Owner | 0.1.0 | Planned | TS-06 |
+| FR-034 | **Colour:** honour embedded ICC profiles on load; work in sRGB; **edited outputs are sRGB with an embedded profile**. Preview assumes an sRGB display (documented). | M | Owner | 0.1.0 | Planned | TS-05 |
+| FR-035 | **Output quality:** JPEG quality 95, 4:4:4. **Native crop resolution is preserved.** Interpolation only where straightening or rotation geometry requires it. PNG alpha and bit depth preserved where supported. | M | Owner | 0.1.0 | Planned | TS-06 |
+| FR-036 | **Bad input** (corrupt, truncated, zero-byte, unsupported variant, decompression bomb) gives an error state and explanation, never a crash or hang. | M | Owner | 0.1.0 | Planned | TS-09 |
+| FR-037 | **Image size policy:** up to 64 MP normal; 64–210 MP allowed but slower; above 210 MP refused clearly. Available memory is checked before expensive operations. If measurements show the upper range is unsafe, a conservative documented limit applies. | M | Owner | 0.2.0 | Planned | TS-12 |
+
+### 5.5 ID Photo Creator
+
+| ID | Requirement | P | Src | MS | Progress | Tests |
+|---|---|---|---|---|---|---|
+| FR-007 | **ID workspace** with two steps: **1. Framing & adjustments → 2. Sheet preview & save**. The imported portrait is never overwritten. | M | Owner | 0.3.0 | Planned | TS-14, TS-18 |
+| FR-061 | **Geometric sizes:** 3×4 cm, 3.5×4.5 cm, **2×2 in** (50.8×50.8 mm, shown as ≈ 5.1 × 5.1 cm), **4×6 cm**, **5×7 cm**, 9×12 cm, Custom. No country-specific templates and no compliance claims. Data, not code. | M | Owner | 0.3.0 | Planned | TS-14 |
+| FR-062 | **Framing:** fixed frame of the size's ratio; the photo is moved, zoomed and rotated underneath (mouse, wheel, keys, sliders). Face oval plus crown, eye, chin and centre guides. | M | Owner | 0.3.0 | Planned | TS-14 |
+| FR-063 | **Auto Align** only on button press: offline face detection positions, scales and levels the face to the guides. The result is adjustable and undoable. **With several faces the operator chooses** (or keeps manual framing). No face found gives a clear message. | M | Owner | 0.4.0 | Planned | TS-13 |
+| FR-064 | **ID adjustments:** exposure, contrast, white balance, tint, manual **background brightness**. Undo/reset and before/after where useful. | M | Owner | 0.3.0 | Planned | TS-04, TS-14 |
+| FR-065 | **Automatic background whitening:** experimental; bounded investigation. Included only if useful, otherwise the limitation is recorded. It never delays other work. | C | Owner | 0.4.0 (evaluate) | Planned | TS-13 |
+| FR-066 | **Sheet layouts:** simple uniform grids on a portrait 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. | M | Owner | 0.3.0 | Planned | TS-15 |
+| FR-074 | **3×4 with 7 mm strip:** the 3×4 sheet reserves at least **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. Cut guides keep the strip. The copy count is reduced if needed. | M | Owner | 0.3.0 | Planned | TS-15 |
+| FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; optional cut guides. | M | Owner | 0.3.0 | Planned | TS-15, TS-18 |
+| FR-068 | **ID export:** JPEG or PNG at **300 ppi**; nominal page 1200×1800 px; each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Planned | TS-15 |
+| FR-075 | **ID filenames:** `ID_yyyyMMdd_HHmm.jpg` (local time). If the name exists, `_1`, `_2`, … is appended. Never overwrites. | M | Owner | 0.3.0 | Planned | TS-15 |
+| FR-071 | **Calibration test sheet:** a printable page with mm rulers, the 7 mm strip, a centred 13×18-on-15×20 frame and ID reference rectangles, for checking physical output through Citizen's software. A simple configurable scale correction for ID export (default none) can be applied if physical tests require it. | S | Owner | 0.3.0 | Planned | TS-15 |
+
+### 5.6 Printing and diagnostics
+
+| ID | Requirement | P | Src | MS | Progress | Tests |
+|---|---|---|---|---|---|---|
+| FR-050 | **Printing deferred.** Files are printed via Citizen software. The preferred future integration is **LinkServer hot folders** (not implemented now). No print queues, quantities, grouping or mixed-media management. | — | Owner | Deferred | Deferred | — |
+| FR-051 | **Logging and errors:** rolling local log file; plain-language localized error messages. The log never contains image content. | M | Planner | 0.1.0 | Planned | TS-17 |
+
+## 6. Non-functional requirements
+
+| ID | Requirement | Src | Progress | Tests |
+|---|---|---|---|---|
+| NFR-001 | **Offline and private.** No network use. No customer data leaves the machine. | Owner | Planned | review |
+| NFR-002 | **Platforms:** Windows 11 x64 production; Linux development. | Owner | Planned | TS-17 |
+| NFR-003 | **Responsiveness:** the UI never freezes during loading, thumbnails or saving. Performance is reported from **measurements** on the reference machine, not assumed. | Owner | Planned | TS-11 |
+| NFR-004 | **Memory:** bounded caches. Memory is checked before large operations. | Owner | Planned | TS-12 |
+| NFR-005 | **Save safety:** a failed save never damages the existing photo or its preserved original (FR-005, FR-021–FR-023). | Owner | Planned | TS-08 |
+| NFR-006 | **Image fidelity:** no unintended resampling; no colour shift for sRGB sources; one JPEG generation from the original while history is kept. | Owner | Planned | TS-05, TS-06 |
+| NFR-007 | **Usability:** large primary actions; usable at common Windows resolutions (1366×768 to 4K) and 100–200 % scaling; mouse and keyboard first. | Owner | Planned | TS-18 |
+| NFR-008 | **Localization quality:** no hard-coded UI text; key parity between EN and RO; Romanian wording reviewed by the owner. | Owner | Planned | TS-16 |
+| NFR-009 | **Maintainability:** modest separation of UI, image processing, file handling and pure geometry. No abstractions without a concrete use. | Owner | Planned | review |
+| NFR-010 | **Licences:** free dependencies whose terms permit use in a paid studio (personal-use-only terms do not qualify). Notices retained. | Owner | Planned | review |
+| NFR-011 | **Builds:** pinned package versions. Windows/Linux CI once the GitHub remote exists. | Owner | Planned | TS-17 |
+
+## 7. Removed or superseded requirements (P-1 → P-2)
+
+These are **not active**. They are kept for traceability.
+
+| ID | P-1 content | Reason |
 |---|---|---|
-| Primary user | Photo-studio operator. Not an expert computer user. Works mostly with mouse and keyboard and processes orders many times a day. | Owner |
-| Production machine | Windows 11 x64 desktop. Specs unknown; see OQ-016. Proposed reference machine: 4-core CPU, 16 GB RAM, SSD, 1920×1080 display at 100–150 % scaling. | Open |
-| Development machine | Linux Mint. Testing on a Windows 11 VM, a physical Windows PC and a dual-boot laptop. | Owner |
-| Photo sources | Phones (12–50 MP; some 108–200 MP modes), messaging apps (often below 2 MP), compact cameras. The operator copies them to a local folder first. | Owner / Proposed |
-| Printer (future) | Citizen CY-02 dye-sublimation (owner). Research: 4×6 in (≈101×152 mm) and 6×8 in (≈152×203 mm) media, 300 dpi (600×300 dpi “high quality” mode), **borderless with an estimated 1.7–1.9 mm overscan per side** (printer canvas ≈ 1240×1844 px for 4×6). Overscan and exact sizes must be confirmed by a calibration print (OQ-001). No direct integration in 1.0. | Owner / research |
-| Languages | Romanian (primary user language) and English. | Owner |
+| FR-020 | (number unused after P-1 renumbering) | — |
+| FR-025 | Revert-to-original action | Not required. Reset + Save covers re-editing while history exists. |
+| FR-046 | Batch Auto Correct / batch apply | Owner decision (OQ-008): not implemented. |
+| FR-048 | Print-safe (overscan) guide in crop | Owner: crop ratios are independent of printer overscan (prompt_02 §13). |
+| FR-060 | (moved to FR-007 in P-1) | — |
+| FR-069 | Single ID photo export | Not requested. Sheets with one copy cover it. |
+| FR-070 | Printer-exact canvas (1240×1844) | Owner: no speculative canvas/overscan assumptions. Replaced by the simple calibration in FR-071. |
+| NFR-012 | Cache privacy as a separate NFR | Merged into FR-053. |
+| — | Journalled transaction, recovery service, background save queue, session-recovery file, custom LUT/SIMD pipeline, IFileSystem fault-injection seam | Owner: disproportionate (prompt_02 §§2, 4, 8). |
 
----
+## 8. Domain rules
 
-## 4. Core workflows
+### 8.1 Ordinary print formats (configuration data `print-formats.json`)
 
-**W-1: Ordinary order.** Customer photos have been copied to `…\Comenzi\<order>`. The operator:
-
-1. Opens PhotoX and goes to the folder in the built-in explorer. The last folder is pre-selected.
-2. Sees thumbnails with edited/unedited status and progress (for example 23 / 85).
-3. Presses **Start editing** (or Enter). The first unedited photo opens with the 10×15 crop frame already active and oriented to match the photo.
-4. Adjusts the crop and, if needed, exposure, contrast, colour or levels.
-5. Presses **Save & Next** (Enter). The next photo appears immediately and the save completes in the background.
-6. Repeats until done. A photo that needs nothing can be skipped (→) or saved with the default crop.
-
-**W-2: Re-edit.** The operator reopens an already-edited photo. PhotoX starts again from the backed-up original with the previously saved settings, so quality does not degrade with each save (FR-026).
-
-**W-3: ID photo.** The operator:
-
-1. Switches to **ID Photos** and selects or drops in a portrait.
-2. Chooses a size (for example 3.5×4.5 cm). A fixed frame with an oval, crown, eye and chin guides appears.
-3. Optionally presses **Auto Align**, then corrects by dragging, zooming and rotating.
-4. Adjusts exposure, contrast, white balance and background brightness.
-5. Continues to the sheet: chooses the layout and copy count, checks cut guides, and presses **Save layout**. A new print-ready file is written and the portrait is never modified.
-
----
-
-## 5. Assumptions
-
-| ID | Assumption | Linked |
-|---|---|---|
-| A-01 | The operator always works on a local copy of the customer's photos, never on the customer's phone or stick directly. Removable media still triggers a warning (FR-054). | OQ-019 |
-| A-02 | One operator per machine, one PhotoX instance at a time, and no concurrent editing of the same folder from another computer. | |
-| A-03 | Printing will happen later through the Windows Citizen driver, which accepts sRGB images. Until then, exported files are printed with other software (unknown: OQ-024), which affects exact physical size. | OQ-012, OQ-024 |
-| A-04 | “10×15 cm” in the studio means the 4×6 in (101.6×152.4 mm, 2:3) photo format. “15×20 cm” means 6×8 in (152.4×203.2 mm, 3:4). | OQ-001 |
-| A-05 | Output for ordinary photos stays in the customer's folder, under the original filename (owner backup strategy, FR-005). | |
-| A-06 | Real customer photos will be supplied separately for testing and are never committed to the repository. | |
-
----
-
-## 6. Functional requirements
-
-Column key: **P** = priority; **MS** = milestone/version from [ROADMAP.md](ROADMAP.md); **Verified by** = test suites from [TEST_PLAN.md](TEST_PLAN.md).
-
-### 6.1 Application shell, navigation and language
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-001 | **Built-in folder explorer.** Navigate local drives, removable drives and folders inside the app (not only an OS dialog). Remember the last opened folder. Show a short list of recent order folders with their progress. Hide system and hidden folders and the `Original` backup folder. Purpose-built for photo orders, not a general file manager. | M | Owner (recent list Proposed) | 0.2.0 | TS-10, TS-18, TS-19 |
-| FR-002 | **Photo thumbnail gallery.** Show the JPEG/PNG files of the current folder as thumbnails with filename and basic info (pixel size, size on disk). Clearly distinguish edited, unedited, unsaved-changes and failed states. Filters: All / To do / Edited. Default sort is natural filename order. The `Original` folder never appears as part of the order. | M | Owner | 0.2.0 | TS-11, TS-18 |
-| FR-008 | **Two workspaces**, *Photos* and *ID Photos*, reachable with one click from a persistent top bar, with a consistent look and shared image components. | M | Owner | 0.1.0 | TS-18 |
-| FR-009 | **Localization: English and Romanian.** Every UI string is externalized. The language switch is a one-click EN/RO control in the top bar, not in Settings. It switches at runtime without restarting and is remembered. Numbers and dates use the language's culture (Romanian `3,5 × 4,5 cm`). Romanian uses comma-below ș/ț. | M | Owner | 0.1.0 | TS-16 |
-| FR-039 | **Theme.** A neutral dark-grey theme by default, so surrounding UI colour does not bias how the photo is judged. A light theme is optional and comes later. | S | Proposed | 0.1.0 (dark) | TS-18 |
-| FR-040 | **Settings page** for infrequent options: print media definitions (FR-011), JPEG quality, ID templates, thumbnail-cache size and retention, theme, and folders for logs and cache. No setting is required for the daily workflow. | M | Proposed | 0.1.0 → grows | TS-18 |
-| FR-041 | **Multiple selection** in the gallery (Ctrl/Shift-click) with simple actions: *Edit selected* (restricts the Save & Next sequence to the selection) and *Use for ID photo*. | S | Owner (“consider”) | 0.2.0 | TS-18 |
-
-### 6.2 Viewing and navigation
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-003 | **Default crop behaviour.** When a photo opens in the editor, the crop tool is active, using the default preset (10×15). Orientation follows the photo: portrait photo, portrait frame. The frame is the largest centred rectangle of that ratio. Activating the crop never changes the file; only an explicit save does. | M | Owner | 0.3.0 | TS-01, TS-07 |
-| FR-004 | **Save & Next workflow.** One action (button and Enter) saves the current photo and opens the next photo in the sequence. The next photo is displayed without waiting for the save to finish (background save queue). When a save fails, the photo is flagged, its edits are kept, and a persistent non-modal message is shown. | M | Owner | 0.3.0 | TS-07, TS-08, TS-11 |
-| FR-017 | **Sequential navigation controls:** Save & Next; Previous; Next/Skip (no save); Save (stay); Reset current photo; and a progress indicator (`24 / 85` plus a bar). Wraps nowhere: at the end of the order it shows an “Order complete” summary. | M | Owner | 0.3.0 | TS-07, TS-18 |
-| FR-018 | **Keyboard shortcuts** (proposed set in [mockups/README.md](mockups/README.md#keyboard-shortcuts)): Enter = Save & Next, Ctrl+S = Save, ← / → = Previous / Skip, Ctrl+Z / Ctrl+Y = Undo / Redo, R = rotate, Space (hold) = before/after. **Accidental-save protections:** auto-repeat of Enter is ignored, Enter is ignored for 300 ms after a photo opens, Enter does nothing while a text field has focus, and every save is reversible through the Original backup (FR-025). | M | Owner (exact keys Proposed) | 0.3.0 | TS-07, TS-18 |
-| FR-019 | **Unsaved-changes indication.** The editor and the gallery/filmstrip show whether the current photo has unsaved edits. Leaving a photo with unsaved edits (Previous/Skip) keeps the edits in the session without a dialog, marks the photo “unsaved”, and lets the operator return to them. Closing the app with unsaved edits shows **one** confirmation: Save all / Discard / Cancel. | M | Owner (behaviour Proposed) | 0.3.0 | TS-07, TS-18 |
-| FR-052 | **Preloading.** The next and previous photos in the sequence are decoded in the background, so Next/Previous is responsive. Never hold every full-resolution image in memory at once. | M | Owner | 0.3.0 | TS-11, TS-12 |
-| FR-053 | **Thumbnail generation and caching.** Thumbnails are generated in the background (visible area first) and cached on local disk outside the customer folder, with size and age limits (OQ-018). | M | Owner | 0.2.0 | TS-11 |
-| FR-054 | **Removable-media and read-only warnings.** Opening a folder on a removable drive or a read-only location shows a clear, non-blocking warning recommending a copy to a local folder first. | S | Proposed | 0.2.0 | TS-08 |
-
-### 6.3 Ordinary photo editing
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-006 | **Exposure and histogram correction** (owner umbrella requirement), detailed by FR-013 (exposure), FR-043 (histogram), FR-044 (levels) and FR-045 (Auto Correct). | M | Owner | 0.4.0–0.5.0 | TS-03, TS-04 |
-| FR-010 | **Crop presets.** 10×15 (default) and 15×20 exist from the first editing version, plus a **Custom** ratio or size (W×H in cm or in, or a free ratio). Presets come from configurable print-format definitions (FR-011), not hard-coded numbers. | M | Owner | 0.3.0 | TS-01 |
-| FR-011 | **Print-format model.** These are separate configurable values: **aspect ratio**, **nominal name** (“10×15”), **physical print size in mm** (exact media size, printer-specific, OQ-001), **target ppi** (for rendered outputs such as ID sheets) and, for the future, **printable area / bleed**. Ordinary-photo crops use only the aspect ratio. Physical size and ppi are used for effective-ppi display, DPI metadata and ID sheets. | M | Owner | 0.3.0 | TS-01, TS-14 |
-| FR-012 | **Crop interaction:** move, resize from corners and edges with the ratio locked, portrait/landscape toggle, live preview with the outside dimmed, rule-of-thirds guides, Reset crop, and Fit crop to photo (largest frame of the ratio). The frame cannot extend beyond the image (no padding, no upscaling). It shows output pixel size and effective ppi. | M | Owner | 0.3.0 | TS-01, TS-18 |
-| FR-049 | **Whole photo with border** (no crop): place the entire photo on a canvas of the print ratio with white borders, for panoramas and group photos. | S | Open (OQ-029) | 0.4.0 | TS-01, TS-06 |
-| FR-013 | **Exposure:** a slider plus “−” and “+” quick buttons (±1/6 EV per step, proposed), range ±2 EV. | M | Owner | 0.4.0 | TS-04 |
-| FR-014 | **Contrast, saturation and white balance (colour temperature)** sliders, with a neutral centre, double-click to reset, and range limits that avoid harsh results. A tint slider is not planned for 1.0 (OQ-021). | M | Owner | 0.4.0 (contrast), 0.5.0 (WB, saturation) | TS-04, TS-05 |
-| FR-015 | **Rotation and straightening:** 90° left/right, and a straighten slider (±10°) with automatic constraint of the crop to the valid rotated area. | M | Owner | 0.3.0 (90°), 0.5.0 (straighten) | TS-01, TS-02 |
-| FR-016 | **Undo/redo** of every edit step for the current photo, and **Reset adjustments** / **Reset photo**. Slider drags count as one step. | M | Owner | 0.4.0 | TS-04, TS-18 |
-| FR-042 | **Before/after comparison:** hold Space or toggle the button to show the unedited photo in the same crop. | M | Owner | 0.4.0 | TS-18 |
-| FR-043 | **Live histogram:** luminance plus R, G and B channels of the *edited* output inside the crop, updated live. | M | Owner | 0.5.0 | TS-03 |
-| FR-044 | **Levels:** black point, white point and midtone (gamma) handles on the histogram, with live preview and Reset levels. | M | Owner | 0.5.0 | TS-03, TS-04 |
-| FR-045 | **Auto Correct (single photo).** One button that sets exposure/levels (and a mild white-balance correction) to produce a natural result. It writes ordinary slider values, so everything stays manually adjustable, and it can be undone. Its strength is limited and it protects skin tones; it never uses full histogram equalization. See [ARCHITECTURE.md §7.6](ARCHITECTURE.md#76-auto-correct). | M | Owner (algorithm Proposed) | 0.5.0 | TS-04, TS-19 |
-| FR-046 | **Batch Auto Correct and batch apply** (apply the same tonal settings to selected photos). *Not in 1.0.* The architecture supports it because edits are stored as parameter sets. Recommended as a post-1.0 milestone, 1.1.0 (OQ-008). | C | Deferred | 1.1.0 (proposed) | — |
-| FR-048 | **Print-safe guide.** When the selected print format defines a printer overscan/bleed (FR-011), the crop frame shows a thin inner line marking the area that is safe from trimming on a borderless print. | S | Proposed | 0.3.0 | TS-01 |
-| FR-047 | **Low-resolution warning.** When the effective print resolution of the crop is below a threshold (proposed: warn below 200 ppi, strong warning below 150 ppi), show it in the editor and the gallery. Never upscale automatically. | S | Proposed | 0.3.0 | TS-01 |
-
-### 6.4 Saving, backup and file handling
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-005 | **Original-file backup (owner strategy).** On the first save of a photo, an `Original` subfolder is created in the order folder if missing. The untouched original is moved into it, and the edited photo is written under the original filename and location. Later saves of the same photo keep the backup untouched. | M | Owner | 0.3.0 | TS-08 |
-| FR-021 | **An existing backup is never overwritten**, silently or otherwise. Name collisions (for example `Original/IMG_1.jpg` already exists but is not known to belong to this photo, or case-only differences) are resolved without data loss: see [ARCHITECTURE.md §9.4](ARCHITECTURE.md#94-collisions-and-special-cases) and OQ-007. | M | Owner | 0.3.0 | TS-08, TS-10 |
-| FR-022 | **Crash-safe save transaction.** Write to a temporary file in the same folder, flush, verify by decoding, then do atomic renames recorded in a small journal. If the app or PC dies at any instant, at least one complete copy of the original exists on disk and the next start completes or rolls back the operation automatically. See [ARCHITECTURE.md §9](ARCHITECTURE.md#9-saving-backup-and-recovery). | M | Owner | 0.3.0 | TS-08 |
-| FR-023 | **Pre-save checks with clear errors:** free disk space, read-only file or folder, file changed or removed by another program since loading, and path too long. On failure nothing is changed and the operator gets a plain-language message (EN/RO). | M | Owner | 0.3.0 | TS-08, TS-10 |
-| FR-024 | **Unchanged photos.** Default (OQ-006): pressing Save & Next on a photo with no effective change (crop equals the full image and no adjustments) writes nothing, creates no backup, and marks the photo “Reviewed”. Any crop or adjustment counts as a change. | M | Open | 0.3.0 | TS-07, TS-08 |
-| FR-025 | **Revert to original.** In the editor, restores the backed-up original to the order folder (the edited version is discarded, after confirmation). | S | Proposed | 0.4.0 | TS-08 |
-| FR-026 | **No cumulative degradation.** Re-editing a saved photo starts from the pristine file in `Original/` and the previously saved edit settings, which are kept in a hidden sidecar file (OQ-009). Each saved photo is therefore exactly one encode away from the original. | M | Owner (mechanism Proposed) | 0.4.0 | TS-06, TS-08 |
-| FR-027 | **Order state persistence.** Edited / Reviewed / Unsaved / Failed state and saved edit settings survive restarts. They are derived from the `Original` folder plus the sidecar, and edits still pending are kept in a local session-recovery file. | M | Proposed | 0.3.0 | TS-07, TS-08 |
-
-### 6.5 Formats, quality, metadata and colour
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-030 | **Input/output formats: JPEG and PNG.** The real format is detected from file content, not the extension. A mismatched extension is handled (read correctly and written in the *same* format as the source, keeping the filename) and logged. Output format equals input format. | M | Owner | 0.2.0 (read), 0.3.0 (write) | TS-09 |
-| FR-031 | **HEIC/HEIF** support. *Deferred*: decoding is technically possible (the Magick.NET bundle includes a decoder) but writing is not, and the licensing and workflow questions are open (OQ-004). | C | Deferred | post-1.0 | — |
-| FR-032 | **EXIF orientation** is applied on load, and the saved file has its pixels physically oriented with Orientation = 1. | M | Owner | 0.2.0 | TS-02 |
-| FR-033 | **Metadata preservation:** keep EXIF (date, camera, GPS and so on, policy in OQ-020), IPTC and XMP where practical. Update orientation and pixel dimensions, and drop the stale embedded EXIF thumbnail. Set the DPI field to the effective ppi of the chosen print format (OQ-005). | M | Owner | 0.3.0 | TS-06 |
-| FR-034 | **Colour management.** Embedded ICC profiles (such as Display P3 or Adobe RGB) are honoured on load. Preview and processing work in sRGB. Default output is sRGB with an embedded sRGB profile (OQ-012). Images without a profile are treated as sRGB. No unexpected colour shift between source, preview and output. | M | Owner | 0.2.0 (preview), 0.3.0 (output) | TS-05 |
-| FR-035 | **Output quality.** High-quality interpolation (Lanczos or bicubic) for any geometric resampling, and no resizing of ordinary photos: the crop is in native pixels. JPEG quality 95 with 4:4:4 chroma by default, configurable in Settings (OQ-005). PNG output is lossless. 16-bit PNG is preserved where practical. | M | Owner | 0.3.0 | TS-06 |
-| FR-036 | **Resilience to bad input:** truncated or corrupt files, zero-byte files, unsupported variants (CMYK JPEG, 16-bit PNG, huge dimensions) and decompression bombs give a per-file error state in the gallery, never a crash or freeze. | M | Owner | 0.2.0 | TS-09 |
-| FR-037 | **Large images.** Fully supported up to 64 MP. Supported but slower from 64 to 210 MP. Above that, files are refused with a message (OQ-016). | M | Proposed | 0.3.0 | TS-11, TS-12 |
-
-### 6.6 ID Photo Creator
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-007 | **ID Photo Creator workspace** (owner umbrella requirement, detailed by FR-061–FR-071): open an existing portrait (from the explorer, the gallery's *Use for ID photo*, or drag-and-drop) and go through two steps: **1. Framing & adjustments → 2. Print sheet**. The source portrait is never modified. | M | Owner | 0.6.0 | TS-18, TS-19 |
-| FR-061 | **ID templates:** 3×4, 3.5×4.5, 5×5 and 9×12 cm, plus custom dimensions. Templates are data, not code (JSON): size, optional head-height range, eye-line range, top margin and background hint. Default guide values for 3.5×4.5 follow common ISO/IEC 19794-5 practice: chin-to-crown 32–36 mm (70–80 %), eye line 50–70 % from the bottom. They are labelled as **geometric presets with no claim of compliance** with any official document. Country-specific templates are possible later (OQ-011). | M | Owner | 0.6.0 | TS-14 |
-| FR-062 | **Framing UI:** a fixed frame of the template ratio. The photo is moved, zoomed and rotated underneath (drag, scroll wheel, Shift+scroll, arrow keys, sliders). Overlay guides: head oval, crown line, eye line, chin line, centre line, and tolerance bands where the template defines them. | M | Owner | 0.6.0 | TS-14, TS-18 |
-| FR-063 | **Auto Align (on request only).** Detects the face and eye/landmark positions offline, levels the eyes (roll), and scales and positions the head to the template. The result is an ordinary manual-framing state that can be adjusted, and it can be undone. It never runs automatically and never presents itself as guaranteeing biometric compliance. It fails gracefully with no face, several faces or a low-confidence face. | M | Owner | 0.7.0 | TS-13 |
-| FR-064 | **ID adjustments:** exposure (with ± buttons), contrast, white balance, and **background brightness**. The background-brightness slider brightens light, low-saturation areas near the frame edges; it is mask-free and manual. | M | Owner | 0.6.0 (exposure, contrast, WB), 0.7.0 (background brightness) | TS-04 |
-| FR-065 | **Automatic background whitening, experimental.** A person-segmentation model lifts the background to a uniform light tone. It is off by default, labelled *Experimental*, and requires visual confirmation. Its limitations (hair, light clothing, shadows) are shown in the UI. It ships only if it passes the validation in TS-13 (OQ-010). | C | Owner (“investigate”) | 0.7.0 (experimental) | TS-13, TS-19 |
-| FR-066 | **Sheet-layout engine:** a general algorithm, not per-size code. It computes the arrangements of N photos of size W×H on a page (default 10×15 / 4×6 in) given margins, spacing, page orientation and photo rotation, and offers the feasible layouts (for example “6 = 2×3”, or “8 = 4×2, tight margins”). It validates physical fit and printable area. | M | Owner | 0.6.0 | TS-15 |
-| FR-067 | **Sheet preview and options:** page preview at true proportions, layout choice, copy count (1 … maximum), spacing, margins (auto-centred), optional cut guides, and the resulting pixel size and ppi. | M | Owner | 0.6.0 | TS-15, TS-18 |
-| FR-068 | **Sheet export:** a new JPEG (default) or PNG at the exact pixel size of the page at the target ppi (default 300 ppi → 1200×1800 px for 4×6 in), sRGB, with correct DPI metadata. Each photo is exactly W×H mm (±1 px). The file is saved next to the source with a descriptive name and never overwrites an existing file. | M | Owner | 0.6.0 | TS-15 |
-| FR-069 | **Single ID photo export** (one photo at template size, without a sheet). | C | Proposed | 0.6.0 | TS-14 |
-| FR-070 | **Printer-exact sheet canvas.** In addition to the nominal page (1200×1800 px), sheets can be exported at the **printer's native canvas including overscan**, as defined in the media definition (proposed for CY-02 4×6: 1240×1844 px at 300 dpi). Photos are then positioned inside the trimmed area, so that 1:1 printing gives exact physical sizes. Which canvas is the default depends on how sheets are printed in 1.0 (OQ-024). | M | Proposed | 0.6.0 | TS-15 |
-| FR-071 | **Calibration page export.** Generates a test page (mm rulers on all edges, crosshairs, 30×40 / 35×45 / 50×50 mm reference rectangles) for a chosen media definition. Printing and measuring it confirms media size, overscan and scaling (OQ-001). | S | Proposed | 0.6.0 | TS-15, TS-19 |
-
-### 6.7 Printing (deferred) and diagnostics
-
-| ID | Requirement | P | Status | MS | Verified by |
-|---|---|---|---|---|---|
-| FR-050 | **Printing: deferred.** No printer communication in 1.0. The architecture defines the boundary (`IPrintService`, print-format model, render-to-media) so that later work can add Windows printer discovery, the Citizen driver, paper and media selection, quantities, queue/status, error handling, colour management, exact physical size, individual and batch printing, and ID sheets without restructuring the app. See [ARCHITECTURE.md §13](ARCHITECTURE.md#13-future-printing-boundary-fr-050). | — | Deferred | post-1.0 | — |
-| FR-051 | **Logging and error reporting:** rolling local log files, plain-language error messages in the UI, and a “Copy diagnostic info” action. The log never contains image content. | M | Proposed | 0.1.0 | TS-17 |
-
----
-
-## 7. Non-functional requirements
-
-| ID | Requirement | Status | Verified by |
+| Preset | Ratio (portrait) | Physical size | Output |
 |---|---|---|---|
-| NFR-001 | **Offline and private.** No network access is needed for any function. No telemetry. No customer image, thumbnail or metadata is ever transmitted. (Any future update check must be opt-in and send no customer data.) | Owner | TS-17 (network-off run), review |
-| NFR-002 | **Platforms.** Windows 11 x64 is the production target and takes priority for UX decisions. Linux x64 (Mint 22 / Ubuntu 24.04) is the development target. Windows 10, macOS and ARM are not targets. | Owner | TS-17 |
-| NFR-003 | **Responsiveness** (proposed targets on the reference machine, OQ-016): the UI thread is never blocked for more than 100 ms; the preview updates at 25 fps or better while dragging sliders; a preloaded next photo appears in under 300 ms; a cold-open 24 MP JPEG appears in under 1.5 s; a 100-photo folder shows its first screen of thumbnails in under 2 s (cold) and all thumbnails in under 20 s (cold) or 2 s (cached); a background save of a 24 MP JPEG takes under 3 s. | Proposed | TS-11 |
-| NFR-004 | **Memory.** Working set under 2 GB in normal use with 24 MP photos and a 500-photo folder. Memory stays bounded and does not grow with folder size beyond the thumbnail index. | Proposed | TS-12 |
-| NFR-005 | **Data safety.** No operation can lose an original. Writes are atomic and journalled, and backups are never overwritten (FR-005, FR-021–FR-023). | Owner | TS-08 |
-| NFR-006 | **Image fidelity.** Ordinary photos are never resampled. Preview and export use the same processing code. A saved photo is one JPEG generation from the original. There is no colour shift for sRGB sources (ΔE00 < 1 against reference). | Owner | TS-05, TS-06 |
-| NFR-007 | **Usability.** Primary actions are visible without menus. Controls are at least 32 px high (primary buttons 48 px or more). Body text is at least 13 px at 100 % scaling. The UI works at 1366×768 and up to 3840×2160 at 100–200 % Windows scaling. Every main action is keyboard-operable. Touch is not required, but nothing should be hover-only. | Owner / Proposed | TS-18, TS-19 |
-| NFR-008 | **Localization quality.** No hard-coded UI text. Every key exists in both languages. Romanian text is reviewed by a native speaker before 1.0 (OQ-022). Layout tolerates text about 40 % longer than English. | Proposed | TS-16 |
-| NFR-009 | **Maintainability.** Image processing, geometry and file safety are independent of the UI and unit-testable. The module structure is modest, with no microservices. Documentation is kept current by every milestone. | Owner | review, CI |
-| NFR-010 | **Licensing.** Every dependency allows commercial, closed-source use, and attribution and notice files are shipped. No GPL-only components. LGPL components only as dynamically replaceable libraries or after owner/legal review (OQ-013). Model weights need explicit commercial-use permission. | Owner | dependency review checklist |
-| NFR-011 | **Reproducible builds and CI.** GitHub Actions builds and tests on `windows-latest` and `ubuntu-latest` for every push and PR. Package versions are pinned centrally. | Owner | CI |
-| NFR-012 | **Privacy of local caches.** Thumbnail cache and session files live in the user's local app-data folder, are size-limited, are purged after a retention period (proposed 30 days) and can be cleared from Settings. | Proposed | TS-11 |
+| 10×15 (default) | 2:3 | 101.6 × 152.4 mm (4×6 in) | crop at native pixels |
+| 15×20 | 3:4 | 152.4 × 203.2 mm (6×8 in) | crop at native pixels |
+| 13×18 | 130:180 | 130 × 180 mm photo on the 15×20 canvas | photo at native pixels, centred on a white canvas |
+| Custom | user ratio or W×H | optional | crop at native pixels |
 
----
+**13×18 canvas rule (FR-073):** with a crop of `w × h` px (portrait, ratio 130:180), the canvas is `round(w × 152.4/130) × round(h × 203.2/180)` px. The photo is centred and the borders are white. The canvas ratio is then 3:4, and printing the canvas at 152.4×203.2 mm reproduces the photo at 130×180 mm. Landscape swaps the axes.
 
-## 8. Key domain rules
+**Whole photo with white borders (FR-049):** the canvas is the smallest rectangle of the preset ratio (orientation as the photo) that contains the full photo without scaling. The photo is centred and the padding is white. Combined with 13×18, the 13×18 frame contains the whole photo and is then centred on the 15×20 canvas.
 
-### 8.1 Print format vs. aspect ratio vs. pixels vs. ppi (FR-011)
+**Effective ppi** = output long-edge pixels ÷ physical long edge in inches (for 13×18, of the 15×20 canvas).
 
-| Concept | Example (10×15) | Used for |
+### 8.2 Order state
+
+| State | Meaning |
+|---|---|
+| To do | not saved or reviewed |
+| Unsaved | manual edits in memory, not saved |
+| Edited | saved by PhotoX; original preserved in `Original/` (per sidecar) |
+| Reviewed | saved with no effective change (FR-024) |
+| Error / Unsupported | cannot be read, or format not supported (explanation shown) |
+
+Progress = (Edited + Reviewed) / total. After Finish Order with **Erase**, all photos count as To do again; the edits are now in the files themselves.
+
+### 8.3 Supported image variants (FR-030, FR-035, FR-036)
+
+| Input | Support | Output |
 |---|---|---|
-| Nominal name | “10×15” (label only) | UI |
-| Aspect ratio | 2 : 3 (exact) | Crop frame |
-| Physical size | 101.6 × 152.4 mm by default; **printer-specific and configurable** (OQ-001) | Effective ppi, DPI metadata, sheets, future printing |
-| Target ppi | 300 by default (OQ-005); used only when PhotoX *renders* a page (ID sheets) | ID sheet pixel size |
-| Pixel size | Ordinary photos: whatever the crop yields in native pixels (for example 3696×2464). ID sheet: physical size × target ppi (for example 1200×1800). | Output |
+| JPEG baseline/progressive, 8-bit RGB or greyscale | ✓ | JPEG q95 4:4:4, sRGB |
+| JPEG CMYK/YCCK (with or without profile) | ✓ read; converted to sRGB via the embedded or a generic CMYK profile | JPEG RGB sRGB |
+| PNG 8-bit greyscale/RGB/palette, with or without alpha | ✓ (palette expanded) | PNG 8-bit, alpha kept |
+| PNG 16-bit | ✓ | PNG 16-bit, alpha kept |
+| HEIC/HEIF, TIFF, RAW, WebP, GIF, 12-bit/lossless JPEG, animated PNG beyond the first frame | ✗ (explanation shown) | — |
 
-Nominal metric names do not always match the inch-based media ratio. 10×15 matches 4×6 exactly (2:3), and 15×20 matches 6×8 exactly (3:4). 13×18 (0.722) does **not** match 5×7 (0.714). Presets are therefore defined by the configured physical size, never by the label.
+### 8.4 ID sizes and sheet rules
 
-### 8.2 Order state model
+| Size | mm | px at 300 ppi | Familiar copy counts* |
+|---|---|---|---|
+| 3×4 cm (+7 mm strip) | 30 × 40 (cell 30 × 47) | 354 × 472 | 4, 6, 8 (up to 9) |
+| 3.5×4.5 cm | 35 × 45 | 413 × 531 | 2, 4, 6 |
+| 2×2 in (≈ 5.1×5.1 cm) | 50.8 × 50.8 | 600 × 600 | 1, 2 |
+| 4×6 cm | 40 × 60 | 472 × 709 | 2, 4 |
+| 5×7 cm | 50 × 70 | 591 × 827 | 1, 2 |
+| 9×12 cm | 90 × 120 | 1063 × 1417 | 1 |
+| Custom | user | computed | up to capacity |
 
-| State | Meaning | Determined by |
-|---|---|---|
-| To do | Never saved or reviewed | Default |
-| Unsaved | Edited in this session, not saved yet | Session state (memory plus recovery file) |
-| Saving | In the background save queue | Save queue |
-| Edited | Saved at least once; original in `Original/` | `Original/<name>` exists, plus a sidecar entry |
-| Reviewed | Operator confirmed with no change (FR-024) | Sidecar entry |
-| Failed | Last save failed; edits kept | Session state |
-| Error | File cannot be read | Load result |
+\*The capacity is computed from margins (default 3 mm) and spacing (default 2 mm) on a portrait 101.6×152.4 mm page. The exact capacities are verified by tests (TS-15). Copy counts are selectable from 1 to capacity, and the familiar counts are offered as quick choices.
 
-“Progress” counts **Edited + Reviewed** out of the total.
+## 9. Deferred
 
-### 8.3 Conflicts and tensions found in the originating prompt
+Direct printing and LinkServer hot-folder submission; HEIC/HEIF; batch operations; multiple selection; monitor colour management; printer overscan handling beyond FR-071; touch optimisation; country-specific templates.
 
-These are recorded and handled here, not silently resolved:
+## 10. Release acceptance (1.0.0)
 
-1. **“Enter = Save & Next” vs. “shortcuts must not create accidental overwrites.”** Resolved by the guards in FR-018, the Original backup, and Revert (FR-025). The owner should confirm Enter (OQ-014).
-2. **“Move original into `Original`” vs. “policy for unchanged photos.”** Saving an unchanged photo would create a needless backup and a lossy re-encode. Proposed default: write nothing (FR-024, OQ-006).
-3. **Example ID layouts vs. geometry.** On a 4×6 in page with 2 mm spacing and 3 mm margins, **nine** 3×4 cm photos fit (3×3), not eight. **Six** 5×5 cm photos fit only edge to edge with zero margin and zero spacing. That is not printable on a borderless dye-sub printer with about 1.8 mm overscan per side, so the realistic maximum is two (two columns of 50 mm need 102 mm including spacing). Eight 3.5×4.5 cm photos fit on a true 4×6 in page (4×2, 3.2 mm side margins), but only six fit on a nominal 100×150 mm page, so the exact media size matters (OQ-001). The layout engine computes these from the media's *safe area* instead of hard-coding them (FR-066); see the table in [ARCHITECTURE.md §11.3](ARCHITECTURE.md#113-sheet-layout-engine-and-validated-example-layouts-fr-066).
-4. **“The Original folder must not appear as part of the order” vs. a built-in explorer.** The explorer hides `Original` from the gallery and folder tree. A small “23 originals kept in ‘Original’” note gives transparency instead.
-5. **“Save into the customer's original folder” vs. the safety of working on removable media.** Allowed, but warned (FR-054, OQ-019).
-6. **Exact physical ID sizes vs. borderless printing.** A 1200×1800 px page printed “fit to page” on a printer whose borderless canvas is 1240×1844 px is enlarged by about 3 %, so a 35 mm photo becomes about 36 mm. Exact sizes need either a printer-exact canvas (FR-070) or 1:1 printing software. How files are printed before integration is open (OQ-024).
-7. **Version 0.1.0 as “initial implementation version.”** Interpreted as the first implementation milestone (Foundation), not the first usable release. The first usable (pilot) version is 0.4.0; see [ROADMAP.md](ROADMAP.md).
-
----
-
-## 9. Deferred functionality (not in 1.0)
-
-| Item | Reason | Earliest |
-|---|---|---|
-| Direct printing / Citizen integration (FR-050) | Owner deferral; media sizes unconfirmed | 1.x |
-| Batch Auto Correct / batch apply (FR-046) | Keep 1.0 focused; architecture-ready | 1.1.0 |
-| HEIC/HEIF (FR-031) | Licensing and workflow open | after OQ-004 |
-| TIFF, RAW | Not needed by the studio workflow | not planned |
-| Country-specific biometric templates | Need authoritative requirements per country | after OQ-011 |
-| Light theme, touch optimization | Lower priority | 1.x |
-| Installer auto-update | Distribution model open (OQ-015) | 0.8.0 decision |
-| Lossless JPEG crop (no re-encode for crop-only edits) | Needs an extra native component; quality 95 at 4:4:4 is visually lossless | evaluate post-1.0 |
-| Monitor ICC profile (display colour management) | Avalonia has no colour management; sRGB preview first | 1.x (OQ-023) |
-
----
-
-## 10. Release acceptance for 1.0 (summary)
-
-1.0.0 is released only when **all** of the following hold. Details are in [TEST_PLAN.md §8](TEST_PLAN.md#8-release-acceptance).
-
-1. Every **Must** requirement above is implemented, with its test suites passing on Windows and Linux CI.
-2. The TS-08 fault-injection tests (crash at every step of the save transaction) pass with zero lost originals.
-3. A full manual acceptance run (TS-19) on the physical Windows 11 studio PC has been completed on at least three real orders (one of 200+ photos) without data loss or a blocking defect.
-4. Image-quality checks (TS-05, TS-06) pass, and test prints are approved by the owner for 10×15, 15×20 and one ID sheet.
-5. Romanian translation has been reviewed by a native speaker.
-6. Third-party notices are included, and the dependency licence review is signed off (OQ-013).
-7. No open defect of severity Critical or High remains.
-
----
+1. All **Must** requirements are *Implemented*, with tests passing on Linux, and on Windows once CI exists.
+2. The owner has used PhotoX on real orders on the Windows studio PC without data loss or blocking defects.
+3. Physical prints through Citizen software confirm the ID dimensions, the 7 mm strip and the centred 13×18 output (FR-071), or the documented calibration has been applied.
+4. Romanian wording has been reviewed by the owner.
+5. Third-party notices are included.
 
 ## 11. Change control
 
-- This plan changes only through a reviewed edit. The plan revision (P-n) goes up and an entry is added to [DECISIONS.md](DECISIONS.md) when a decision changes.
-- New requirements receive the next free ID in the relevant range. IDs are never reused or renumbered.
-- Each implementation milestone updates the **Status** and **MS** columns here, together with [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md).
+Requirement IDs are stable and never reused. New items take new IDs. Removed items move to §7. Each change to behaviour updates this file in the same commit, along with DECISIONS.md where a decision changes.

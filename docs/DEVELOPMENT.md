@@ -1,133 +1,86 @@
 # PhotoX — Development Conventions
 
-Status: **proposal** (plan revision P-1, 2026-10-29). These conventions apply from milestone 0.1.0 onward. They complement [PLAN.md](PLAN.md), which stays authoritative for *what* is built.
+Plan revision **P-2** (2026-10-29). [PLAN.md](PLAN.md) is authoritative for *what* is built; this file covers *how we work*.
 
-## 1. Workflow overview
+## 1. Git
 
-1. The owner approves the plan or a milestone. Approval is recorded as a prompt in `docs/prompts/` and a note in [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md).
-2. An agent (or developer) implements the milestone in **dependency order**, in small, coherent commits, with tests.
-3. At milestone end: all completion criteria from [ROADMAP.md](ROADMAP.md) pass, the docs are updated, the version is finalised, and a tag is created.
-4. The owner reviews (and pilots, where planned) and approves the next milestone.
+- Work on `main` in small, coherent commits (code + tests + needed doc updates together). Feature branches are optional for larger experiments.
+- Commit message format:
 
-## 2. Git
+  ```text
+  <type>(<scope>): <imperative summary, ≤ 72 chars>
 
-- **Host:** GitHub, private repository `PhotoX` (pending, see [README.md](../README.md#repository-hosting)).
-- **Branches:**
-  - `main` is always green: builds, tests pass, docs consistent.
-  - Work happens on `feature/<milestone>-<topic>` (for example `feature/0.3-safe-save`) and merges into `main` by fast-forward or squash after CI passes.
-  - A solo developer with agents may commit small doc fixes directly to `main`.
-- **Commits:**
-  - One logical change per commit: code, its tests and the doc updates together.
-  - Do not mix unrelated functionality, and do not commit trivial intermediate states.
-  - Message format (Conventional Commits style):
+  <why / what>
 
-    ```text
-    <type>(<scope>): <imperative summary, ≤ 72 chars>
+  Refs: FR-004, TS-07
+  ```
 
-    <why / what, wrapped at 72>
+  - `type`: feat, fix, test, docs, refactor, perf, build, chore.
+  - `scope`: core, imaging, storage, app, editor, id, l10n, docs, …
+- The remote is created by the owner. Until then, commits stay local. Never alter credentials or claim a remote exists.
+- Never commit customer photos, the owner's sample (`id_photo/`), derivatives of it, secrets or build output. `.gitignore` blocks image files outside whitelisted folders.
 
-    Refs: FR-005, FR-022, TS-08
-    ```
+## 2. Versioning
 
-    - `type`: `feat`, `fix`, `test`, `docs`, `refactor`, `perf`, `build`, `ci`, `chore`.
-    - `scope`: `core`, `imaging`, `services`, `vision`, `app`, `editor`, `id`, `save`, `l10n`, `docs`, …
-    - **Refs:** requirement and test IDs where applicable. This gives traceability from code to the plan.
-- **Tags:** `v0.N.M` only for finished versions that meet their criteria. Never tag planning work or unfinished milestones.
-- **Never commit:**
-  - customer photos or any real personal images;
-  - secrets;
-  - build outputs;
-  - large binaries other than approved model files and small fixtures.
+| Change | Effect |
+|---|---|
+| Milestone completed (tests pass, docs updated) | minor bump, e.g. 0.1.0 → 0.2.0; CHANGELOG entry; local tag `v0.N.0` |
+| Fix or small change after a release | patch bump, e.g. 0.2.0 → 0.2.1 |
+| Internal edits | no bump |
+| Stable release (PLAN §10) | 1.0.0 |
 
-  `.gitignore` guards against image files outside whitelisted folders.
+The version lives in `Directory.Build.props`. Implementation starts at **0.1.0**. Unfinished or unverified milestones are never tagged.
 
-## 3. Versioning
+## 3. Code
 
-The owner's policy, with one proposal (the `-dev` suffix):
+- .NET 10, C# latest, nullable enabled, warnings as errors, file-scoped namespaces, one public type per file (small related records may share a file).
+- **Separation** ([ARCHITECTURE.md §3](ARCHITECTURE.md#3-projects)):
+  - Core is pure.
+  - Imaging wraps Magick.NET.
+  - Storage owns all writes.
+  - App holds views and view models with no image math or file I/O.
+- Prefer Magick.NET operations over custom pixel code (DEC-026). Add custom image code only when the library cannot reasonably do the job, and document why.
+- No abstractions without a concrete use. Interfaces only where tests or two implementations need them.
+- Never block the UI thread with decoding, rendering or saving.
+- All UI text goes through `Strings.resx` / `Strings.ro.resx`, and a new key is added to both files in the same commit. Use a consistent form of address in Romanian (polite plural imperative, e.g. “Salvați”, or neutral infinitive/noun labels such as “Salvare”), and keep terminology consistent.
+- New NuGet packages are pinned in `Directory.Packages.props`, and their licence is checked against NFR-010.
 
-| Change | Version effect | Example |
-|---|---|---|
-| Milestone or significant functional addition completed | **minor** +1, patch reset | 0.1.5 → 0.2.0 |
-| Bug fix or small change after a release | **patch** +1 | 0.2.0 → 0.2.1 |
-| Work in progress towards the next milestone | target version with `-dev` suffix | `0.3.0-dev` |
-| Stable release meeting [release acceptance](TEST_PLAN.md#8-release-acceptance) | **1.0.0** | 0.9.3 → 1.0.0 |
+## 4. Tests
 
-- The single source of the version is `<Version>` in `Directory.Build.props`. It drives the assembly version, the About box and installer metadata.
-- 0.1.0 is the **first implementation milestone** (Foundation). No version exists before it and nothing has been tagged during planning.
-- Every version change gets a [CHANGELOG.md](CHANGELOG.md) entry.
+- Run `dotnet test` before committing. Fix failures rather than weakening meaningful checks.
+- Tests use generated fixtures. Tests that need the owner's sample copy it to a temp workspace and skip if it is missing.
+- See [TEST_PLAN.md](TEST_PLAN.md) for the suites.
 
-## 4. Code conventions
-
-- **Language:** C# 14 / .NET 10, `<Nullable>enable</Nullable>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, .NET analyzers at `Recommended` level, `.editorconfig` committed in 0.1.0.
-- **Style:** file-scoped namespaces; one public type per file; `PascalCase` for types and members, `_camelCase` for private fields; `Async` suffix on async methods; `CancellationToken` as the last parameter on long operations.
-- **Architecture rules** ([ARCHITECTURE.md §4.1](ARCHITECTURE.md#41-dependency-rules)):
-  - Core has no I/O or UI.
-  - Only `PhotoX.Services` writes into order folders.
-  - View models have no image math or file I/O.
-  - An architecture test enforces these rules.
-- **Immutability:** domain models (`EditRecipe`, templates, layouts) are immutable `record`s.
-- **Threading:** never block the UI thread. Heavy work runs through services that return immutable results, and UI updates are marshalled by the view model.
-- **Errors:** expected failures return typed results (`Result<T, PhotoXError>`). Exceptions are reserved for bugs and unexpected I/O failures. Every user-facing message is a localization key.
-- **Localization:** no literal UI strings in code or XAML. Add the key to *both* `.resx` files in the same commit.
-- **Comments:** explain *why*, not *what*. Public APIs in Core and Services get XML doc comments.
-- **Dependencies:** a new NuGet package needs a DECISIONS entry (licence checked against NFR-010) and a central version pin.
-
-## 5. Testing obligations
-
-- New logic comes with unit tests. Bug fixes come with a regression test.
-- Changes to save, backup or recovery require the TS-08 suite to be extended for the new path *before* merging.
-- Run `dotnet test` locally before committing. CI must be green before merging to `main`.
-- Visual baseline changes must be reviewed (inspect the diff images) and committed deliberately.
-
-## 6. Documentation obligations
+## 5. Documentation (proportionate)
 
 | When | Update |
 |---|---|
-| A requirement is implemented or changes status | PLAN.md (Status/MS columns) |
-| A design decision is made or changed | DECISIONS.md (new entry; supersede, never edit history) |
-| An open question is answered | OPEN_QUESTIONS.md (mark *Decided → DEC-xxx*) and PLAN.md |
-| A significant change is completed | IMPLEMENTATION_LOG.md (what, validation results, commits, issues) |
-| A version changes | CHANGELOG.md |
-| Architecture deviates from the document | ARCHITECTURE.md *in the same commit* |
+| A requirement's behaviour or progress changes | PLAN.md (Progress column) |
+| A significant decision or deviation | DECISIONS.md |
+| A milestone is completed | IMPLEMENTATION_LOG.md (what works, what was verified, limitations), CHANGELOG.md |
+| A new genuinely open issue | OPEN_QUESTIONS.md |
 
-Conflicts between documents are **reported** (OPEN_QUESTIONS) and never silently resolved.
+Do not repeat long narratives across documents for small commits.
 
-## 7. AI coding agent rules (effective after plan approval)
+## 6. Agent rules (autonomous implementation, prompt_02 §20)
 
-These rules implement the owner's “Autonomous implementation — future instruction” ([prompt_01.md §15](prompts/prompt_01.md)).
+- Proceed through [ROADMAP.md](ROADMAP.md) without routine approval requests. Fix defects, resolve compatibility issues, refactor within the architecture and continue to the next milestone.
+- Ask the owner only when:
+  - a contradiction materially changes behaviour;
+  - a major requirement cannot be implemented reasonably;
+  - a dependency imposes cost or unsuitable usage terms;
+  - a solution would materially expand scope or risk unrelated user data;
+  - required access or a decision cannot be inferred.
+- If a feature is blocked, isolate it, record the limitation and continue.
+- At significant checkpoints, report briefly: what works, what was verified, version and commits, limitations, and owner actions needed.
+- Never edit archived prompts in `docs/prompts/`. Never claim results that did not happen.
 
-**At the start of every task, the agent:**
-1. Reads [AGENTS.md](../AGENTS.md), this file, and the relevant sections of PLAN.md and ARCHITECTURE.md.
-2. Checks the latest IMPLEMENTATION_LOG entry and the current milestone in ROADMAP.md.
-3. Confirms the milestone is **approved** (a prompt in `docs/prompts/` says so). Without approval, the agent does not implement.
+## 7. Prompt archive
 
-**While working, the agent:**
-- Implements milestones in dependency order and stays within the approved scope.
-- Runs the applicable tests, fixes the problems it finds, and commits meaningful completed steps (§2).
-- Updates the version per §3 and keeps the documentation aligned (§6).
-- Records design changes and results in DECISIONS and IMPLEMENTATION_LOG.
-- Continues to the next approved milestone without asking for confirmation unnecessarily.
+Prompts are stored as `docs/prompts/prompt_NN.md`, sequential and never edited. [docs/prompts/README.md](prompts/README.md) indexes them.
 
-**The agent stops and asks the owner when:**
-- requirements conflict;
-- a fundamental decision is missing (an **H** open question without an accepted default);
-- a change would significantly alter the approved architecture, functionality, dependencies or licences;
-- a test cannot be made to pass without lowering an agreed threshold.
+## 8. Local setup
 
-**The agent never:**
-- silently redefines scope;
-- commits customer photos;
-- overwrites or modifies `docs/prompts/` records;
-- claims a remote, release or test result that did not happen.
-
-## 8. Prompt archive
-
-- Prompts are stored in `docs/prompts/` with sequential names: `prompt_01.md`, `prompt_02.md`, …
-- They are **never edited or replaced** after archiving. Corrections arrive as a new prompt.
-- [docs/prompts/README.md](prompts/README.md) indexes each prompt with its date, purpose, resulting commits, decisions and milestone.
-
-## 9. Local development setup (from 0.1.0)
-
-- Linux Mint: install the .NET 10 SDK (version pinned by `global.json`), Git, and an IDE (VS Code with C# Dev Kit, or Rider). Magick.NET's native library needs `fontconfig` (present on Mint).
-- Windows 11 VM: .NET 10 SDK for running published builds and Windows-only tests.
-- Real sample photos live outside the repository. Set `PHOTOX_SAMPLES=/path/to/samples` to enable sample-based tests.
+- The .NET 10 SDK is installed user-locally at `~/.dotnet` on the development machine (`export PATH="$HOME/.dotnet:$PATH"`).
+- Build: `dotnet build PhotoX.slnx`. Test: `dotnet test PhotoX.slnx`. Run: `dotnet run --project src/PhotoX.App`.
+- Windows trial build: `dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -o publish/win-x64`.

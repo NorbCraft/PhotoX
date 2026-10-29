@@ -42,6 +42,15 @@ public sealed partial class BrowseViewModel : ViewModelBase
     [RelayCommand]
     private void FinishOrder() => FinishRequested?.Invoke();
 
+    /// <summary>Raised when the selected photo should open in the ID Photo Creator.</summary>
+    public event Action<PhotoItemViewModel>? UseForIdRequested;
+
+    [RelayCommand]
+    private void UseForId()
+    {
+        if (SelectedPhoto is { IsOpenable: true } p) UseForIdRequested?.Invoke(p);
+    }
+
     public int EditedCount => AllPhotos.Count(p => p.State == PhotoState.Edited);
 
     public int ReviewedCount => AllPhotos.Count(p => p.State == PhotoState.Reviewed);

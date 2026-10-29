@@ -164,18 +164,18 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-007 | **ID workspace** with two steps: **1. Framing & adjustments → 2. Sheet preview & save**. The imported portrait is never overwritten. | M | Owner | 0.3.0 | Planned | TS-14, TS-18 |
-| FR-061 | **Geometric sizes:** 3×4 cm, 3.5×4.5 cm, **2×2 in** (50.8×50.8 mm, shown as ≈ 5.1 × 5.1 cm), **4×6 cm**, **5×7 cm**, 9×12 cm, Custom. No country-specific templates and no compliance claims. Data, not code. | M | Owner | 0.3.0 | Planned | TS-14 |
-| FR-062 | **Framing:** fixed frame of the size's ratio; the photo is moved, zoomed and rotated underneath (mouse, wheel, keys, sliders). Face oval plus crown, eye, chin and centre guides. | M | Owner | 0.3.0 | Planned | TS-14 |
+| FR-007 | **ID workspace** with two steps: **1. Framing & adjustments → 2. Sheet preview & save**. The imported portrait is never overwritten. | M | Owner | 0.3.0 | Implemented | TS-14, TS-18 |
+| FR-061 | **Geometric sizes:** 3×4 cm, 3.5×4.5 cm, **2×2 in** (50.8×50.8 mm, shown as ≈ 5.1 × 5.1 cm), **4×6 cm**, **5×7 cm**, 9×12 cm, Custom. No country-specific templates and no compliance claims. Data, not code. | M | Owner | 0.3.0 | Implemented | TS-14 |
+| FR-062 | **Framing:** fixed frame of the size's ratio; the photo is moved, zoomed and rotated underneath (mouse, wheel, keys, sliders). Face oval plus crown, eye, chin and centre guides. | M | Owner | 0.3.0 | Implemented | TS-14 |
 | FR-063 | **Auto Align** only on button press: offline face detection positions, scales and levels the face to the guides. The result is adjustable and undoable. **With several faces the operator chooses** (or keeps manual framing). No face found gives a clear message. | M | Owner | 0.4.0 | Planned | TS-13 |
-| FR-064 | **ID adjustments:** exposure, contrast, white balance, tint, manual **background brightness**. Undo/reset and before/after where useful. | M | Owner | 0.3.0 | Planned | TS-04, TS-14 |
+| FR-064 | **ID adjustments:** exposure, contrast, white balance, tint, manual **background brightness**. Undo/reset and before/after where useful. | M | Owner | 0.3.0 | Implemented | TS-04, TS-14 |
 | FR-065 | **Automatic background whitening:** experimental; bounded investigation. Included only if useful, otherwise the limitation is recorded. It never delays other work. | C | Owner | 0.4.0 (evaluate) | Planned | TS-13 |
-| FR-066 | **Sheet layouts:** simple uniform grids on a portrait 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. | M | Owner | 0.3.0 | Planned | TS-15 |
-| FR-074 | **3×4 with 7 mm strip:** the 3×4 sheet reserves at least **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. Cut guides keep the strip. The copy count is reduced if needed. | M | Owner | 0.3.0 | Planned | TS-15 |
-| FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; optional cut guides. | M | Owner | 0.3.0 | Planned | TS-15, TS-18 |
-| FR-068 | **ID export:** JPEG or PNG at **300 ppi**; nominal page 1200×1800 px; each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Planned | TS-15 |
-| FR-075 | **ID filenames:** `ID_yyyyMMdd_HHmm.jpg` (local time). If the name exists, `_1`, `_2`, … is appended. Never overwrites. | M | Owner | 0.3.0 | Planned | TS-15 |
-| FR-071 | **Calibration test sheet:** a printable page with mm rulers, the 7 mm strip, a centred 13×18-on-15×20 frame and ID reference rectangles, for checking physical output through Citizen's software. A simple configurable scale correction for ID export (default none) can be applied if physical tests require it. | S | Owner | 0.3.0 | Planned | TS-15 |
+| FR-066 | **Sheet layouts:** simple uniform grids on a portrait 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. | M | Owner | 0.3.0 | Implemented | TS-15 |
+| FR-074 | **3×4 with 7 mm strip:** the 3×4 sheet reserves at least **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. Cut guides keep the strip. The copy count is reduced if needed. | M | Owner | 0.3.0 | Implemented | TS-15 |
+| FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; optional cut guides. | M | Owner | 0.3.0 | Implemented | TS-15, TS-18 |
+| FR-068 | **ID export:** JPEG or PNG at **300 ppi**; nominal page 1200×1800 px; each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Implemented | TS-15 |
+| FR-075 | **ID filenames:** `ID_yyyyMMdd_HHmm.jpg` (local time). If the name exists, `_1`, `_2`, … is appended. Never overwrites. | M | Owner | 0.3.0 | Implemented | TS-15 |
+| FR-071 | **Calibration test sheet:** a printable page with mm rulers, the 7 mm strip, a centred 13×18-on-15×20 frame and ID reference rectangles, for checking physical output through Citizen's software. A simple configurable scale correction for ID export (default none) can be applied if physical tests require it. | S | Owner | 0.3.0 | Implemented (physical print check pending) | TS-15 |
 
 ### 5.6 Printing and diagnostics
 

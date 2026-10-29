@@ -15,9 +15,10 @@ public sealed partial class ShellViewModel : ViewModelBase
         _services = services;
         Browse = new BrowseViewModel(services);
         Editor = new EditorViewModel(services, Browse);
-        Id = new IdViewModel();
+        Id = new IdViewModel(services);
         Browse.EditRequested += item => _ = OpenEditorAsync(item);
         Browse.FinishRequested += () => _ = FinishOrderAsync();
+        Browse.UseForIdRequested += item => _ = UseForIdAsync(item);
         Editor.BackRequested += () => CurrentPage = Browse;
         Editor.PropertyChanged += (_, e) =>
         {
@@ -101,6 +102,12 @@ public sealed partial class ShellViewModel : ViewModelBase
         var vm = new SettingsViewModel(_services, Version);
         vm.Closed += () => Settings = null;
         Settings = vm;
+    }
+
+    private async Task UseForIdAsync(PhotoItemViewModel item)
+    {
+        ShowId();
+        await Id.LoadSourceAsync(item.Path);
     }
 
     private async Task OpenEditorAsync(PhotoItemViewModel item)

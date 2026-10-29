@@ -115,3 +115,31 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - The gallery is not virtualised (fine at 300 photos; to be checked at 1000+).
   - Display colour assumes an sRGB monitor.
   - Windows not yet tried by the owner.
+
+### 2026-10-29: Version 0.3.0, ID Photo Creator
+- **Milestone:** 0.3.0. FR-007, FR-061, FR-062, FR-064, FR-066–FR-068, FR-071, FR-074 and FR-075 are implemented.
+- **Work done:**
+  - Core: ID sizes as data, sheet grid with the 3×4 7 mm strip, timestamp file names, framing model.
+  - Imaging:
+    - a single `Distort` scale-rotate-translate into the exact output size;
+    - background lift through a Magick-built soft mask that excludes the head oval;
+    - the sheet renderer;
+    - calibration sheets.
+  - Storage: create-new exporter.
+  - App: ID workspace (framing canvas with guides, adjustments, sheet step, folder and file pickers).
+- **Verification (actually run, Linux):**
+  - 72 core tests and 23 headless UI tests pass. One benchmark is skipped by default.
+  - ID tests check:
+    - exact pixel sizes for all six sizes;
+    - capacities (3×4 → 9 with the strip, 3.5×4.5 → 6, 2×2 in → 2, 4×6 cm → 4, 5×7 cm → 2, 9×12 → 1);
+    - the 7 mm strip is white and the cut guide lies 7 mm below each photo;
+    - photo pixels are placed exactly;
+    - the framing centre maps to the chosen source point;
+    - the background lift brightens the background but not the face area;
+    - file names get suffixes and are never overwritten;
+    - the portrait is unchanged after export.
+  - The owner's sample was framed and exported **from a copy**. Screenshots at 1920×1080 in Romanian were inspected. The reference checksum is unchanged.
+- **Not verified / pending:**
+  - Physical prints of the calibration and ID sheets through the Citizen software (owner).
+  - Auto Align (0.4.0).
+  - The background lift is tuned only on synthetic images and one sample.

@@ -63,6 +63,9 @@ public sealed partial class MainWindow : Window
             case EditorViewModel editor:
                 e.Handled = editor.HandleKey(e.Key, e.KeyModifiers);
                 break;
+            case IdViewModel id:
+                e.Handled = id.HandleKey(e.Key, e.KeyModifiers);
+                break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:
                 browse.StartEditingCommand.Execute(null);
                 e.Handled = true;

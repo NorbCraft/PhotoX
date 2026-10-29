@@ -4,6 +4,19 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-29
+
+ID Photo Creator. Verified with automated tests on Linux. Windows use and physical prints are pending.
+
+### Added
+- ID workspace in two steps: framing and adjustments, then the print sheet. Open a portrait, or use *Use for ID photo* from the Photos gallery. The portrait is never modified.
+- Sizes 3×4, 3.5×4.5, 2×2 in (≈ 5.1×5.1 cm), 4×6 cm, 5×7 cm, 9×12 cm and a custom size in mm.
+- Fixed frame with face oval, crown, eye, chin and centre guides. Drag to move, scroll to zoom, Shift+scroll to rotate, arrow keys to nudge; zoom and rotation sliders; undo and reset.
+- Exposure (− / +), contrast, white balance and tint, plus a manual background-brightness lift that protects the face. Before/after.
+- Print sheet on 4×6 in at 300 ppi (1200×1800 px): uniform grid, copy count with familiar counts (3×4: 4/6/8, up to 9), spacing, margins and cut guides. **3×4 photos keep a 7 mm white strip below each photo** (cut 30×47 mm).
+- Saving to a remembered output folder as `ID_yyyyMMdd_HHmm.jpg` (or PNG), adding `_1`, `_2` … instead of overwriting.
+- Calibration sheets (10×15 with ID reference rectangles and the 7 mm strip; 15×20 with the centred 13×18 frame) for checking physical output through the Citizen software.
+
 ## [0.2.0] - 2026-10-29
 
 Complete ordinary-photo editing. Verified with automated tests on Linux. Windows use is pending.

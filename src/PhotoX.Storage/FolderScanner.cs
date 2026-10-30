@@ -8,8 +8,8 @@ namespace PhotoX.Storage;
 /// <summary>Lists the photos of an order folder (FR-002, FR-031).</summary>
 public static partial class FolderScanner
 {
-    /// <summary>Generated ID sheets (FR-075) are excluded from ordinary-photo processing by default.</summary>
-    [GeneratedRegex(@"^ID_\d{8}_\d{4}(_\d+)?\.(jpg|jpeg|png)$", RegexOptions.IgnoreCase)]
+    /// <summary>Generated ID sheets (FR-075) and collages (prompt_04 §5) are excluded from ordinary-photo processing by default.</summary>
+    [GeneratedRegex(@"^(ID|Collage)_\d{8}_\d{4}(_\d+)?\.(jpg|jpeg|png)$", RegexOptions.IgnoreCase)]
     private static partial Regex IdOutputName();
 
     public static bool IsIdOutput(string fileName) => IdOutputName().IsMatch(fileName);

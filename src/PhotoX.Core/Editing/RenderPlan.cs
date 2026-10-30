@@ -25,7 +25,7 @@ public sealed record RenderPlan(
 
     /// <summary>
     /// Output canvas for a crop of <paramref name="cropWidth"/>×<paramref name="cropHeight"/> pixels: borders for
-    /// whole-photo mode and the 15×20 canvas for 13×18, at a consistent physical scale (plan §8.1).
+    /// whole-photo mode, and the print sheet for 13×18 and custom sizes, at a consistent physical scale (plan §8.1).
     /// </summary>
     public static (int Width, int Height, double? Ppi) CanvasFor(int cropWidth, int cropHeight, EditRecipe recipe)
     {
@@ -44,7 +44,7 @@ public sealed record RenderPlan(
             }
         }
 
-        var format = PrintFormats.Find(recipe.FormatId);
+        var format = recipe.Format;
         if (format is null)
         {
             return (canvasW, canvasH, null);

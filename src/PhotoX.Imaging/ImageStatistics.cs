@@ -9,17 +9,41 @@ namespace PhotoX.Imaging;
 /// </summary>
 public static class ImageStatistics
 {
-    public static Histogram Histogram(PixelData data, PixelRect? region = null)
+    public static Histogram Histogram(PixelData data, PixelRect? region = null) => Histogram(data, region, null);
+
+    /// <summary>
+    /// Histogram of the tones the levels handles act on (FR-043, FR-044, prompt_04 §7): the unadjusted pixels after
+    /// white balance, tint and exposure, which come before levels in the render order (ARCHITECTURE §5.2), and before
+    /// levels, contrast and saturation. Drawn under the levels triangles, each handle then sits on the tones it moves,
+    /// and dragging a handle no longer reshapes the histogram under it.
+    /// </summary>
+    public static Histogram LevelsInput(PixelData unadjusted, PixelRect? region, EditRecipe recipe)
+    {
+        var before = new EditRecipe { Exposure = recipe.Exposure, Temperature = recipe.Temperature, Tint = recipe.Tint };
+        if (!before.HasToneAdjustments) return Histogram(unadjusted, region, null);
+        var curve = ToneCurve.For(before, exact: false);
+        return Histogram(unadjusted, region, (Lut8(curve.Red), Lut8(curve.Green), Lut8(curve.Blue)));
+    }
+
+    private static byte[] Lut8(ushort[] table)
+    {
+        var lut = new byte[256];
+        for (var i = 0; i < 256; i++) lut[i] = (byte)((table[i * 257] + 128) / 257);
+        return lut;
+    }
+
+    private static Histogram Histogram(PixelData data, PixelRect? region, (byte[] R, byte[] G, byte[] B)? map)
     {
         var h = new Histogram();
         var r = Clip(region, data);
         var bgra = data.Bgra;
+        var (mr, mg, mb) = map ?? (Identity, Identity, Identity);
         for (var y = r.Y; y < r.Bottom; y++)
         {
             var i = (y * data.Width + r.X) * 4;
             for (var x = r.X; x < r.Right; x++, i += 4)
             {
-                int b = bgra[i], g = bgra[i + 1], rr = bgra[i + 2];
+                int b = mb[bgra[i]], g = mg[bgra[i + 1]], rr = mr[bgra[i + 2]];
                 h.Blue[b]++;
                 h.Green[g]++;
                 h.Red[rr]++;
@@ -61,6 +85,8 @@ public static class ImageStatistics
         var total = Math.Max(1L, (long)r.Width * r.Height);
         return n == 0 ? new NeutralMeans(0, 0, 0, 0) : new NeutralMeans(sr / n, sg / n, sb / n, (double)n / total);
     }
+
+    private static readonly byte[] Identity = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
 
     private static PixelRect Clip(PixelRect? region, PixelData d)
     {

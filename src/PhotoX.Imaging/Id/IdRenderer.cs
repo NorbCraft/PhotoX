@@ -48,18 +48,30 @@ public static class IdRenderer
     /// </summary>
     public static MagickImage RenderPreview(MagickImage proxy, double sourceScale, IdFraming framing, IdSize size, IdAdjustments adjustments, int frameWidthPx, int viewportWidth, int viewportHeight)
     {
+        var image = FramePreview(proxy, sourceScale, framing, frameWidthPx, viewportWidth, viewportHeight);
+        AdjustPreview(image, size, adjustments, frameWidthPx);
+        return image;
+    }
+
+    /// <summary>The geometry step of <see cref="RenderPreview"/>: the framed viewport without adjustments.</summary>
+    public static MagickImage FramePreview(MagickImage proxy, double sourceScale, IdFraming framing, int frameWidthPx, int viewportWidth, int viewportHeight)
+    {
         var scaled = framing with
         {
             CenterX = framing.CenterX * sourceScale,
             CenterY = framing.CenterY * sourceScale,
             FrameWidthSource = framing.FrameWidthSource * sourceScale,
         };
-        var image = Frame(proxy, scaled, frameWidthPx / scaled.FrameWidthSource, viewportWidth, viewportHeight, viewportWidth / 2.0, viewportHeight / 2.0, fast: true);
-        ToneProcessor.Apply(image, adjustments.ToRecipe(), exact: false);
+        return Frame(proxy, scaled, frameWidthPx / scaled.FrameWidthSource, viewportWidth, viewportHeight, viewportWidth / 2.0, viewportHeight / 2.0, fast: true);
+    }
+
+    /// <summary>The adjustment step of <see cref="RenderPreview"/>, applied in place to a framed viewport.</summary>
+    public static void AdjustPreview(MagickImage viewport, IdSize size, IdAdjustments adjustments, int frameWidthPx)
+    {
+        ToneProcessor.Apply(viewport, adjustments.ToRecipe(), exact: false);
         var frameH = frameWidthPx / size.Ratio;
-        var oval = HeadOval(size, frameWidthPx, (int)Math.Round(frameH)).Offset((viewportWidth - frameWidthPx) / 2.0, (viewportHeight - frameH) / 2.0);
-        BackgroundLift.Apply(image, adjustments.BackgroundBrightness, oval);
-        return image;
+        var oval = HeadOval(size, frameWidthPx, (int)Math.Round(frameH)).Offset((viewport.Width - frameWidthPx) / 2.0, (viewport.Height - frameH) / 2.0);
+        BackgroundLift.Apply(viewport, adjustments.BackgroundBrightness, oval);
     }
 
     /// <summary>Head oval in output pixels from the size's guides.</summary>

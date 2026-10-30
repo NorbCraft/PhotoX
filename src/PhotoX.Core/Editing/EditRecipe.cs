@@ -23,6 +23,14 @@ public sealed record EditRecipe
     /// <summary>Custom ratio (portrait width / height) when <see cref="FormatId"/> is "custom".</summary>
     public double CustomRatio { get; init; } = 2.0 / 3.0;
 
+    /// <summary>
+    /// Custom print size in mm (portrait, width ≤ height), centred on the smallest print sheet that fits (prompt_04 §7).
+    /// 0 for a ratio-only custom crop saved by an earlier version.
+    /// </summary>
+    public double CustomWidthMm { get; init; }
+
+    public double CustomHeightMm { get; init; }
+
     public CropOrientation Orientation { get; init; } = CropOrientation.Landscape;
 
     public Composition Composition { get; init; } = Composition.Fill;
@@ -67,9 +75,16 @@ public sealed record EditRecipe
         LevelsBlack = 0, LevelsMid = 1, LevelsWhite = 1,
     };
 
+    /// <summary>The print format with its physical size, or null for a ratio-only custom crop.</summary>
+    public PrintFormat? Format => FormatId == PrintFormats.CustomId
+        ? HasCustomSize ? PrintFormats.Custom(CustomWidthMm, CustomHeightMm) : null
+        : PrintFormats.Find(FormatId) ?? PrintFormats.P10x15;
+
+    public bool HasCustomSize => CustomWidthMm > 0 && CustomHeightMm > 0;
+
     /// <summary>Portrait ratio of the selected format.</summary>
     public double PortraitRatio =>
-        FormatId == PrintFormats.CustomId ? CustomRatio : (PrintFormats.Find(FormatId) ?? PrintFormats.P10x15).PortraitRatio;
+        FormatId == PrintFormats.CustomId ? (HasCustomSize ? CustomWidthMm / CustomHeightMm : CustomRatio) : (PrintFormats.Find(FormatId) ?? PrintFormats.P10x15).PortraitRatio;
 
     /// <summary>Crop ratio (width / height) for the selected orientation.</summary>
     public double CropRatio => CropMath.OrientedRatio(PortraitRatio, Orientation);

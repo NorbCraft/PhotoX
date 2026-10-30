@@ -20,9 +20,33 @@ public static class ConfigData
         var messages = new List<string>();
         var formats = LoadOrCreate(Path.Combine(paths.ConfigDir, PrintFormatsFile), PrintFormats.Defaults, messages);
         if (formats is not null) messages.Add($"Print formats configured: {string.Join(", ", PrintFormats.Configure(formats))}");
-        var sizes = LoadOrCreate(Path.Combine(paths.ConfigDir, IdSizesFile), IdSizes.Defaults, messages);
-        if (sizes is not null) messages.Add($"ID sizes in use: {IdSizes.Configure(sizes)}");
+        var sizesPath = Path.Combine(paths.ConfigDir, IdSizesFile);
+        var sizes = LoadOrCreate(sizesPath, IdSizes.Defaults, messages);
+        if (sizes is not null)
+        {
+            sizes = Upgrade(sizesPath, sizes, messages);
+            messages.Add($"ID sizes in use: {IdSizes.Configure(sizes)}");
+        }
+
         return messages;
+    }
+
+    /// <summary>Entries still equal to an earlier version's default were never edited: they get the current default (DEC-052).</summary>
+    private static IReadOnlyList<IdSize> Upgrade(string path, IReadOnlyList<IdSize> sizes, List<string> messages)
+    {
+        var (upgraded, changed) = IdSizes.UpgradeDefaults(sizes);
+        if (!changed) return sizes;
+        try
+        {
+            JsonFile.WriteAtomic(path, upgraded);
+            messages.Add($"{IdSizesFile}: unedited earlier defaults updated");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            messages.Add($"{IdSizesFile} could not be updated ({ex.Message}); the new defaults apply for this session.");
+        }
+
+        return upgraded;
     }
 
     private static IReadOnlyList<T>? LoadOrCreate<T>(string path, IReadOnlyList<T> defaults, List<string> messages)

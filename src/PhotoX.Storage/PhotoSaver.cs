@@ -1,5 +1,4 @@
 using PhotoX.Core.Editing;
-using PhotoX.Core.Formats;
 using PhotoX.Core.Orders;
 using PhotoX.Imaging;
 
@@ -72,7 +71,7 @@ public sealed class PhotoSaver
             else
             {
                 using var rendered = RecipeRenderer.RenderFinal(source, recipe);
-                var format = PrintFormats.Find(recipe.FormatId);
+                var format = recipe.Format;
                 double? ppi = format is null ? null : Math.Max(rendered.Width, rendered.Height) / format.PrintedLongEdgeInches;
                 var bytes = ImageEncoder.Encode(rendered, kind == ImageKind.Png ? ImageKind.Png : ImageKind.Jpeg, new OutputOptions(_jpegQuality, ppi));
                 WriteDurably(temp, bytes);

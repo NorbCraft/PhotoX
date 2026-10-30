@@ -20,6 +20,32 @@ public class ConfigDataTests
         IdSizes.Configure(IdSizes.Defaults);
     }
 
+    /// <summary>prompt_04 §8: a data file written by 0.6.0 gets the new 3×4, 2×2 in and 9×12 defaults unless edited.</summary>
+    [Fact]
+    public void Unedited_earlier_id_defaults_are_updated_in_the_file()
+    {
+        using var dir = new TempDir();
+        var paths = new AppPaths(dir.Path);
+        var file = Path.Combine(paths.ConfigDir, ConfigData.IdSizesFile);
+        var edited = IdSizes.S35x45 with { HeadFraction = 0.72 };
+        JsonFile.WriteAtomic(file, new List<IdSize> { IdSizes.Superseded[0], edited, IdSizes.Superseded[1], IdSizes.Superseded[2] });
+        try
+        {
+            ConfigData.Load(paths);
+            Assert.Equal(0.70, IdSizes.BuiltIn.Single(s => s.Id == "3x4").HeadFraction);
+            Assert.Equal(0.72, IdSizes.BuiltIn.Single(s => s.Id == "35x45").HeadFraction);
+            Assert.False(IdSizes.BuiltIn.Single(s => s.Id == "9x12").Guides);
+            var reread = JsonFile.Read<List<IdSize>>(file)!;
+            Assert.Equal([1, 2, 4], reread.Single(s => s.Id == "2x2in").FamiliarCounts);
+            Assert.Equal(0.0, reread.Single(s => s.Id == "2x2in").SheetMarginMm);
+            Assert.Equal(0.72, reread.Single(s => s.Id == "35x45").HeadFraction);
+        }
+        finally
+        {
+            Restore();
+        }
+    }
+
     [Fact]
     public void Missing_files_are_created_with_the_planned_values()
     {

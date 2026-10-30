@@ -13,6 +13,12 @@ public sealed class Settings
 
     public string? IdOutputFolder { get; set; }
 
+    /// <summary>ID sizes added with + New size (prompt_04 §8), in millimetres.</summary>
+    public List<CustomIdSize> CustomIdSizes { get; set; } = [];
+
+    /// <summary>Remembered output folder of the Collages workspace.</summary>
+    public string? CollageOutputFolder { get; set; }
+
     public int JpegQuality { get; set; } = 95;
 
     public int ThumbnailCacheMaxMb { get; set; } = 1024;
@@ -41,6 +47,8 @@ public sealed class Settings
         if (RecentFolders.Count > 8) RecentFolders.RemoveRange(8, RecentFolders.Count - 8);
     }
 }
+
+public sealed record CustomIdSize(double WidthMm, double HeightMm);
 
 public sealed class SettingsStore(AppPaths paths)
 {

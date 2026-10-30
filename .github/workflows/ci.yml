@@ -29,13 +29,20 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
       - run: dotnet tool restore
       - run: dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -p:DebugSymbols=false -o publish/win-x64
-      # The installer and portable zip carry the version in their names (prompt_04 §1).
+      # The installer and portable zip carry the version in their names (prompt_04 §1). The installer shows a splash
+      # with the name and version while it installs; it installs per user into %LOCALAPPDATA%\PhotoX with Start menu
+      # and desktop shortcuts and an entry in Installed apps; a newer installer updates in place (prompt_06 §8).
       - shell: pwsh
         run: |
           $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
-          dotnet vpk pack --packId PhotoX --packVersion $version --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX --outputDir releases/win
+          python packaging/windows/make_splash.py $version releases/splash.png
+          dotnet vpk pack --packId PhotoX --packVersion $version --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --outputDir releases/win
           Rename-Item releases/win/PhotoX-win-Setup.exe "PhotoX-$version-win-Setup.exe"
           Rename-Item releases/win/PhotoX-win-Portable.zip "PhotoX-$version-win-Portable.zip"
           "PHOTOX_VERSION=$version" >> $env:GITHUB_ENV

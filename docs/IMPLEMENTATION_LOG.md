@@ -355,3 +355,7 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
 
   Nothing further was implemented, to avoid adding unrequested features.
 - **Not verified:** Windows (see the CI result once recorded), the studio PC, physical prints of collages, 2×2 in sheets and custom sizes, and the Romanian wording of the new texts.
+- **Windows CI result for 0.7.0:**
+  - Run 41039471662 passed on `windows-latest` (115 core and 39 UI tests; skipped: owner-sample tests and opt-in benchmarks) and on `ubuntu-latest`.
+  - The `windows-package` job produced the artifact `PhotoX-0.7.0-windows` with `PhotoX-0.7.0-win-Setup.exe` and `PhotoX-0.7.0-win-Portable.zip`. All seven frames of the new `photox.ico` were found embedded in the packaged `PhotoX.exe`. Neither package has been installed or run on a Windows machine.
+  - The run before (40956546045, a docs-only commit after 0.6.0) had failed on Windows in `Saved_crop_is_shown_as_the_result_and_matches_the_file`: 4.5 % against a 3.5 % limit, because the test photo was random. The fixture is now seeded and lightly blurred (1.3 %).

@@ -19,7 +19,7 @@ Non-blocking: a default is applied and can be changed without a new version.
 | OQ-002 | Future printing | Citizen LinkServer hot folders; integration deferred. | FR-050, DEC-031 |
 | OQ-003 | Mixed printing | Not required; no mixed-printing management. | FR-050, DEC-031 |
 | OQ-004 | HEIC/HEIF | Unsupported initially; deferred future point. Unsupported files are explained. | FR-031, DEC-029 |
-| OQ-005 | Output quality | JPEG q95, 4:4:4; native crop resolution; interpolation only where geometry requires it; effective-ppi metadata where defined; ID sheets at 300 ppi. | FR-033, FR-035, FR-068 |
+| OQ-005 | Output quality | JPEG q95 (q100 by default since 0.9.0, prompt_06; adjustable in Settings), 4:4:4; native crop resolution; interpolation only where geometry requires it; effective-ppi metadata where defined; ID sheets at 300 ppi. | FR-033, FR-035, FR-068 |
 | OQ-006 | Unchanged photos | Mark done/reviewed without re-encoding. Enter otherwise saves current edits and the selected crop, then advances. Originals are temporary until Finish Order. | FR-004, FR-024, DEC-027 |
 | OQ-007 | Backup collisions/retention | Never overwrite an uncertain backup; use a unique name. Retention is controlled by Finish Order. | FR-021, FR-072, DEC-028 |
 | OQ-008 | Bulk corrections | No batch apply or batch Auto Correct. | §7 of PLAN (FR-046 removed) |

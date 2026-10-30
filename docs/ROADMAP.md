@@ -1,6 +1,6 @@
 # PhotoX — Roadmap
 
-Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md](prompts/prompt_02.md) and proceeds autonomously in this order. [prompt_03.md](prompts/prompt_03.md) added the owner's feedback from testing 0.4.0 (milestones 0.4.1–0.6.0), [prompt_04.md](prompts/prompt_04.md) new requirements and refinements (0.7.0), and [prompt_05.md](prompts/prompt_05.md) direct printing and the new Photos workflow (0.8.0); newer prompts take precedence where they conflict with older requirements. Requirement IDs refer to [PLAN.md](PLAN.md).
+Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md](prompts/prompt_02.md) and proceeds autonomously in this order. [prompt_03.md](prompts/prompt_03.md) added the owner's feedback from testing 0.4.0 (milestones 0.4.1–0.6.0), [prompt_04.md](prompts/prompt_04.md) new requirements and refinements (0.7.0), [prompt_05.md](prompts/prompt_05.md) direct printing and the new Photos workflow (0.8.0), and [prompt_06.md](prompts/prompt_06.md) UI consistency, light and dark mode and the Printing workspace (0.9.0); newer prompts take precedence where they conflict with older requirements. Requirement IDs refer to [PLAN.md](PLAN.md).
 
 **Principles:**
 - Deliver the vertical workflow first (open folder → open photo → adjust crop → basic correction → save → next photo), then widen it.
@@ -18,12 +18,13 @@ Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md
 | **0.6.0** | **Remaining plan items** (plan review, prompt_03 §11) | FR-010, 011, 040, 061, 071 | Print-format and ID-size data files; ID print scale correction; tests green | Done 2026-10-29 (Linux tests) |
 | **0.7.0** | **prompt_04: icon, Collages, shared explorer, refinements** | FR-001, 007, 008, 010, 012–018, 042, 043, 061–068, 077, 078, 079 | New icon everywhere and version visible; Duplicate image; Collages workspace; one explorer for all workspaces; editor and ID refinements; histogram review; tests green | Done 2026-10-30 (Linux tests) |
 | **0.8.0** | **prompt_05: direct printing and the new Photos workflow** | FR-001, 002, 007, 017, 039, 041, 050, 068, 072, 077, 079, 080–083 | Printing through the Windows driver with dialog, queue and counters; multiple selection; Save Changes and Restore Original instead of Finish Order; ID explorer under the formats; collage sizes and adjustable layouts; tests green on Linux and Windows CI (virtual PDF printer) | Done 2026-10-30 (Linux tests; Citizen not tested) |
-| 0.8.x+ | Owner trials and fixes | — | Feedback from Windows use, Citizen prints and Romanian review incorporated | Waiting for owner feedback |
+| **0.9.0** | **prompt_06: consistent UI, light and dark mode, Printing workspace** | FR-001, 002, 007, 008, 016, 039, 040, 045, 061, 062, 064, 066, 068, 072, 077, 079–082, 084 | New icon from the owner's reference; light and dark mode; workspace icons; resizable panels everywhere; one editing sidebar for Photos and ID; ID tools in the toolbar with 90° turns; Printing workspace with queue, history and statistics; collage drag and drop and rotation; installer splash with version; tests green | Done 2026-10-30 (Linux tests; Citizen not tested) |
+| 0.9.x+ | Owner trials and fixes | — | Feedback from Windows use, Citizen prints and Romanian review incorporated | Waiting for owner feedback |
 | **1.0.0** | Stable | — | [PLAN.md §10](PLAN.md#10-release-acceptance-100) acceptance met | — |
 
 **Pending owner actions** (never blocking):
 - Run Windows 11 trials on the studio PC (first trial of 0.4.0 done; feedback in prompt_03).
-- Print from PhotoX on the Citizen CY-02: a 10×15 and a 15×20 photo, the calibration sheet, an ID sheet (including 2×2 in edge to edge) and a collage; check sizes, borders and colour (OQ-031), then set the ID scale correction or the print-format data file if needed.
+- Print from PhotoX on the Citizen CY-02: a 10×15 and a 15×20 photo, the calibration sheet, an ID sheet (including 5 × 5 cm / 2×2 in edge to edge) and a collage; check sizes, borders and colour (OQ-031), then set the ID scale correction or the print-format data file if needed.
 - Provide more ID sample photos (grey or uneven backgrounds) for background whitening (FR-065).
 - Review the Romanian wording.
 

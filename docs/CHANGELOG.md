@@ -4,6 +4,37 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-30
+
+A consistent interface, light and dark mode and a Printing workspace ([prompt_06](prompts/prompt_06.md)). Verified with automated tests and headless screenshots on Linux; Windows CI runs on push. **Not yet printed on the Citizen CY-02 and not yet tried on the studio PC.**
+
+### Added
+- **Light and dark mode**, chosen in Settings and remembered.
+- **Printing workspace** (replaces the print dialog and the queue popup): Print in Photos, ID Photos or Collages opens it with the photos or the sheet; check the preview, printer, size, paper and copies, then Print. Next to it: the **queue** of jobs in progress (cancel while not printed), the **history** of today, this week or this month with each job's outcome, and **statistics** (prints today, this week, this month and in total, split by 10 × 15 and 15 × 20). *Back* returns to where the print came from. Closing PhotoX asks first if jobs have not yet been handed to Windows.
+- **Icons** for the workspaces Photos, ID Photos, Collages and Printing; the Printing tab shows the jobs in progress.
+- **Photos:** a slider for the thumbnail size (double-click: default); the folder's printed copies under Edit progress.
+- **ID Photos:** **90° rotation** left and right; Redo.
+- **Collages:** **drag photos** from the thumbnails (or the file manager) into a frame, replacing what was there; the move handle also appears on the photo under the mouse; a **right-click menu** to rotate a photo 90° left or right, fit it or remove it.
+- The installer shows the PhotoX icon, name and **version** while it installs. Settings shows the program folder and how to uninstall.
+
+### Changed
+- **New PhotoX icon**, recreated from the owner's reference: a light tile, a camera outline in the app's own blue and dark PX. The X of the name is the same blue.
+- **One editing sidebar** for Photos and ID Photos: Undo, Redo and Reset at the top, then the histogram and levels, **Auto Adjust** (the editor's Auto Correct is now called Auto Adjust too) and the sliders, same order and look.
+- **ID Photos:**
+  - the format, zoom, rotation, Auto Align and background brightness are in the toolbar;
+  - the explorer and the folder's photos are on the left;
+  - **3 × 4 cm** is the default format, with **8** photos per sheet;
+  - the US visa format is shown as **5 × 5 cm** (it stays exactly 50.8 × 50.8 mm);
+  - the steps are *1 Framing & adjustment* and *2 Print*; *Save sheet* is now **Save**.
+- **Photos:** *Order progress* is now **Edit progress**; *Save changes* is now **Discard originals** (same warning and checks); the permanent multiple-selection hint is gone.
+- Side panels can be resized in every workspace and keep their width.
+- **JPEG quality** defaults to **100**. A quality chosen in Settings is kept; the old default 95 stored by earlier versions becomes 100 once.
+- Print counters and the print history are kept in the user's PhotoX settings folder, outside the installation folder, so uninstalling or reinstalling keeps them (the 0.8 counters are copied once).
+
+### Fixed
+- ID Photos: undoing a slider change now restores the previous value (it kept the new one).
+- Disabled buttons are no longer brighter than enabled ones in dark mode.
+
 ## [0.8.1] - 2026-10-30
 
 ### Fixed

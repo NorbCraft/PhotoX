@@ -69,12 +69,15 @@ Rules:
 
 ## 4. UI structure
 
-- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.8.0", prompt_04 §1); top bar (Photos | ID Photos | Collages with the selected one in blue, folder/photo context, print queue, EN|RO, settings, then the PhotoX logo and name, prompt_05 §1) and a content area. The print dialog and the print queue panel are overlays of the shell. The four pages (Browse, Edit, ID, Collages) are created once and shown or hidden, so switching never rebuilds the gallery.
+- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.9.0", prompt_04 §1); top bar (Photos | ID Photos | Collages | Printing, each with an icon and the selected one in blue, the Printing tab with the number of jobs in progress; folder/photo context; EN|RO; settings; then the PhotoX logo and name, prompt_05 §1, prompt_06 §1) and a content area. The five pages (Browse, Edit, ID, Collages, Printing) are created once and shown or hidden, so switching never rebuilds the gallery.
+- **Light and dark mode (prompt_06 §3, DEC-061):** `App.axaml` defines every colour twice in `ThemeDictionaries` (Dark keeps the earlier palette; Light is a neutral light palette with a mid-grey behind photos) under the same keys, and the views use `DynamicResource`, so `App.ApplyTheme` (Settings, remembered as `theme` in `settings.json`) switches the whole window at once, including the Fluent controls. Status colours are classes (`ok`, `warn`, `error`, `faint`) rather than converters, and the levels histogram picks its colours from the theme variant. The primary blue `#3B82F6` is the same in both modes and is the blue of the icon.
+- **Side panels:** every workspace has a resizable explorer on the left and a resizable settings panel on the right (`GridSplitter`, minimum widths, widths remembered in `settings.json`), with the centre taking the rest.
 - **Explorer (DEC-055):** `ExplorerViewModel` + `ExplorerView` (locations, four recent orders, folder tree) is one control used by Browse, by the ID portrait picker and by Collages. `PhotoPickerViewModel` adds the thumbnail grid (`PickerGrid`) of the open folder; thumbnails come from the same cache and loader as the gallery (`ThumbnailSource`). Each workspace keeps its own folder; pickers start in the order open in Photos.
-- **Photos workspace:** *Browse* (explorer, gallery with multiple selection, state badges top right and print counters bottom right, a right-click menu: Edit, Use for ID photo, Print, Duplicate image, Restore original; an action panel: Print selected, Print all, Edit this photo, Use for ID photo, Save changes, Restore original) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
-- **ID workspace:** size chips, then the explorer and the folder's thumbnails (a click loads the portrait); *1 Framing & adjustment* → *2 Print sheet* (Save sheet, Print), with the same resizable panel.
-- **Collages workspace:** explorer and thumbnails (left), the collage canvas with slot sizes (centre), sheet, orientation, templates, spacing, the selected slot's size, Save JPG and Print (right); see §7.1.
-- **Shared adjustments:** `ToneAdjustmentsViewModel` + `ToneAdjustmentsView` (levels histogram with three triangle handles, Auto Correct / Auto Adjust, exposure, contrast, white balance, tint, saturation with gradient tracks; exposure also on the + / − keys) are used by the Photos and ID workspaces (prompt_03 §7, prompt_04 §§7–8).
+- **Photos workspace:** *Browse* (explorer, gallery with multiple selection and a thumbnail-size slider, state badges top right and print counters bottom right, a right-click menu: Edit, Use for ID photo, Print, Duplicate image, Restore original; a details panel with Edit progress and the folder's printed copies, and the actions: Print selected, Print all, Edit this photo, Use for ID photo, Discard originals, Restore original) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
+- **ID workspace (prompt_06 §5):** a toolbar like the editor's (steps *1 Framing & adjustment* / *2 Print*, the format list, 90° turns, Auto Align, zoom, rotation, background brightness, reset framing, before/after); the explorer and the folder's thumbnails on the left (a click loads the portrait); the editing sidebar of Photos on the right, then Continue; on the sheet step the sheet options with Back, Save and Print.
+- **Collages workspace:** explorer and thumbnails (left; thumbnails can be dragged into frames), the collage canvas with slot sizes and a right-click menu (centre), sheet, orientation, templates, spacing, the selected slot's size, Save JPG and Print (right); see §7.1.
+- **Printing workspace (prompt_06 §7):** statistics, the queue of this session and the history (left); the pages as they will print (centre); printer, size, paper, copies, Clear and Print (right). See §9.
+- **Shared editing sidebar (DEC-062):** `EditActionsView` (Undo, Redo, Reset) and `ToneAdjustmentsView` (levels histogram with three triangle handles, Auto Adjust, exposure, contrast, white balance, tint, saturation with gradient tracks; exposure also on the + / − keys), both bound to one `ToneAdjustmentsViewModel` that carries the owner's Undo, Redo, Reset and Auto Adjust commands. The Photos editor and the ID Photo Creator use them identically (prompt_03 §7, prompt_04 §§7–8, prompt_06 §1).
 - **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
 - **Keyboard:** handled at window level with `KeyDown` (tunnelling). Shortcuts are ignored when `e.Handled`, when a `TextBox`/`NumericUpDown`/`ComboBox` has focus, when a dialog is open, or for auto-repeat. Avalonia exposes no repeat flag, so the handler tracks key-down/key-up pairs and ignores repeated `KeyDown` events for a key that is still held (FR-018).
 
@@ -84,14 +87,15 @@ stateDiagram-v2
     Browse --> Edit: open photo / Enter
     Edit --> Edit: Save & Next (after successful save) / Previous / Next
     Edit --> Browse: Back to folder (Esc)
-    Browse --> PrintDialog: Print selected / Print all
-    PrintDialog --> Browse: Print (jobs queued) / Cancel
-    Browse --> SaveChanges: Save changes / Restore original (warning)
-    SaveChanges --> Browse
+    Browse --> Printing: Print selected / Print all
+    Printing --> Browse: Back (after Print or Clear)
+    Browse --> DiscardOriginals: Discard originals / Restore original (warning)
+    DiscardOriginals --> Browse
     Browse --> IdFraming: ID Photos tab / Use for ID
     IdFraming --> IdSheet: Continue
     IdSheet --> IdFraming: Back
-    IdSheet --> PrintDialog: Print
+    IdSheet --> Printing: Print
+    Printing --> IdSheet: Back
 ```
 
 ## 5. Image processing (Magick.NET)
@@ -207,11 +211,11 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 
 ## 7. ID Photo Creator
 
-- **Sizes** are data (FR-061): `id-sizes.json` in the settings folder, created with the planned sizes on first start; implausible entries are ignored (DEC-049); entries still equal to a 0.6.0 default are replaced by the current default (DEC-052). A size can turn off its guides (`Guides`, 9×12) and bring its own sheet margin and spacing (2×2 in: 0 mm). Custom sizes (+ New size) are stored in `settings.json` and created with `IdSizes.Custom`. Framing state = scale, rotation and centre of the portrait under a fixed frame of the size's ratio.
+- **Sizes** are data (FR-061): `id-sizes.json` in the settings folder, created with the planned sizes on first start; implausible entries are ignored (DEC-049); entries still equal to a 0.6.0 default are replaced by the current default (DEC-052). A size can turn off its guides (`Guides`, 9×12) and bring its own sheet margin and spacing (2×2 in: 0 mm). Custom sizes (+ New size) are stored in `settings.json` and created with `IdSizes.Custom`. Framing state = scale, fine rotation, quarter turns and centre of the portrait under a fixed frame of the size's ratio. A 90° turn (prompt_06 §5) is part of the framing (`IdFraming.QuarterTurns`; the frame angle is the fine rotation less 90° per turn), so preview, sheet, save and print follow without turning the portrait; Auto Align runs on a turned copy of the proxy and maps the face back. The 2 × 2 in size is labelled 5 × 5 cm and stays 50.8 mm.
 - **Render:** `Distort(ScaleRotateTranslate)` from the full-resolution portrait into exactly `round(mm·300/25.4)` px, then the tone adjustments of §5.2 and the background-brightness lift (FR-064: brightening of light, low-saturation pixels through a soft mask).
 - **Preview:** the framing preview uses the proxy, half or quarter copy whose scale to the screen is closest to 1, with fast bilinear lookups and preview curves; it is about three times faster than resampling the 1800-px proxy. It is rendered in two steps (`FramePreview`, then `AdjustPreview`), so the unadjusted frame feeds the levels histogram and **Auto Adjust** (the Auto Correct estimation of §5.6, prompt_04 §8).
 - **Sheet layout (Core, FR-066/FR-074, DEC-046):** 4×6 in page, landscape for 3×4 and for any size where landscape fits more copies, otherwise portrait. Columns and rows are `⌊(avail + gap)/(cell + gap)⌋`. With the 3×4 strip the cell is 30 × 47 mm and the strip is also the gap to the next row. The grid is centred and copies fill row-major. No cut guides are drawn.
-- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG q95 (JPEG only since 0.7.0), with the optional print scale correction of FR-071 applied to photo size and positions, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
+- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG at the Settings quality (100 by default since 0.9.0; JPEG only since 0.7.0), with the optional print scale correction of FR-071 applied to photo size and positions, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
 - **Auto Align (FR-063, 0.4.0):**
   - YuNet (MIT, ≈ 230 KB) runs on ONNX Runtime on a 640-px copy, giving face boxes and 5 landmarks.
   - With one face: roll comes from the eye line, and head height is estimated from the eye-to-mouth distance and fitted to the guides.
@@ -223,12 +227,13 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 
 - **Templates (Core):** `CollageTemplate` = cells (column, row, spans) on a small grid for a portrait sheet; a landscape sheet uses the transposed grid. Eleven templates for two to nine photos.
 - **Layout (Core):** `CollageLayout.Slots` places the cells inside one margin with equal gaps (spacing, default 3 mm). `CollageLayout.Crop` gives the part of a photo shown in a slot: the largest centred crop of the slot's ratio, divided by the zoom and centred on the chosen point, kept inside the photo. `ToPixels` rounds slot edges at 300 ppi, so neighbouring slots keep exact gaps.
-- **Preview (App):** photos are decoded once to a 1600-px preview bitmap; `CollageCanvas` draws the white sheet and each photo's crop with `DrawImage(source, sourceRect, slotRect)`. Dragging pans, the wheel zooms, double-click resets, and the round handle on the selected slot swaps two photos. Only redrawing happens while arranging.
-- **Save (Imaging + Storage):** `CollageRenderer` creates the white page (1200×1800, 1800×2400 or 2400×3600 px), loads each photo at full resolution, crops it and resizes it once into its slot (Lanczos), then `IdOutput` encodes JPEG q95 sRGB at 300 ppi and `IdExporter` writes `Collage_yyyyMMdd_HHmm.jpg` with create-new semantics into the remembered collage folder. `FolderScanner` leaves these files out of order galleries.
+- **Preview (App):** photos are decoded once to a 1600-px preview bitmap; `CollageCanvas` draws the white sheet and each photo's crop with `DrawImage(source, sourceRect, slotRect)`. Dragging pans, the wheel zooms, double-click resets, and the round handle on the selected or hovered slot moves a photo to another slot. Thumbnails are dragged in with Avalonia drag and drop (an in-process path format, or files from the file manager, `PhotoDrag`); the canvas highlights the target slot. The right-click menu turns a photo by 90° (a turned preview is decoded again; the crop centre turns with it), fits it or removes it. Only redrawing happens while arranging.
+- **Save (Imaging + Storage):** `CollageRenderer` creates the white page (1200×1800, 1800×2400 or 2400×3600 px), loads each photo at full resolution, turns it by its quarter turns, crops it and resizes it once into its slot (Lanczos), then `IdOutput` encodes JPEG (Settings quality) sRGB at 300 ppi and `IdExporter` writes `Collage_yyyyMMdd_HHmm.jpg` with create-new semantics into the remembered collage folder. `FolderScanner` leaves these files out of order galleries.
 
 ## 8. Settings, logging and errors
 
-- **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, last folder, recent folders, ID and collage output folders, custom ID sizes, JPEG quality, ID print scale correction, panel widths and cache limits.
+- **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, theme, last folder, recent folders, ID and collage output folders, custom ID sizes, JPEG quality (100 by default; version-1 files with the old default 95 are upgraded once, DEC-064), ID print scale correction, thumbnail size, panel widths and cache limits.
+- **User data (DEC-063):** print counters (`print-history.json`) and the print history (`print-log/yyyy-MM.jsonl`) are kept in `%APPDATA%/PhotoX` on Windows (`$XDG_DATA_HOME/PhotoX` on Linux), not in `%LOCALAPPDATA%/PhotoX`, which is the Velopack installation folder and is removed on uninstall. 0.8 counters are copied once from the old location.
 - **Configuration data:** `print-formats.json` (physical sizes of the three print presets and the 20×30 sheet) and `id-sizes.json` (ID sizes) in the same folder, created with the planned values if missing, read at startup. A damaged file is left untouched and the built-in values apply (DEC-049).
 - **Logs:** Serilog daily files in `%LOCALAPPDATA%/PhotoX/logs`, kept for 14 days. File paths are logged, never image content (FR-051).
 - **Errors:** unhandled exceptions are logged and shown as a localized message. Expected failures (save, load) return typed results with a message key.
@@ -237,13 +242,15 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 
 ```mermaid
 flowchart LR
-    Dialog[Print dialog<br/>printer, size, paper, copies, preview] --> Queue[PrintService<br/>one job at a time, off the UI thread]
+    Workspace[Printing workspace<br/>preview, printer, size, paper, copies] --> Queue[PrintService<br/>one job at a time, off the UI thread]
     Queue --> Content[PrintContent<br/>unsaved edit / saved photo / original / sheet / collage]
     Content --> Page[PrintLayout + PrintRenderer<br/>page at device pixels]
     Page --> Backend[IPrintBackend]
     Backend --> Win[WindowsPrintBackend<br/>DEVMODE, GDI StartDoc/StretchDIBits, spooler GetJob/SetJob]
     Win --> Driver[Citizen CY-02 driver]
     Queue --> History[PrintHistory<br/>print-history.json]
+    Queue --> Log[PrintLog<br/>print-log/yyyy-MM.jsonl]
+    Log --> Stats[History list and statistics]
 ```
 
 - **Content (read-only):**
@@ -266,6 +273,7 @@ flowchart LR
   - counters (`PrintHistory`, in the data folder) are added when Windows accepts a job and taken back when the job is cancelled through PhotoX or seen deleting and then gone;
   - a job that left the queue without being deleted is "done in the Windows queue";
   - nothing is resubmitted automatically.
+- **History and statistics (FR-084, DEC-063):** `PrintLog` (Storage) appends one JSON line per job and state change (submitted when Windows accepted it; finished, cancelled, removed or failed) to the file of the month the job was created; reading keeps the last line per job id and skips a damaged line. The Printing workspace lists today, this week (from Monday) or this month, and shows totals for today, the week, the month and all time split by print size. Prints count with the counter rule: accepted by Windows and not cancelled or removed. Active jobs of the session are shown in the queue, not twice in the history; a job still "submitted" from an earlier session is shown as accepted by Windows, with its end unknown.
 - **Two 10×15 photos on one 15×20 sheet** (a Citizen driver paper) is a later optimisation; the dialog prefers the plain paper of each size.
 
 ## 10. Performance notes

@@ -420,3 +420,53 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Run 41050159676 passed on `windows-latest` (126 core and 43 UI tests, including the virtual-printer job) and on `ubuntu-latest` (124 and 43).
   - It built `PhotoX-0.8.1-win-Setup.exe` and `PhotoX-0.8.1-win-Portable.zip` (artifact `PhotoX-0.8.1-windows`).
   - Not installed or run on a Windows PC; nothing printed on the Citizen CY-02.
+
+### 2026-10-30: Version 0.9.0, prompt_06 (consistent UI, light and dark mode, Printing workspace)
+- **Prompt:** [docs/prompts/prompt_06.md](prompts/prompt_06.md), archived unchanged.
+- **Work done:**
+  - **Icon (§2, DEC-061):** redrawn as SVG from measurements of the owner's `icon example.png` (light tile, camera outline in exactly `#3B82F6`, dark PX, no gradient), with a 16–24 px variant; PNGs and ICO rebuilt. The X of the name uses the same blue.
+  - **Light and dark mode (§3, DEC-061):** theme dictionaries and dynamic resources throughout, status colours as classes, a theme-aware histogram, quieter disabled buttons; chosen in Settings and remembered.
+  - **Consistency (§1, DEC-062):**
+    - workspace icons;
+    - Auto Adjust in both workspaces;
+    - one editing sidebar (Undo, Redo, Reset, histogram, Auto Adjust, sliders) shared by Photos and ID Photos;
+    - resizable left and right panels in every workspace, widths remembered.
+  - **Photos (§4):** no selection hint; Edit progress and the folder's printed copies; *Discard originals* (same checks); thumbnail-size slider (double-click resets, remembered).
+  - **ID Photos (§5):**
+    - toolbar with the steps, the format list, 90° turns, Auto Align, zoom, rotation, background brightness, reset framing and before/after;
+    - explorer and photos on the left; the shared sidebar on the right;
+    - 3 × 4 cm × 8 by default; the US visa size shown as 5 × 5 cm (still 50.8 mm); *Print* and *Save* labels;
+    - 90° turns are part of the framing, so every output follows.
+  - **Collages (§6, DEC-066):** drag and drop from the thumbnails or the file manager into a frame; the move handle on the hovered photo; a right-click menu with 90° rotation, fit and remove; the renderer turns photos.
+  - **Printing (§7, DEC-063):**
+    - a Printing workspace instead of the dialog and queue popup (preview, printer, size, paper, copies, Clear, Print, Back);
+    - the session queue with progress;
+    - the history of today, the week or the month with outcomes, and statistics by period and size, from a new `PrintLog`;
+    - closing asks while jobs are not yet handed to Windows;
+    - counters and history moved to the user data folder (outside the Velopack installation folder); the 0.8 counters are copied once.
+  - **Installer (§8, DEC-065):** kept Velopack; a splash with icon, name and version (`packaging/windows/make_splash.py`); shortcut locations stated explicitly; the program folder and how to uninstall in Settings.
+  - **Settings (§9, DEC-064):** JPEG quality 100 by default; the old default 95 of version-1 settings files becomes 100 once; theme selection.
+  - **Fixed on the way:** in ID Photos, undoing a slider change kept the new value (the undo snapshot was taken after the change). The snapshot is now the state before the change, with a test.
+- **Plan review (§11):** every Must requirement is Implemented. One feasible gap was closed: the calibration sheet could only be saved for printing through Citizen's software, so it can now be printed from the Printing workspace (*Calibration sheet…*, 10×15 or 15×20) through the same path as photos, which is what the pending calibration has to measure. What remains needs the owner: Citizen prints and calibration (OQ-031, FR-071), studio use on Windows and scaling (NFR-002/003/007), the Romanian review (NFR-008), samples for background whitening (FR-065), and the later two-up 15×20 printing. Nothing else was added.
+- **Verification (actually run, Linux):**
+  - 135 core tests and 51 headless UI tests pass. Skipped: the Windows-only tests (hidden photos, the PDF-printer job) and two opt-in benchmarks.
+  - New tests (TS-21):
+    - print history outcomes, statistics and week start, a damaged line, failed jobs, migration of the counters;
+    - settings upgrade; 5 × 5 cm and 3 × 4 × 8;
+    - ID quarter turns (framing, point mapping, rendered colours, undo and redo across a turn, Reset keeps the framing);
+    - collage rotation in the renderer and the menu, dropping on a frame;
+    - the Printing workspace from Photos and ID Photos, queue to history, statistics and the folder summary, history after a restart, the calibration sheet printed at 15 × 20 (1800 × 2400 px);
+    - the thumbnail slider.
+  - **Visual review (§10):** headless screenshots of Photos, the editor, ID framing and sheet, Collages, Printing and Settings in dark and light mode at 1440 × 900 were inspected.
+    - Fixed: disabled buttons brighter than enabled ones in dark mode; the collage hint clipped at the bottom.
+    - The ID toolbar fits at 1440 px and scrolls on narrower windows, like the editor's.
+  - The real app was started on the Linux desktop with separate settings folders:
+    - a version-1 settings file with quality 95 was upgraded to version 2 with quality 100;
+    - light mode, the gallery, the details panel and the Printing workspace (no printers on Linux) looked as in the headless screenshots.
+- **Not tested:**
+  - the Citizen CY-02 and any physical print;
+  - the installer on Windows: the splash, Installed apps entry, update in place and uninstall rely on Velopack's standard behaviour and were not run here;
+  - drag and drop with a real mouse (the drop handling is tested through the view model; Avalonia's drag source needs a pointer);
+  - Windows display scaling.
+
+  The Windows CI result is recorded below once the run has finished.

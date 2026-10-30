@@ -60,9 +60,10 @@ public static class IdSizes
 
     /// <summary>
     /// US visa 2×2 in. Two photos side by side are exactly 101.6 mm, the short edge of the 4×6 in page, so four fit
-    /// only edge to edge: the sheet defaults have no margin and no spacing (prompt_04 §8, DEC-052).
+    /// only edge to edge: the sheet defaults have no margin and no spacing (prompt_04 §8, DEC-052). Shown as "5 × 5 cm"
+    /// (prompt_06 §5); the size stays exactly 50.8 × 50.8 mm.
     /// </summary>
-    public static IdSize S2x2in { get; } = new("2x2in", "2 × 2 in", 50.8, 50.8, 0, [1, 2, 4], 0.12, 0.60, "≈ 5.1 × 5.1 cm", SheetMarginMm: 0, SheetSpacingMm: 0);
+    public static IdSize S2x2in { get; } = new("2x2in", "5 × 5 cm", 50.8, 50.8, 0, [1, 2, 4], 0.12, 0.60, "2 × 2 in (50.8 × 50.8 mm)", SheetMarginMm: 0, SheetSpacingMm: 0);
 
     public static IdSize S4x6cm { get; } = new("4x6cm", "4 × 6 cm", 40, 60, 0, [2, 4], 0.12, 0.55);
 
@@ -83,6 +84,7 @@ public static class IdSizes
         new("3x4", "3 × 4 cm", 30, 40, 7, [4, 6, 8], 0.10, 0.75),
         new("2x2in", "2 × 2 in", 50.8, 50.8, 0, [1, 2], 0.12, 0.60, "≈ 5.1 × 5.1 cm"),
         new("9x12", "9 × 12 cm", 90, 120, 0, [1], 0.12, 0.55),
+        new("2x2in", "2 × 2 in", 50.8, 50.8, 0, [1, 2, 4], 0.12, 0.60, "≈ 5.1 × 5.1 cm", SheetMarginMm: 0, SheetSpacingMm: 0),
     ];
 
     /// <summary>Replaces unedited entries of earlier defaults (<see cref="Superseded"/>); returns the list and whether anything changed.</summary>

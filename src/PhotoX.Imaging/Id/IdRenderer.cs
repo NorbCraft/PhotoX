@@ -116,8 +116,8 @@ public static class IdRenderer
             image.BackgroundColor = MagickColors.White;
             image.VirtualPixelMethod = VirtualPixelMethod.Background;
             image.SetArtifact("distort:viewport", $"{width}x{height}+0+0");
-            // Rotating by −RotationDeg makes the (tilted) frame upright.
-            image.Distort(DistortMethod.ScaleRotateTranslate, framing.CenterX, framing.CenterY, scale, -framing.RotationDeg, newX, newY);
+            // Rotating by −Angle makes the (tilted or turned) frame upright.
+            image.Distort(DistortMethod.ScaleRotateTranslate, framing.CenterX, framing.CenterY, scale, -framing.Angle, newX, newY);
             image.RemoveArtifact("distort:viewport");
             image.ResetPage();
             return image;

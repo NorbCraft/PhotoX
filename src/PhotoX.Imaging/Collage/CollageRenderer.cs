@@ -5,8 +5,11 @@ using PhotoX.Core.Id;
 
 namespace PhotoX.Imaging.Collage;
 
-/// <summary>A photo placed in a collage slot: its file and the part of it shown (relative to the upright photo).</summary>
-public sealed record CollagePhoto(string Path, NormalizedRect Crop);
+/// <summary>
+/// A photo placed in a collage slot: its file, its quarter turns (90° clockwise each, prompt_06 §6) and the part of it
+/// shown, relative to the upright photo after those turns.
+/// </summary>
+public sealed record CollagePhoto(string Path, NormalizedRect Crop, int QuarterTurns = 0);
 
 /// <summary>
 /// Renders a print-ready collage (prompt_04 §5): a white sheet at 300 ppi; each photo is loaded at full resolution,
@@ -32,6 +35,7 @@ public static class CollageRenderer
                 var slot = CollageLayout.ToPixels(slotsMm[i], ppi);
                 if (slot.Width <= 0 || slot.Height <= 0) continue;
                 using var image = ImageLoader.Load(photo.Path, sourceMaxEdge);
+                if (photo.QuarterTurns % 4 != 0) image.Rotate(90 * (((photo.QuarterTurns % 4) + 4) % 4));
                 var crop = CropMath.ToPixelRect(photo.Crop, (int)image.Width, (int)image.Height);
                 image.Crop(new MagickGeometry(crop.X, crop.Y, (uint)Math.Max(1, crop.Width), (uint)Math.Max(1, crop.Height)));
                 image.ResetPage();

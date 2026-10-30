@@ -1,6 +1,6 @@
 # PhotoX — Roadmap
 
-Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md](prompts/prompt_02.md) and proceeds autonomously in this order. [prompt_03.md](prompts/prompt_03.md) added the owner's feedback from testing 0.4.0 (milestones 0.4.1–0.6.0); it takes precedence where it conflicts with older requirements. Requirement IDs refer to [PLAN.md](PLAN.md).
+Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md](prompts/prompt_02.md) and proceeds autonomously in this order. [prompt_03.md](prompts/prompt_03.md) added the owner's feedback from testing 0.4.0 (milestones 0.4.1–0.6.0), and [prompt_04.md](prompts/prompt_04.md) new requirements and refinements (0.7.0); newer prompts take precedence where they conflict with older requirements. Requirement IDs refer to [PLAN.md](PLAN.md).
 
 **Principles:**
 - Deliver the vertical workflow first (open folder → open photo → adjust crop → basic correction → save → next photo), then widen it.
@@ -16,12 +16,13 @@ Plan revision **P-2** (2026-10-29). Implementation was approved by [prompt_02.md
 | **0.4.1** | **Finish Order data-loss fix** ([prompt_03](prompts/prompt_03.md) §6) | FR-005, FR-072, NFR-005 | Root cause found and fixed, regression tests for Keep and Erase with pre-existing files, Windows CI green | Done 2026-10-29 |
 | **0.5.0** | **Owner feedback: speed, editing, browsing, ID consistency, window** (prompt_03 §§2–5, 7–9) | FR-001, 002, 012–015, 017, 039, 043, 044, 049, 052, 064, 066, 067, 074, 077; NFR-003, NFR-006 | Measured before/after; fast preview path; crop applied in preview; levels bar; visual sliders; fixed toolbar; resizable panels; Close / Finish Order at the end; conventional folder tree; ID uses the same controls; landscape sheets; single title | Done 2026-10-29 (Linux tests, Windows CI) |
 | **0.6.0** | **Remaining plan items** (plan review, prompt_03 §11) | FR-010, 011, 040, 061, 071 | Print-format and ID-size data files; ID print scale correction; tests green | Done 2026-10-29 (Linux tests) |
-| 0.6.x+ | Owner trials and fixes | — | Feedback from Windows use, prints and Romanian review incorporated | Waiting for owner feedback |
+| **0.7.0** | **prompt_04: icon, Collages, shared explorer, refinements** | FR-001, 007, 008, 010, 012–018, 042, 043, 061–068, 077, 078, 079 | New icon everywhere and version visible; Duplicate image; Collages workspace; one explorer for all workspaces; editor and ID refinements; histogram review; tests green | Done 2026-10-30 (Linux tests) |
+| 0.7.x+ | Owner trials and fixes | — | Feedback from Windows use, prints and Romanian review incorporated | Waiting for owner feedback |
 | **1.0.0** | Stable | — | [PLAN.md §10](PLAN.md#10-release-acceptance-100) acceptance met | — |
 
 **Pending owner actions** (never blocking):
 - Run Windows 11 trials on the studio PC (first trial of 0.4.0 done; feedback in prompt_03).
-- Print physical test sheets through Citizen software (FR-071), then set the ID scale correction or the print-format data file if needed.
+- Print physical test sheets through Citizen software (FR-071), then set the ID scale correction or the print-format data file if needed. Include a 2×2 in sheet (four photos edge to edge) and confirm the 20×30 sheet size (OQ-030).
 - Provide more ID sample photos (grey or uneven backgrounds) for background whitening (FR-065).
 - Review the Romanian wording.
 

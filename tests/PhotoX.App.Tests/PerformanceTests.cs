@@ -198,6 +198,24 @@ public class PerformanceTests(ITestOutputHelper output)
 
         output.WriteLine($"ID rotation step: {await MeasureId(i => id.Rotation = (i % 2 == 0 ? 2 : -2) + i * 0.1)}");
         output.WriteLine($"ID exposure step: {await MeasureId(i => id.Tone.Exposure = (i % 2 == 0 ? 0.5 : -0.5) + i * 0.01)}");
+
+        // Collages (prompt_04 §9): moving a photo in its slot is a redraw of the preview bitmaps.
+        shell.ShowCollagesCommand.Execute(null);
+        var collage = shell.Collage;
+        foreach (var path in Directory.GetFiles(order).Order().Take(4)) await collage.PlaceAsync(path);
+        var pans = new List<double>();
+        for (var i = 0; i < 15; i++)
+        {
+            var t = Stopwatch.StartNew();
+            collage.Zoom(0, i == 0 ? 2 : 1);
+            collage.Pan(0, i % 2 == 0 ? 0.05 : -0.04, 0.02);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            pans.Add(t.Elapsed.TotalMilliseconds);
+        }
+
+        pans.Sort();
+        output.WriteLine($"Collage pan step (change + headless frame): median {pans[pans.Count / 2]:0.0} ms, max {pans[^1]:0.0} ms");
         output.WriteLine($"Machine: {Environment.ProcessorCount} logical CPUs, {Environment.OSVersion}");
         window.Close();
     }

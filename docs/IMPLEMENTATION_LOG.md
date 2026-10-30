@@ -296,3 +296,62 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - The app started on the Linux desktop with empty settings folders, created both files and logged no errors (stopped after 12 s).
 - **Not verified:** physical prints (no printer), Windows studio PC.
 - **Windows CI result for 0.6.0:** run 40955807735 passed on `windows-latest` (95 core and 32 UI tests; skipped: owner-sample tests and opt-in benchmarks) and on `ubuntu-latest`. The `windows-package` job produced the `PhotoX-windows` artifact (Velopack setup and portable zip), which has not been installed or tested on a Windows machine.
+
+### 2026-10-30: Version 0.7.0, prompt_04 (icon, Collages, shared explorer, refinements)
+- **Prompt:** [docs/prompts/prompt_04.md](prompts/prompt_04.md), archived unchanged.
+- **Work done:**
+  - **Version and icon (§§1–3, DEC-050):**
+    - flat icon drawn from scratch (SVG master, 16–24 px variant, PNGs 16–512, ICO 16–256) via `assets/logo/build_icons.py`;
+    - used for the window, executable, installer (`--icon`), top bar, About and the Linux desktop entry (`packaging/linux`, X11 window class `PhotoX`);
+    - title "PhotoX 0.7.0"; CI names the installer `PhotoX-<version>-win-Setup.exe` and the artifact `PhotoX-<version>-windows`;
+    - new gear geometry. The old icon buttons stretched their 24-unit paths uniformly, which pins wide icons to the top of the box: icons are now drawn unstretched and scaled.
+  - **Duplicate image (§4, FR-078):** `PhotoDuplicator` (Storage) copies with create-new semantics; the gallery's right-click menu also offers Edit and Use for ID photo.
+  - **Collages (§5, FR-079, DEC-053):** templates and layout in Core, `CollageRenderer` in Imaging, `CollageViewModel`/`CollageView`/`CollageCanvas` in App. The preview draws bitmaps; Save renders at 300 ppi from the full-resolution photos.
+  - **Shared explorer (§6, DEC-055):** `ExplorerViewModel`/`ExplorerView` extracted from the gallery; `PhotoPickerViewModel` + `PickerGrid` for ID Photos and Collages; `ThumbnailSource` shared by all thumbnail grids.
+  - **Editor (§7):**
+    - + / − keys; one tone-only Reset; largest crop on orientation switch;
+    - custom size in cm on the smallest sheet (DEC-051, a 20×30 = 8×12 in sheet added to `print-formats.json`, OQ-030);
+    - hold-to-compare button; corner-arrow reset icon; centred angle display; 24-px slider handles; no hint lines.
+  - **Histogram (§7, DEC-054):** the review found that the histogram showed the finished preview (after levels, contrast and saturation) while the triangles act on the input to levels. Dragging a triangle therefore reshaped the data under it, and stretching levels left comb gaps. The square-root scale also exaggerated small populations. It now shows the levels input on a linear scale.
+  - **ID (§8, DEC-052):**
+    - Auto Adjust (the Auto Correct estimation on the unadjusted frame); built-in portrait picker; Space-only before/after; double-click resets zoom and rotation;
+    - Continue; numbered step tabs; JPEG only; sizes in cm with removable custom sizes;
+    - 3×4 head 70 %; 9×12 without guides or Auto Align; 2×2 in edge to edge (four fit, six possible);
+    - upgrade of unedited 0.6.0 `id-sizes.json` entries.
+    - **Bug found:** the frame on screen kept the previous size's width because `PreviewFrameWidth` was not notified when the size changed. This is why every size looked like 3.5×4.5. Fixed.
+- **Verification (actually run, Linux):**
+  - 117 core tests and 41 headless UI tests pass (the owner-sample tests ran on a temporary copy); skipped: the Windows-only hidden-photo test and the two opt-in benchmarks.
+  - New tests:
+    - custom sizes on sheets and the 9×13 render plan;
+    - 2×2 in edge-to-edge positions;
+    - the data-file upgrade (edited entries kept);
+    - collage slots for every template in both orientations, slot crops, and a rendered collage with white gaps;
+    - the levels histogram ignores levels and follows exposure;
+    - collage names excluded from galleries; Duplicate never overwrites;
+    - UI: version title, duplicate in the gallery, orientation switch, + / − keys, Reset with undo, the ID picker, ID sizes, Space, Auto Adjust and slider resets, and a collage saved through the UI (1200×1800, 300 ppi, white margin, photo content).
+  - Screenshots of the editor, the ID picker, ID framing and Collages (1366×768) were inspected. This found the straighten group out of line and the icons pinned high; both were fixed.
+  - The Linux desktop entry was installed into a scratch data folder and passed `desktop-file-validate`.
+- **Measurements:**
+  - Interactive benchmark, pinned to 4 cores (`taskset -c 8-11`). A Windows 11 virtual machine was running on the development PC, so all numbers are higher than those recorded for 0.5.0.
+  - 0.6.0 was measured in a temporary checkout under the same conditions for comparison:
+
+  | Operation (median) | 0.6.0 | 0.7.0 |
+  |---|---|---|
+  | Open photo in editor | 368 ms | 381–437 ms |
+  | Exposure / contrast / saturation step | 78 / 77 / 179 ms | 78–91 / 75 / 174–195 ms |
+  | Straighten step (change + frame) | 31 ms | 33–38 ms |
+  | Crop drag frame | 25 ms | 25 ms |
+  | Next photo (preloaded) | 52 ms | 52–55 ms |
+  | ID rotation / exposure step | 65 / 84 ms | 68–70 / 86–89 ms |
+  | Collage pan step (change + frame) | — | 25 ms |
+
+  - Within run-to-run noise; the ID step adds one copy of the unadjusted frame for Auto Adjust and the histogram (a few ms).
+- **Plan review (prompt_04 §10):** with 0.7.0 every Must requirement is Implemented. The remaining items are the same as at 0.6.0, and none can be done without the owner or new material:
+  - studio use on Windows (NFR-002), studio-PC measurements (NFR-003) and Windows scaling (NFR-007);
+  - the Romanian review (NFR-008), now including the new texts;
+  - physical prints for FR-071, now including edge-to-edge 2×2 in sheets and the 20×30 size (OQ-030);
+  - background whitening, which waits for sample photos (FR-065, DEC-041);
+  - the deferred items of PLAN §9.
+
+  Nothing further was implemented, to avoid adding unrequested features.
+- **Not verified:** Windows (see the CI result once recorded), the studio PC, physical prints of collages, 2×2 in sheets and custom sizes, and the Romanian wording of the new texts.

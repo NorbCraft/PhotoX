@@ -4,7 +4,11 @@ Plan revision **P-2** (2026-10-29). All questions raised in P-1 were **decided b
 
 ## Open
 
-*None.*
+Non-blocking: a default is applied and can be changed without a new version.
+
+| ID | Question | Default applied | Where |
+|---|---|---|---|
+| OQ-030 | Physical size of the 20×30 sheet (prompt_04 collages and custom sizes) | 8×12 in = 203.2 × 304.8 mm, the usual size of "20×30" photo prints and consistent with the inch-based 10×15 and 15×20. Editable as `20x30` in `print-formats.json`. The owner confirms with the printer or lab that prints 20×30 (the Citizen CY-02 is not assumed to). | FR-010, FR-079, DEC-051 |
 
 ## Decided
 

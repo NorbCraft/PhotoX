@@ -2,14 +2,15 @@
 
 PhotoX is a lightweight, offline photo-preparation desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software with one focused tool:
 
-- **Photos:** open an order folder, crop to 10×15 / 15×20 / 13×18 (centred on 15×20), correct exposure, colour and levels, then **Enter = Save & Next**. Originals are kept temporarily in an `Original` subfolder for re-editing until **Finish Order**.
-- **ID Photos:** frame a portrait with face guides and optional Auto Align, adjust it, and export a 10×15 sheet with timestamped filenames to a chosen folder.
+- **Photos:** open an order folder, crop to 10×15 / 15×20 / 13×18 (centred on 15×20) or a custom size in cm (centred on the smallest sheet), correct exposure, colour and levels, then **Enter = Save & Next**. Originals are kept temporarily in an `Original` subfolder for re-editing until **Finish**.
+- **ID Photos:** choose a portrait in the built-in explorer, frame it with face guides and optional Auto Align, adjust it (Auto Adjust), and save a 10×15 sheet as JPG with a timestamped filename to a chosen folder.
+- **Collages:** choose photos, a 10×15 / 15×20 / 20×30 sheet and a template, arrange and frame the photos, and save a print-ready JPG.
 
 The UI is in Romanian and English. All processing is local and no customer photo ever leaves the computer.
 
 ## Current status
 
-> **Version 0.6.0**: ordinary-photo editing, Finish Order, ID Photo Creator with Auto Align, and a Windows installer, plus the owner's feedback from testing 0.4.0 (prompt_03): the Finish Order fix (0.4.1), a much faster editor, an applied-crop preview, and reworked browsing and ID controls (0.5.0). Version 0.6.0 adds editable print/ID size data files and an ID print scale correction. Verified by automated tests on Linux and in CI on Windows. **Studio use on Windows, physical Citizen prints and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.7.0**: ordinary-photo editing, Finish, ID Photo Creator with Auto Align, and a Windows installer; the owner's feedback from testing 0.4.0 (prompt_03, 0.4.1–0.6.0); and prompt_04: a new icon, the version in the title bar and installer name, a **Collages** workspace, one built-in explorer for all workspaces, Duplicate image, and refinements of the editor and the ID workspace. Verified by automated tests on Linux and in CI on Windows. **Studio use on Windows, physical Citizen prints and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -56,9 +57,14 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.6.0 --packDir publish/win-x64 \
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.7.0 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --outputDir releases/win          # Windows installer
+python3 assets/logo/build_icons.py     # re-render the icon PNGs and ICO after editing the SVG masters
 ```
+
+**Installing on Windows:** every push builds the artifact `PhotoX-<version>-windows` in GitHub Actions. It contains `PhotoX-<version>-win-Setup.exe` (one-click install for the current user, with Start menu and desktop shortcuts) and `PhotoX-<version>-win-Portable.zip` (no install). Only the Setup file is needed to install; the other files are for a future update feed. The installer is not code-signed, so Windows SmartScreen may ask to confirm (*More info → Run anyway*).
+
+**Linux menu entry:** publish a build (`dotnet publish src/PhotoX.App -c Release -r linux-x64 --self-contained -o ~/PhotoX`), then run `packaging/linux/install-desktop-entry.sh ~/PhotoX` to add PhotoX with its icon to the application menu.
 
 ## Repository hosting
 

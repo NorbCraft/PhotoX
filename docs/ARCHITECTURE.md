@@ -20,7 +20,7 @@ Plan revision **P-2** (2026-10-29). Requirements are in [PLAN.md](PLAN.md) and a
 | Face detection | Microsoft.ML.OnnxRuntime + YuNet model | 1.31.1 / 2023mar | MIT / MIT | 0.4.0, Auto Align only |
 | Logging | Serilog + Serilog.Sinks.File (used directly in the app; libraries return typed results instead of logging) | 4.4.0 / 7.0.0 | Apache-2.0 | DEC-040 |
 | Tests | xUnit v3 **3.2.2** + Avalonia.Headless.XUnit | 3.2.2 / 12.1.4 | Apache-2.0 / MIT | xUnit 4.x breaks Avalonia.Headless (Avalonia issue #22072) |
-| Installer | Velopack | 1.2.x | MIT | 0.4.0. Self-contained folder build for early trials. |
+| Installer | Velopack | 1.2.x | MIT | 0.4.0. Setup exe and portable zip, named `PhotoX-<version>-win-*` by CI (prompt_04), with the PhotoX icon. Linux: `packaging/linux` adds a desktop entry for a published build. |
 
 All licences permit use in a paid studio. Notices are collected in `THIRD-PARTY-NOTICES.md`. Avalonia's paid tools are not needed. Rejected for licence reasons: ImageSharp, FluentAssertions 8+, Emgu CV, InsightFace/dlib-68/BRIA models.
 
@@ -32,16 +32,18 @@ Directory.Build.props        # version, nullable, warnings-as-errors
 Directory.Packages.props     # central pinned versions
 src/
   PhotoX.Core/       pure: models, crop/rotation geometry, print formats, ID sizes, sheet layout,
-                     file-name rules, sidecar model. No I/O except JSON (de)serialisation helpers.
+                     collage templates and layout, file-name rules, sidecar model. No I/O.
   PhotoX.Imaging/    Magick.NET: load (orient, colour), render recipe, encode, thumbnails,
-                     histogram, Auto Correct estimation, ID render, sheet render; face detection (0.4.0)
+                     histogram, Auto Correct estimation, ID render, sheet render, collage render;
+                     face detection (0.4.0)
   PhotoX.Storage/    file handling: folder scan, order state + sidecar, safe save, Finish Order
-                     cleanup, thumbnail cache, settings
+                     cleanup, Duplicate image, thumbnail cache, settings, data files
   PhotoX.App/        Avalonia UI: views, view models, localization, composition
 tests/
   PhotoX.Tests/      Core + Imaging + Storage tests (synthetic fixtures generated at test time)
   PhotoX.App.Tests/  Avalonia.Headless UI tests
-assets/              print-formats.json, id-sizes.json, logo SVG/ICO, (0.4.0) ONNX model + licence
+assets/              logo: SVG masters, PNG exports, ICO, build_icons.py; ONNX model + licence
+packaging/linux/     desktop entry template and install script (icon in the hicolor theme)
 ```
 
 ```mermaid
@@ -61,10 +63,12 @@ Rules:
 
 ## 4. UI structure
 
-- **Shell:** native window title bar with the PhotoX icon and name (shown once, prompt_03 §8); top bar (Photos | ID Photos, folder/photo context, EN|RO, settings) and a content area. The three pages (Browse, Edit, ID) are created once and shown or hidden, so switching never rebuilds the gallery.
-- **Photos workspace:** *Browse* (explorer with a folder tree, four recent orders, gallery, collapsible details, Start editing / Finish Order) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel, filmstrip, actions; Save & Next becomes Close when the order is done).
-- **ID workspace:** *Framing* → *Sheet*, with the same resizable panel.
-- **Shared adjustments:** `ToneAdjustmentsViewModel` + `ToneAdjustmentsView` (levels histogram with three triangle handles, exposure − / +, contrast, white balance, tint, saturation with gradient tracks) are used by both workspaces (prompt_03 §7).
+- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.7.0", shown once, prompt_03 §8, prompt_04 §1); top bar (PhotoX icon, Photos | ID Photos | Collages, folder/photo context, EN|RO, settings) and a content area. The four pages (Browse, Edit, ID, Collages) are created once and shown or hidden, so switching never rebuilds the gallery.
+- **Explorer (DEC-055):** `ExplorerViewModel` + `ExplorerView` (locations, four recent orders, folder tree) is one control used by Browse, by the ID portrait picker and by Collages. `PhotoPickerViewModel` adds the thumbnail grid (`PickerGrid`) of the open folder; thumbnails come from the same cache and loader as the gallery (`ThumbnailSource`). Each workspace keeps its own folder; pickers start in the order open in Photos.
+- **Photos workspace:** *Browse* (explorer, gallery with a right-click menu: Edit, Use for ID photo, Duplicate image; collapsible details, Start editing / Finish) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
+- **ID workspace:** the portrait picker (explorer + thumbnails) until a portrait is chosen, then *1 Framing & adjustment* → *2 Print sheet*, with the same resizable panel.
+- **Collages workspace:** explorer and thumbnails (left), the collage canvas (centre), sheet, orientation, templates, spacing and Save JPG (right); see §7.1.
+- **Shared adjustments:** `ToneAdjustmentsViewModel` + `ToneAdjustmentsView` (levels histogram with three triangle handles, Auto Correct / Auto Adjust, exposure, contrast, white balance, tint, saturation with gradient tracks; exposure also on the + / − keys) are used by the Photos and ID workspaces (prompt_03 §7, prompt_04 §§7–8).
 - **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
 - **Keyboard:** handled at window level with `KeyDown` (tunnelling). Shortcuts are ignored when `e.Handled`, when a `TextBox`/`NumericUpDown`/`ComboBox` has focus, when a dialog is open, or for auto-repeat. Avalonia exposes no repeat flag, so the handler tracks key-down/key-up pairs and ignores repeated `KeyDown` events for a key that is still held (FR-018).
 
@@ -118,7 +122,7 @@ Steps 4–6 act on each channel independently, so `ToneCurve` runs them once wit
 - The proxy is decoded once per photo with the JPEG size hint and shrunk to a long edge of 1800 px by box averaging. The next photo is preloaded (FR-052).
 - The proxy after quarter turns is kept as BGRA. A tone change builds preview curves (4,096 evaluated points, about 2 ms) and runs one parallel pass into a reused buffer, latest request wins. The result becomes an Avalonia `WriteableBitmap`.
 - **Geometry is drawn, not rendered.** `PhotoCanvas` draws the bitmap rotated by the straightening angle inside the straightened bounding box, so the straighten slider costs only a redraw. The crop is an overlay. In the result view (crop applied by double-click or after Save, whole photo with borders, 13×18 canvas), the canvas fits the output canvas to the viewer, fills it white and draws only the crop.
-- **Histogram (FR-043):** luminance bins of the shown pixels inside the crop, computed off the UI thread (a small custom loop, since Magick's colour histogram does not provide channel bins efficiently).
+- **Histogram (FR-043, DEC-054):** luminance bins inside the crop of the tones that enter the levels step: the unadjusted preview pixels mapped through 8-bit tables of the exposure, white-balance and tint curve. Computed off the UI thread (a small custom loop, since Magick's colour histogram does not provide channel bins efficiently) and drawn on a linear scale. Because levels, contrast and saturation are not in it, the levels handles sit on the data they act on.
 - Display assumes an sRGB monitor (documented limitation).
 
 ### 5.4 Geometry (Core)
@@ -127,6 +131,7 @@ Steps 4–6 act on each channel independently, so `ToneCurve` runs them once wit
 - **Ratio lock and bounds:** resizing from any handle keeps the ratio. The rectangle is clamped inside the valid area. After straightening, the valid area is the inscribed region of the rotated image, and the crop is fitted inside it.
 - **Exact crop:** stored normalised. Converted to pixels by rounding edges (x0 = round(x·W), x1 = round((x+w)·W)), so the saved crop is the one the operator selected (±0.5 px).
 - **13×18 on 15×20 (FR-073):** crop ratio 130:180. Canvas = `round(w·152.4/130) × round(h·203.2/180)`, with the photo centred (§8.1 of PLAN).
+- **Custom size on a sheet (FR-010, DEC-051):** `PrintFormats.Custom(w, h)` returns a format with the smallest sheet (10×15, 15×20, 20×30) that holds w×h mm as its canvas; `RenderPlan` then applies the 13×18 rule. The recipe stores `CustomWidthMm`/`CustomHeightMm`; older ratio-only custom recipes have no canvas.
 - **Whole photo with border (FR-049):** smallest canvas of the target ratio containing the image; no scaling.
 - **Effective ppi** = long-edge px ÷ physical long edge (in). It is written as density metadata (FR-033).
 
@@ -190,11 +195,11 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 
 ## 7. ID Photo Creator
 
-- **Sizes** are data (FR-061): `id-sizes.json` in the settings folder, created with the planned sizes on first start; implausible entries are ignored (DEC-049). Framing state = scale, rotation and centre of the portrait under a fixed frame.
+- **Sizes** are data (FR-061): `id-sizes.json` in the settings folder, created with the planned sizes on first start; implausible entries are ignored (DEC-049); entries still equal to a 0.6.0 default are replaced by the current default (DEC-052). A size can turn off its guides (`Guides`, 9×12) and bring its own sheet margin and spacing (2×2 in: 0 mm). Custom sizes (+ New size) are stored in `settings.json` and created with `IdSizes.Custom`. Framing state = scale, rotation and centre of the portrait under a fixed frame of the size's ratio.
 - **Render:** `Distort(ScaleRotateTranslate)` from the full-resolution portrait into exactly `round(mm·300/25.4)` px, then the tone adjustments of §5.2 and the background-brightness lift (FR-064: brightening of light, low-saturation pixels through a soft mask).
-- **Preview:** the framing preview uses the proxy, half or quarter copy whose scale to the screen is closest to 1, with fast bilinear lookups and preview curves; it is about three times faster than resampling the 1800-px proxy.
+- **Preview:** the framing preview uses the proxy, half or quarter copy whose scale to the screen is closest to 1, with fast bilinear lookups and preview curves; it is about three times faster than resampling the 1800-px proxy. It is rendered in two steps (`FramePreview`, then `AdjustPreview`), so the unadjusted frame feeds the levels histogram and **Auto Adjust** (the Auto Correct estimation of §5.6, prompt_04 §8).
 - **Sheet layout (Core, FR-066/FR-074, DEC-046):** 4×6 in page, landscape for 3×4 and for any size where landscape fits more copies, otherwise portrait. Columns and rows are `⌊(avail + gap)/(cell + gap)⌋`. With the 3×4 strip the cell is 30 × 47 mm and the strip is also the gap to the next row. The grid is centred and copies fill row-major. No cut guides are drawn.
-- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG q95 or PNG, with the optional print scale correction of FR-071 applied to photo size and positions, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
+- **Export (FR-068/FR-075):** a 1800×1200 or 1200×1800 px page at 300 ppi, sRGB, JPEG q95 (JPEG only since 0.7.0), with the optional print scale correction of FR-071 applied to photo size and positions, written to the remembered folder as `ID_yyyyMMdd_HHmm[_n].ext` using create-new semantics (never overwrite).
 - **Auto Align (FR-063, 0.4.0):**
   - YuNet (MIT, ≈ 230 KB) runs on ONNX Runtime on a 640-px copy, giving face boxes and 5 landmarks.
   - With one face: roll comes from the eye line, and head height is estimated from the eye-to-mouth distance and fitted to the guides.
@@ -202,10 +207,17 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
   - The result is an ordinary framing state, so it is undoable and adjustable.
 - **Background whitening (FR-065):** a bounded experiment in 0.4.0 (for example MODNet, Apache-2.0). It is shipped only if useful.
 
+### 7.1 Collages (FR-079, DEC-053)
+
+- **Templates (Core):** `CollageTemplate` = cells (column, row, spans) on a small grid for a portrait sheet; a landscape sheet uses the transposed grid. Eleven templates for two to nine photos.
+- **Layout (Core):** `CollageLayout.Slots` places the cells inside one margin with equal gaps (spacing, default 3 mm). `CollageLayout.Crop` gives the part of a photo shown in a slot: the largest centred crop of the slot's ratio, divided by the zoom and centred on the chosen point, kept inside the photo. `ToPixels` rounds slot edges at 300 ppi, so neighbouring slots keep exact gaps.
+- **Preview (App):** photos are decoded once to a 1600-px preview bitmap; `CollageCanvas` draws the white sheet and each photo's crop with `DrawImage(source, sourceRect, slotRect)`. Dragging pans, the wheel zooms, double-click resets, and the round handle on the selected slot swaps two photos. Only redrawing happens while arranging.
+- **Save (Imaging + Storage):** `CollageRenderer` creates the white page (1200×1800, 1800×2400 or 2400×3600 px), loads each photo at full resolution, crops it and resizes it once into its slot (Lanczos), then `IdOutput` encodes JPEG q95 sRGB at 300 ppi and `IdExporter` writes `Collage_yyyyMMdd_HHmm.jpg` with create-new semantics into the remembered collage folder. `FolderScanner` leaves these files out of order galleries.
+
 ## 8. Settings, logging and errors
 
-- **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, last folder, recent folders, ID output folder, JPEG quality, ID print scale correction, panel widths and cache limits.
-- **Configuration data:** `print-formats.json` (physical sizes of the three print presets) and `id-sizes.json` (ID sizes) in the same folder, created with the planned values if missing, read at startup. A damaged file is left untouched and the built-in values apply (DEC-049).
+- **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, last folder, recent folders, ID and collage output folders, custom ID sizes, JPEG quality, ID print scale correction, panel widths and cache limits.
+- **Configuration data:** `print-formats.json` (physical sizes of the three print presets and the 20×30 sheet) and `id-sizes.json` (ID sizes) in the same folder, created with the planned values if missing, read at startup. A damaged file is left untouched and the built-in values apply (DEC-049).
 - **Logs:** Serilog daily files in `%LOCALAPPDATA%/PhotoX/logs`, kept for 14 days. File paths are logged, never image content (FR-051).
 - **Errors:** unhandled exceptions are logged and shown as a localized message. Expected failures (save, load) return typed results with a message key.
 

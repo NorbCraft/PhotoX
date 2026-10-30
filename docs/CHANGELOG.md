@@ -4,6 +4,44 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-30
+
+New requirements and refinements from [prompt_04](prompts/prompt_04.md). Verified with automated tests on Linux; Windows CI runs on push. Not yet tried on the studio PC or printed.
+
+### Added
+- **Collages**, a third workspace: choose photos in the built-in explorer, pick a 10×15, 15×20 or 20×30 sheet (portrait or landscape) and one of eleven templates (two to nine photos, side by side, stacked, one large with two or three small, grids). Double-click a thumbnail to place it in the selected frame; drag a photo to move it in its frame, use the wheel to zoom, double-click to reset, and drag the round handle onto another frame to swap. **Save JPG** writes a print-ready 300 ppi file named `Collage_<date>_<time>.jpg`.
+- **Duplicate image** in the gallery's right-click menu (with Edit and Use for ID photo): the copy is named `name_copy.jpg` (then `name_copy_2.jpg` …), never overwrites anything, and appears in the gallery.
+- **New PhotoX icon** (flat camera with a blue lens ring and PX) for the window, taskbar, program file, installer, Linux menu entry and the top bar.
+- **Version visible:** the title bar shows "PhotoX 0.7.0"; the installer and portable zip carry the version in their names.
+- **ID Photos:** **Auto Adjust**; **+ New size** for custom sizes in centimetres, remembered and removable, listed apart from the built-in sizes.
+- Linux: a script that adds PhotoX with its icon to the application menu.
+
+### Changed
+- **One explorer for all workspaces.** ID Photos now chooses the portrait in the built-in explorer instead of the system file dialog.
+- **Editor:**
+  - **+ / −** on the keyboard change exposure; the − / + buttons beside the slider are gone.
+  - One **Reset** button clears levels, exposure, contrast, white balance, tint and saturation. It keeps the crop and can be undone.
+  - Switching portrait/landscape always gives the largest crop for the new orientation.
+  - **Custom** is now a size in cm: the photo keeps exactly that size and is centred on the smallest sheet it fits, with white around it (9×13 on 10×15, 14×17 on 15×20).
+  - **Before/After** shows the original only while the button is held, like Space.
+  - The reset-crop icon is four arrows pointing to the corners; the angle display is centred; slider handles, Back and the orientation icons are larger; icons sit centred in their buttons.
+  - Save & Next and Close have no description line.
+- **Histogram:** it now shows the tones the levels triangles act on (after exposure and white balance), so moving a triangle no longer reshapes the histogram under it. It is drawn on a linear scale.
+- **ID Photos:**
+  - The frame always has the size's real proportions; 2×2 in is square.
+  - Romanian 3×4: the head is slightly smaller (70 % of the height instead of 75 %) under the same top line.
+  - 9×12 has no face guides and is framed by hand.
+  - Four 2×2 in photos fit on one 10×15 sheet (two side by side are exactly 10.16 cm): that size uses no margin or spacing by default.
+  - Double-click the zoom or rotation slider to reset it. Before/after uses Space only.
+  - **Continue** instead of "Continue to sheet"; larger, numbered step tabs.
+  - Sheets are saved as JPG only.
+  - The size list shows centimetres, not pixels.
+- **Gallery and top bar:** Start editing and Finish without description lines; "Finish order…" is now **Finish**; a clean settings icon.
+- Unedited ID sizes in `id-sizes.json` from 0.6.0 are updated to the new defaults; edited ones are kept.
+
+### Fixed
+- ID Photos: changing the size did not change the frame's proportions on screen (the frame kept the previous width).
+
 ## [0.6.0] - 2026-10-29
 
 Remaining approved plan items, after reviewing the plan against the implementation (prompt_03 §11). Verified with automated tests on Linux; Windows CI runs on push.

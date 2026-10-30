@@ -416,3 +416,7 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - The headless tests use one application per test run (`AvaloniaTestIsolationLevel.PerAssembly`).
   - The preview-versus-saved check now requires the aligned comparison to beat a 6 %-shifted one by a clear margin (and stay under 7 %), which still detects a misplaced crop.
 - **Verification (Linux):** 127 core tests and 45 UI tests pass, the UI suite twice in a row. The Windows result is recorded below once CI has run.
+- **Windows CI result for 0.8.1:**
+  - Run 41050159676 passed on `windows-latest` (126 core and 43 UI tests, including the virtual-printer job) and on `ubuntu-latest` (124 and 43).
+  - It built `PhotoX-0.8.1-win-Setup.exe` and `PhotoX-0.8.1-win-Portable.zip` (artifact `PhotoX-0.8.1-windows`).
+  - Not installed or run on a Windows PC; nothing printed on the Citizen CY-02.

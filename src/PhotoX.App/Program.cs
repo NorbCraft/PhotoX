@@ -32,6 +32,8 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // On Linux the window class matches the desktop entry (packaging/linux), so the dock shows the PhotoX icon.
+            .With(new X11PlatformOptions { WmClass = "PhotoX" })
             .WithInterFont()
             .LogToTrace();
 }

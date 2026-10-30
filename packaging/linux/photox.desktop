@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PhotoX
+Comment=Photo studio editing: photos, ID photos and collages
+Exec=@EXEC@
+Icon=photox
+Terminal=false
+Categories=Graphics;Photography;
+StartupWMClass=PhotoX

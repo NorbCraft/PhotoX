@@ -31,11 +31,15 @@ jobs:
           global-json-file: global.json
       - run: dotnet tool restore
       - run: dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -p:DebugSymbols=false -o publish/win-x64
+      # The installer and portable zip carry the version in their names (prompt_04 §1).
       - shell: pwsh
         run: |
           $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
           dotnet vpk pack --packId PhotoX --packVersion $version --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX --outputDir releases/win
+          Rename-Item releases/win/PhotoX-win-Setup.exe "PhotoX-$version-win-Setup.exe"
+          Rename-Item releases/win/PhotoX-win-Portable.zip "PhotoX-$version-win-Portable.zip"
+          "PHOTOX_VERSION=$version" >> $env:GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
-          name: PhotoX-windows
+          name: PhotoX-${{ env.PHOTOX_VERSION }}-windows
           path: releases/win

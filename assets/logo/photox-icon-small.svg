@@ -1,10 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <title>PhotoX icon (16–24 px)</title>
-  <!-- Small-size variant of photox-icon.svg: thicker lines and no letters, which cannot be read below 32 px. -->
-  <rect width="256" height="256" rx="48" fill="#0E1A33"/>
-  <path d="M56 78H88L100 52H156L168 78H200A28 28 0 0 1 228 106V182A28 28 0 0 1 200 210H56A28 28 0 0 1 28 182V106A28 28 0 0 1 56 78Z"
-        fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linejoin="round"/>
-  <path d="M95.5 176.5A46 46 0 0 1 95.5 111.5A46 46 0 0 1 160.5 111.5" fill="none" stroke="#3B82F6" stroke-width="26"/>
-  <path d="M160.5 111.5A46 46 0 0 1 160.5 176.5A46 46 0 0 1 95.5 176.5" fill="none" stroke="#6D5EF6" stroke-width="26"/>
-  <circle cx="128" cy="144" r="14" fill="#FFFFFF"/>
+  <title>PhotoX icon (16-24 px)</title>
+  <!-- Small-size variant of photox-icon.svg: full tile, thicker outline and larger letters for 16-24 px. -->
+  <rect x="0.75" y="0.75" width="254.5" height="254.5" rx="40" fill="#F6F9FD" stroke="#DCE3EC" stroke-width="1.5"/>
+  <path d="M65.54 204.42H43.39A17.41 17.41 0 0 1 25.98 187.01V95.87A17.41 17.41 0 0 1 43.39 78.46H67.25Q73.91 78.46 78.03 73.23L92.47 54.89Q96.59 49.66 103.24 49.66H152.76Q159.41 49.66 163.53 54.89L177.97 73.23Q182.09 78.46 188.75 78.46H212.61A17.41 17.41 0 0 1 230.02 95.87V187.01A17.41 17.41 0 0 1 212.61 204.42H190.46" fill="none" stroke="#3B82F6" stroke-width="17.92" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M54.03 102.47H97.89A28.39 28.39 0 0 1 97.89 159.24H75.53V182.46H54.03ZM75.53 119.38V141.46H92.02A11.04 11.04 0 0 0 92.02 119.38Z" fill="#0A1A2F" fill-rule="evenodd"/>
+  <path d="M122.84 102.47H147.21L203.41 182.46H178.46ZM178.75 102.47H203.69L141.19 182.46H117.39Z" fill="#0A1A2F"/>
 </svg>

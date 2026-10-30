@@ -1,11 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <title>PhotoX icon</title>
-  <!-- Flat master (prompt_04 §2, larger PX prompt_05): navy rounded square, white camera outline, dual-tone lens ring, bold PX. -->
-  <rect width="256" height="256" rx="56" fill="#0E1A33"/>
-  <path d="M58 76H92L103 52H153L164 76H198A28 28 0 0 1 226 104V180A28 28 0 0 1 198 208H58A28 28 0 0 1 30 180V104A28 28 0 0 1 58 76Z"
-        fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linejoin="round"/>
-  <path d="M94.77 175.23A47 47 0 0 1 94.77 108.77A47 47 0 0 1 161.23 108.77" fill="none" stroke="#3B82F6" stroke-width="12"/>
-  <path d="M161.23 108.77A47 47 0 0 1 161.23 175.23A47 47 0 0 1 94.77 175.23" fill="none" stroke="#6D5EF6" stroke-width="12"/>
-  <path d="M102.5 162V122H112.5A10 10 0 0 1 112.5 142H102.5M135.5 122L153.5 162M153.5 122L135.5 162"
-        fill="none" stroke="#FFFFFF" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Recreated from the owner's reference "icon example.png" (prompt_06 §2): light rounded tile, camera outline in the app's primary blue #3B82F6 (AccentBrush), dark PX. Flat, no gradients or shadows. -->
+  <rect x="8.75" y="8.75" width="238.5" height="238.5" rx="37" fill="#F6F9FD" stroke="#DCE3EC" stroke-width="1.5"/>
+  <path d="M73.17 195.08H53.73A15.28 15.28 0 0 1 38.45 179.8V99.8A15.28 15.28 0 0 1 53.73 84.52H74.67Q80.52 84.52 84.13 79.93L96.81 63.83Q100.43 59.24 106.27 59.24H149.73Q155.57 59.24 159.19 63.83L171.87 79.93Q175.48 84.52 181.33 84.52H202.27A15.28 15.28 0 0 1 217.55 99.8V179.8A15.28 15.28 0 0 1 202.27 195.08H182.83" fill="none" stroke="#3B82F6" stroke-width="10.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M70.02 109.35H104.4A22.25 22.25 0 0 1 104.4 153.84H86.88V172.04H70.02ZM86.88 122.61V139.91H99.8A8.65 8.65 0 0 0 99.8 122.61Z" fill="#0A1A2F" fill-rule="evenodd"/>
+  <path d="M123.96 109.35H143.06L187.1 172.04H167.55ZM167.78 109.35H187.33L138.34 172.04H119.69Z" fill="#0A1A2F"/>
 </svg>

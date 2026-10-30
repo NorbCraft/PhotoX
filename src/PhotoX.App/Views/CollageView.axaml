@@ -25,7 +25,7 @@
 
     <!-- 1. Photos: the built-in explorer and the folder's thumbnails (prompt_04 §6) -->
     <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="*,5,1.3*">
+      <Grid RowDefinitions="1.25*,5,*">
         <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
         <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource BorderBrush}" />
         <DockPanel Grid.Row="2">
@@ -63,8 +63,6 @@
                       Classes.selected="{Binding Sheet.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
               <Button Classes="chip compact" Focusable="False" Content="15 × 20" Command="{Binding SetSheetCommand}" CommandParameter="15x20"
                       Classes.selected="{Binding Sheet.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
-              <Button Classes="chip compact" Focusable="False" Content="20 × 30" Command="{Binding SetSheetCommand}" CommandParameter="20x30"
-                      Classes.selected="{Binding Sheet.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=20x30}" />
             </StackPanel>
             <Border Classes="segbox" HorizontalAlignment="Left">
               <StackPanel Orientation="Horizontal">
@@ -105,6 +103,18 @@
 
             <TextBlock Classes="section" Text="{l:Tr CollageFrames}" Margin="0,10,0,0" />
             <TextBlock Text="{Binding FilledText}" Classes="muted" />
+            <!-- The selected frame's size; typing changes its column or row, the sheet stays filled (prompt_05 §8) -->
+            <TextBlock Text="{l:Tr SelectedFrameSize}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <Grid ColumnDefinitions="*,Auto,*,Auto">
+              <NumericUpDown Value="{Binding SlotWidthCm}" IsEnabled="{Binding CanResizeWidth}" Minimum="1" Maximum="20" Increment="0.5" FormatString="0.0" ToolTip.Tip="{l:Tr Width}" />
+              <TextBlock Grid.Column="1" Text="×" Margin="6,0" VerticalAlignment="Center" />
+              <NumericUpDown Grid.Column="2" Value="{Binding SlotHeightCm}" IsEnabled="{Binding CanResizeHeight}" Minimum="1" Maximum="20" Increment="0.5" FormatString="0.0" ToolTip.Tip="{l:Tr Height}" />
+              <TextBlock Grid.Column="3" Text="cm" Margin="6,0,0,0" VerticalAlignment="Center" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{l:Tr LayoutHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ResetLayout}" Command="{Binding ResetLayoutCommand}" VerticalAlignment="Center" />
+            </Grid>
             <Grid ColumnDefinitions="*,8,*">
               <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr RemovePhoto}" Command="{Binding RemovePhotoCommand}" IsEnabled="{Binding SelectedHasPhoto}" />
               <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr ClearAll}" Command="{Binding ClearAllCommand}" IsEnabled="{Binding HasPhotos}" />
@@ -121,8 +131,11 @@
             <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource OkBrush}" TextWrapping="Wrap" />
           </StackPanel>
         </ScrollViewer>
-        <Button Grid.Row="1" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Margin="18,8,18,16"
-                Content="{l:Tr SaveJpg}" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}" />
+        <!-- Save and Print use the same composition (prompt_05 §8) -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,8,*" Margin="18,8,18,16">
+          <Button Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr SaveJpg}" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}" />
+          <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr Print}" Command="{Binding PrintCommand}" IsEnabled="{Binding HasPhotos}" />
+        </Grid>
       </Grid>
     </Border>
   </Grid>

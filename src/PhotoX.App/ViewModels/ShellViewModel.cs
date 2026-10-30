@@ -17,8 +17,13 @@ public sealed partial class ShellViewModel : ViewModelBase
         Editor = new EditorViewModel(services, Browse);
         Id = new IdViewModel(services) { StartFolder = () => Browse.CurrentFolder };
         Collage = new CollageViewModel(services) { StartFolder = () => Browse.CurrentFolder };
+        PrintQueue = new PrintQueueViewModel(services.Printing);
         Browse.EditRequested += item => _ = OpenEditorAsync(item);
-        Browse.FinishRequested += () => _ = FinishOrderAsync();
+        Browse.PrintRequested += PrintPhotos;
+        Browse.SaveChangesRequested += items => _ = SaveChangesAsync(items);
+        Browse.RestoreRequested += items => _ = RestoreOriginalAsync(items);
+        Id.PrintRequested += (item, size) => OpenPrint([item], size, sizeFixed: true);
+        Collage.PrintRequested += (item, size) => OpenPrint([item], size, sizeFixed: true);
         Browse.UseForIdRequested += item => _ = UseForIdAsync(item);
         Browse.DuplicateFailed += message =>
         {
@@ -45,6 +50,13 @@ public sealed partial class ShellViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial SettingsViewModel? Settings { get; set; }
+
+    /// <summary>The open print dialog (prompt_05 §3), if any.</summary>
+    [ObservableProperty]
+    public partial PrintDialogViewModel? PrintDialog { get; set; }
+
+    /// <summary>The print queue panel (prompt_05 §4).</summary>
+    public PrintQueueViewModel PrintQueue { get; }
 
     public EditorViewModel Editor { get; }
 

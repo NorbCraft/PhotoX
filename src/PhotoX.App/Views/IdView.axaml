@@ -35,51 +35,57 @@
       <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
+    <Style Selector="Button.sizechip">
+      <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+    <Style Selector="Border.customchip">
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
+    </Style>
+    <Style Selector="Border.customchip.selected">
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+    </Style>
     <Style Selector="Button.size.selected">
       <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
       <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
     </Style>
   </UserControl.Styles>
-  <Grid x:Name="Root" ColumnDefinitions="250,*,Auto,360" RowDefinitions="Auto,*">
+  <Grid x:Name="Root" ColumnDefinitions="300,*,Auto,360" RowDefinitions="Auto,*">
 
-    <!-- Left: sizes (built-in, then removable custom sizes) and the portrait -->
+    <!-- Left: the format, then the common explorer to choose the photo (prompt_05 §7) -->
     <Border Grid.RowSpan="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-      <ScrollViewer Padding="14,16">
-        <StackPanel Spacing="6">
-          <TextBlock Classes="section" Text="{l:Tr SourcePhoto}" Margin="2,0,0,4" />
-          <Button Classes.primary="{Binding !HasSource}" Focusable="False" HorizontalAlignment="Stretch" MinHeight="40" Content="{l:Tr ChoosePhoto}" Command="{Binding ChoosePhotoCommand}" />
-          <TextBlock Text="{Binding SourceName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="2,4,0,0" IsVisible="{Binding HasSource}" />
-          <TextBlock Text="{l:Tr SourceSafe}" Foreground="{StaticResource OkBrush}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding HasSource}" Margin="2,0,0,0" />
-          <TextBlock Classes="section" Text="{l:Tr IdFormat}" Margin="2,18,0,4" />
+      <Grid RowDefinitions="Auto,1.25*,5,*">
+        <StackPanel Margin="14,14,12,6" Spacing="6">
+          <TextBlock Classes="section" Text="{l:Tr IdFormat}" Margin="2,0,0,2" />
           <ItemsControl ItemsSource="{Binding Sizes}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:IdSizeItem">
-                <Button Classes="size" Classes.selected="{Binding IsSelected}" Focusable="False"
-                        Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}">
-                  <StackPanel Spacing="2">
-                    <TextBlock Text="{Binding Label}" FontSize="14" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Detail}" IsVisible="{Binding HasDetail}" FontSize="11.5" Classes="muted" />
-                  </StackPanel>
-                </Button>
+                <Button Classes="chip compact sizechip" Classes.selected="{Binding IsSelected}" Focusable="False" ToolTip.Tip="{Binding Detail}"
+                        Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}" Content="{Binding Label}" />
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Classes="section" Text="{l:Tr CustomSizes}" Margin="2,10,0,4" IsVisible="{Binding CustomSizes.Count}" />
           <ItemsControl ItemsSource="{Binding CustomSizes}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:IdSizeItem">
-                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
-                  <Button Classes="size" Classes.selected="{Binding IsSelected}" Focusable="False" Margin="0"
-                          Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}">
-                    <TextBlock Text="{Binding Label}" FontSize="14" FontWeight="SemiBold" />
-                  </Button>
-                  <Button Grid.Column="1" Classes="list" Focusable="False" Margin="4,0,0,0" Padding="10,4" Content="✕" ToolTip.Tip="{l:Tr RemoveSize}"
-                          Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).RemoveCustomSizeCommand}" CommandParameter="{Binding}" />
-                </Grid>
+                <Border Classes="customchip" Classes.selected="{Binding IsSelected}">
+                  <StackPanel Orientation="Horizontal">
+                    <Button Classes="link" Focusable="False" Padding="10,3,4,3" Content="{Binding Label}"
+                            Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}" />
+                    <Button Classes="link" Focusable="False" Padding="6,3,10,3" Content="✕" ToolTip.Tip="{l:Tr RemoveSize}"
+                            Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).RemoveCustomSizeCommand}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr NewSize}" Command="{Binding ToggleNewSizeCommand}" IsVisible="{Binding !IsAddingSize}" />
+          <Button Classes="link" Focusable="False" HorizontalAlignment="Left" Content="{l:Tr NewSize}" Command="{Binding ToggleNewSizeCommand}" IsVisible="{Binding !IsAddingSize}" />
           <Border IsVisible="{Binding IsAddingSize}" Background="{StaticResource Panel2Brush}" BorderBrush="{StaticResource Border2Brush}" BorderThickness="1" CornerRadius="8" Padding="10">
             <StackPanel Spacing="8">
               <TextBlock Text="{l:Tr NewSizeTitle}" FontWeight="SemiBold" />
@@ -96,9 +102,16 @@
               </Grid>
             </StackPanel>
           </Border>
-          <TextBlock Text="{l:Tr IdDisclaimer}" Foreground="{StaticResource WarnBrush}" FontSize="12" TextWrapping="Wrap" Margin="2,10,0,0" />
         </StackPanel>
-      </ScrollViewer>
+        <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+          <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
+        </Border>
+        <GridSplitter Grid.Row="2" ResizeDirection="Rows" Background="{StaticResource BorderBrush}" />
+        <DockPanel Grid.Row="3">
+          <TextBlock DockPanel.Dock="Top" Classes="section" Text="{l:Tr IdPhotos}" Margin="18,10,14,4" />
+          <v:PickerGrid Margin="6,0,6,6" DataContext="{Binding Picker}" />
+        </DockPanel>
+      </Grid>
     </Border>
 
     <!-- Steps: larger, numbered, no separator dash (prompt_04 §8) -->
@@ -129,20 +142,8 @@
         <Image Source="{Binding SheetPreview}" Stretch="Uniform" />
       </Border>
       <TextBlock IsVisible="{Binding ShowFraming}" Text="{l:Tr MoveHint}" Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" />
-      <!-- Choose the portrait with the built-in explorer (prompt_04 §6) -->
-      <Grid IsVisible="{Binding IsPicking}" ColumnDefinitions="270,*" RowDefinitions="Auto,*" Background="{StaticResource BgBrush}">
-        <Border Grid.ColumnSpan="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
-          <Grid ColumnDefinitions="*,Auto,Auto">
-            <TextBlock Text="{l:Tr ChoosePortrait}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Focusable="False" Content="{l:Tr Cancel}" Command="{Binding CancelPickCommand}" IsVisible="{Binding HasSource}" Margin="0,0,8,0" />
-            <Button Grid.Column="2" Classes="primary" Focusable="False" Content="{l:Tr UsePhoto}" Command="{Binding Picker.PickCommand}" />
-          </Grid>
-        </Border>
-        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-          <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
-        </Border>
-        <v:PickerGrid Grid.Row="1" Grid.Column="1" Margin="10" DataContext="{Binding Picker}" />
-      </Grid>
+      <TextBlock IsVisible="{Binding !HasSource}" Text="{l:Tr IdSelectPhoto}" Classes="muted" FontSize="15" TextWrapping="Wrap" MaxWidth="420" TextAlignment="Center"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" />
       <Border IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#4A1715" BorderBrush="#FF5A52" BorderThickness="1" CornerRadius="8" Padding="14,10"
               Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700">
         <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFD0CC" TextWrapping="Wrap" />
@@ -237,9 +238,11 @@
               <Button Classes="link" Focusable="False" Content="{l:Tr Calibration}" Command="{Binding SaveCalibrationCommand}" Margin="0,6,0,0" />
             </StackPanel>
           </ScrollViewer>
-          <Grid Grid.Row="1" ColumnDefinitions="Auto,8,*" Margin="18,8,18,16">
+          <!-- Save sheet keeps the JPG export; Print sends the same sheet to the printer (prompt_05 §7) -->
+          <Grid Grid.Row="1" ColumnDefinitions="Auto,8,*,8,*" Margin="18,8,18,16">
             <Button Focusable="False" MinHeight="52" Content="{l:Tr Back}" Command="{Binding BackToFramingCommand}" />
-            <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr SaveSheet}" Command="{Binding SaveSheetCommand}" IsEnabled="{Binding !IsBusy}" />
+            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr SaveSheet}" Command="{Binding SaveSheetCommand}" IsEnabled="{Binding !IsBusy}" />
+            <Button Grid.Column="4" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr Print}" Command="{Binding PrintSheetCommand}" IsEnabled="{Binding !IsBusy}" />
           </Grid>
         </Grid>
       </Panel>

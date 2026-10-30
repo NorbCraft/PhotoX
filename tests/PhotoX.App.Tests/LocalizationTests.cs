@@ -70,7 +70,7 @@ public class LocalizationTests
         UiHelpers.Capture(window, "browse-ro-1920x1080");
         var texts = Texts(window);
         Assert.Contains("Foto acte", texts);
-        Assert.Contains("Începe editarea", texts);
+        Assert.Contains("Imprimare toate", texts);
         Assert.DoesNotContain("ID Photos", texts);
         Assert.Equal("ro", Localizer.Instance.Language);
         Assert.Contains("din", shell.Browse.ProgressText);

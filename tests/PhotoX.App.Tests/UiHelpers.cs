@@ -5,6 +5,7 @@ using PhotoX.App.Services;
 using PhotoX.App.ViewModels;
 using PhotoX.App.Views;
 using PhotoX.Storage;
+using PhotoX.Tests;
 
 namespace PhotoX.App.Tests;
 
@@ -13,9 +14,13 @@ public static class UiHelpers
     /// <summary>Folder where headless screenshots are written for manual inspection (not committed).</summary>
     public static string ScreenshotDir { get; } = Path.Combine(Path.GetTempPath(), "photox-screens");
 
+    /// <summary>The printing system of the last window created: a fake printer, since tests never print.</summary>
+    public static FakePrintBackend Printer { get; private set; } = new();
+
     public static (MainWindow Window, ShellViewModel Shell) CreateWindow(string configRoot, int width = 1366, int height = 768, string language = "en")
     {
-        AppServices.Current = new AppServices(new AppPaths(configRoot));
+        Printer = new FakePrintBackend();
+        AppServices.Current = new AppServices(new AppPaths(configRoot), Printer);
         AppServices.Current.Settings.Language = language;
         var shell = new ShellViewModel(AppServices.Current);
         var window = new MainWindow { DataContext = shell, Width = width, Height = height };

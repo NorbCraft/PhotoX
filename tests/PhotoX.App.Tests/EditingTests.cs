@@ -88,8 +88,9 @@ public class EditingTests
         window.Close();
     }
 
+    /// <summary>prompt_05 §5: Save Changes saves pending edits after a clear warning, then deletes only PhotoX's originals.</summary>
     [AvaloniaFact]
-    public async Task Finish_order_erase_by_default_after_saving_pending_edits()
+    public async Task Save_changes_saves_pending_edits_and_deletes_only_photox_originals()
     {
         using var dir = new TempDir();
         var (window, shell, order) = await OpenEditor(dir);
@@ -97,31 +98,28 @@ public class EditingTests
         await UiHelpers.WaitUntil(() => shell.Editor.IsDirty);
         Assert.True(await shell.Editor.SaveCurrentAsync());          // P1 saved
         await shell.Editor.NextAsync();
-        shell.Editor.Tone.ExposureMinusCommand.Execute(null);             // P2 unsaved manual edit
+        shell.Editor.Tone.ExposureMinusCommand.Execute(null);        // P2 unsaved manual edit
         shell.Editor.BackToFolderCommand.Execute(null);
+        File.WriteAllText(Path.Combine(order, "Original", "notes.txt"), "customer notes");
 
-        var finish = shell.FinishOrderAsync();
+        var save = shell.SaveChangesAsync(shell.Browse.AllPhotos.ToList());
         await UiHelpers.WaitUntil(() => shell.Dialog is not null);
-        Assert.Contains("P2.jpg", shell.Dialog!.Message);           // unsaved edits are not discarded silently
-        UiHelpers.Capture(window, "finish-unsaved");
+        Assert.Contains("P2.jpg", shell.Dialog!.Message);           // the photos are named
+        Assert.Contains("permanently", shell.Dialog.Message);       // and the deletion is explained
+        UiHelpers.Capture(window, "save-changes-warning");
         shell.Dialog.PressCommand.Execute("save");
-        await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: true });
-        Assert.Equal("erase", shell.Dialog!.SelectedChoice!.Id);     // erase is the default
-        Assert.True(shell.Dialog.Choices[0].IsSelected);
-        UiHelpers.Capture(window, "finish-confirm");
-        shell.Dialog.PressCommand.Execute("finish");
-        await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: false, Buttons.Count: 1 });
+        await UiHelpers.WaitUntil(() => shell.Dialog is { Buttons.Count: 1 });
         shell.Dialog!.PressCommand.Execute("ok");
-        await finish;
+        await save;
 
-        Assert.False(Directory.Exists(Path.Combine(order, "Original")));
+        Assert.Equal(["notes.txt"], Directory.GetFiles(Path.Combine(order, "Original")).Select(Path.GetFileName)); // only PhotoX's files went
         using (var p2 = new MagickImage(Path.Combine(order, "P2.jpg")))
         {
-            Assert.Equal(800u, p2.Width); // finished photo kept (cropped to 3:2)
+            Assert.Equal(800u, p2.Width); // the saved edit is kept (cropped to 3:2)
         }
 
         Assert.Equal(3, shell.Browse.AllPhotos.Count);              // every photo is still in the gallery
-        Assert.All(shell.Browse.AllPhotos, p => Assert.Equal(PhotoState.ToDo, p.State));
+        Assert.All(shell.Browse.AllPhotos, p => Assert.Null(p.PendingRecipe));
         Assert.All(Directory.GetFiles(order), f => Assert.Equal(0, (int)(File.GetAttributes(f) & FileAttributes.Hidden)));
         window.Close();
     }
@@ -165,32 +163,39 @@ public class EditingTests
         await Task.CompletedTask;
     }
 
+    /// <summary>prompt_05 §5: cancelling Save Changes deletes nothing; Restore Original brings the original back after a warning.</summary>
     [AvaloniaFact]
-    public async Task Finish_order_keep_deletes_nothing()
+    public async Task Cancelled_save_changes_deletes_nothing_and_restore_brings_the_original_back()
     {
         using var dir = new TempDir();
         var (window, shell, order) = await OpenEditor(dir, 3);
         Directory.CreateDirectory(Path.Combine(order, "Original"));
         File.WriteAllText(Path.Combine(order, "Original", "P1.jpg"), "customer's own file");
+        var originalP1 = Fixtures.Sha(Path.Combine(order, "P1.jpg"));
         Assert.True(await shell.Editor.SaveCurrentAsync());
         await shell.Editor.NextAsync();
         Assert.True(await shell.Editor.SaveCurrentAsync());
         shell.Editor.BackToFolderCommand.Execute(null);
         var before = Directory.GetFiles(order, "*", SearchOption.AllDirectories).ToDictionary(f => f, Fixtures.Sha);
 
-        var finish = shell.FinishOrderAsync();
-        await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: true });
-        shell.Dialog!.SelectedChoice = shell.Dialog.Choices.Single(c => c.Id == "keep");
-        shell.Dialog.PressCommand.Execute("finish");
-        await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: false });
-        shell.Dialog!.PressCommand.Execute("ok");
-        await finish;
-
+        var save = shell.SaveChangesAsync(shell.Browse.AllPhotos.ToList());
+        await UiHelpers.WaitUntil(() => shell.Dialog is not null);
+        shell.Dialog!.PressCommand.Execute("cancel");
+        await save;
         Assert.Equal(before, Directory.GetFiles(order, "*", SearchOption.AllDirectories).ToDictionary(f => f, Fixtures.Sha));
-        Assert.Equal(3, shell.Browse.AllPhotos.Count);
-        Assert.Equal(2, shell.Browse.EditedCount);
-        Assert.Equal("customer's own file", File.ReadAllText(Path.Combine(order, "Original", "P1.jpg")));
-        Assert.True(File.Exists(Path.Combine(order, "Original", "P1 (2).jpg")));
+
+        var p1 = shell.Browse.AllPhotos.Single(p => p.Name == "P1.jpg");
+        var restore = shell.RestoreOriginalAsync([p1]);
+        await UiHelpers.WaitUntil(() => shell.Dialog is not null);
+        Assert.Contains("P1.jpg", shell.Dialog!.Message);
+        shell.Dialog.PressCommand.Execute("restore");
+        await restore;
+
+        Assert.Equal(originalP1, Fixtures.Sha(Path.Combine(order, "P1.jpg")));                         // the exact original
+        Assert.Equal("customer's own file", File.ReadAllText(Path.Combine(order, "Original", "P1.jpg"))); // never touched
+        Assert.False(File.Exists(Path.Combine(order, "Original", "P1 (2).jpg")));                      // PhotoX's copy went
+        Assert.Equal(PhotoState.ToDo, p1.State);
+        Assert.Equal(PhotoState.Edited, shell.Browse.AllPhotos.Single(p => p.Name == "P2.jpg").State);
         window.Close();
     }
 }

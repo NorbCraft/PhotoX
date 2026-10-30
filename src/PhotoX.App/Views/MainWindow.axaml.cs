@@ -47,7 +47,7 @@ public sealed partial class MainWindow : Window
     {
         var repeat = !_held.Add(e.Key);
         if (DataContext is not ShellViewModel shell || IsInputFocused()) return;
-        if (shell.Dialog is not null || shell.Settings is not null) return;
+        if (shell.Dialog is not null || shell.Settings is not null || shell.PrintDialog is not null) return;
         if (repeat)
         {
             if (shell.CurrentPage is EditorViewModel or IdViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.PageDown or Key.PageUp or Key.Space)
@@ -70,7 +70,7 @@ public sealed partial class MainWindow : Window
                 e.Handled = collage.HandleKey(e.Key);
                 break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:
-                browse.PrimaryActionCommand.Execute(null);
+                browse.EditPhotoCommand.Execute(null); // Edit this photo (prompt_05 §5)
                 e.Handled = true;
                 break;
         }

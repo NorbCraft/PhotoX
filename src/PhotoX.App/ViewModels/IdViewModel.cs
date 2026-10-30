@@ -69,7 +69,7 @@ public sealed partial class IdViewModel : ViewModelBase
             PushUndo(tag ?? "adjust");
             Rerender();
         };
-        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 168, ThumbHeight = 168 };
+        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 124, ThumbHeight = 124, PickOnSelect = true };
         Picker.Picked += photo => _ = LoadSourceAsync(photo.Path);
         foreach (var s in IdSizes.BuiltIn) Sizes.Add(new IdSizeItem(s));
         foreach (var c in services.Settings.CustomIdSizes.Where(c => IdSizes.IsValidCustom(c.WidthMm, c.HeightMm)))
@@ -93,13 +93,11 @@ public sealed partial class IdViewModel : ViewModelBase
     /// <summary>Histogram, levels and tone sliders, the same controls as in the Photos editor (prompt_03 §7).</summary>
     public ToneAdjustmentsViewModel Tone { get; }
 
-    /// <summary>The built-in explorer for choosing the portrait (prompt_04 §6).</summary>
+    /// <summary>The built-in explorer, under the size list: a click on a photo loads it (prompt_05 §7).</summary>
     public PhotoPickerViewModel Picker { get; }
 
-    /// <summary>The picker fills the centre: no portrait yet, or the operator chose another photo.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowFraming), nameof(ShowSheet))]
-    public partial bool IsPicking { get; set; } = true;
+    /// <summary>Raised by Print on the sheet step with the sheet to print and its paper size (prompt_05 §7).</summary>
+    public event Action<Printing.PrintItem, Core.Formats.PrintFormat>? PrintRequested;
 
     /// <summary>Set by the shell: the folder open in Photos, where the picker starts.</summary>
     public Func<string?>? StartFolder { get; set; }
@@ -297,10 +295,10 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public bool IsFraming => !IsSheetStep;
 
-    /// <summary>The framing canvas is shown (a portrait is loaded and the picker is closed).</summary>
-    public bool ShowFraming => HasSource && !IsPicking && !IsSheetStep;
+    /// <summary>The framing canvas is shown (a portrait is loaded).</summary>
+    public bool ShowFraming => HasSource && !IsSheetStep;
 
-    public bool ShowSheet => HasSource && !IsPicking && IsSheetStep;
+    public bool ShowSheet => HasSource && IsSheetStep;
 
     /// <summary>Face guides and Auto Align; the 9×12 police photo is framed by hand (prompt_04 §8).</summary>
     public bool HasGuides => SelectedSize.Size.Guides;
@@ -342,25 +340,8 @@ public sealed partial class IdViewModel : ViewModelBase
 
     // ------------------------------------------------------------------ source
 
-    /// <summary>Opens the built-in explorer to choose a portrait (prompt_04 §6).</summary>
-    [RelayCommand]
-    public void ChoosePhoto()
-    {
-        Picker.EnsureStarted(SourcePath is { } p ? Path.GetDirectoryName(p) : StartFolder?.Invoke());
-        IsPicking = true;
-    }
-
-    [RelayCommand]
-    private void CancelPick()
-    {
-        if (HasSource) IsPicking = false;
-    }
-
-    /// <summary>Called when the workspace is shown: without a portrait, the picker is ready.</summary>
-    public void Activate()
-    {
-        if (!HasSource) ChoosePhoto();
-    }
+    /// <summary>Called when the workspace is shown: the explorer opens the order of the Photos workspace the first time.</summary>
+    public void Activate() => Picker.EnsureStarted(SourcePath is { } p ? Path.GetDirectoryName(p) : StartFolder?.Invoke());
 
     /// <summary>Loads a portrait (read-only). Used by Open photo and by "Use for ID photo" in the Photos workspace.</summary>
     public async Task LoadSourceAsync(string path)
@@ -403,7 +384,6 @@ public sealed partial class IdViewModel : ViewModelBase
             SourcePath = path;
             OnPropertyChanged(nameof(SourceName));
             IsSheetStep = false;
-            IsPicking = false;
             ResetAll();
             Log.Information("ID: loaded portrait {Path}", path);
         }
@@ -837,6 +817,30 @@ public sealed partial class IdViewModel : ViewModelBase
             IsBusy = false;
             OnPropertyChanged(nameof(FileNamePreview));
         }
+    }
+
+    /// <summary>
+    /// Print (prompt_05 §7): the same sheet as Save sheet, rendered from the full-resolution portrait when printed,
+    /// on 10×15 paper at its exact size. The preview renders from the screen-sized copy.
+    /// </summary>
+    [RelayCommand]
+    private void PrintSheet()
+    {
+        if (_source is null || _proxy is null || Framing is null) return;
+        var (source, proxy, proxyScale) = (_source, _proxy, _proxyScale);
+        var framing = Framing;
+        var size = SelectedSize.Size;
+        var adj = Adjustments;
+        var layout = CurrentLayout();
+        var scale = _services.Settings.IdScale;
+        var name = $"{SelectedSize.Label} × {layout.Photos.Count} · {SourceName}";
+        PrintRequested?.Invoke(new Printing.ImagePrintItem(name, preview =>
+        {
+            var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
+            var f = preview ? framing with { CenterX = framing.CenterX * proxyScale, CenterY = framing.CenterY * proxyScale, FrameWidthSource = framing.FrameWidthSource * proxyScale } : framing;
+            using var photo = IdRenderer.Render(preview ? proxy : source, f, size, adj, pw, ph);
+            return SheetRenderer.Render(photo, layout, scale);
+        }, 1), Core.Formats.PrintFormats.P10x15);
     }
 
     /// <summary>Writes the 10×15 and 15×20 calibration sheets to the output folder (FR-071).</summary>

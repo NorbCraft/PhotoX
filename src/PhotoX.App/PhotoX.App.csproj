@@ -27,6 +27,7 @@
     <ProjectReference Include="..\PhotoX.Core\PhotoX.Core.csproj" />
     <ProjectReference Include="..\PhotoX.Imaging\PhotoX.Imaging.csproj" />
     <ProjectReference Include="..\PhotoX.Storage\PhotoX.Storage.csproj" />
+    <ProjectReference Include="..\PhotoX.Printing\PhotoX.Printing.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="PhotoX.App.Tests" />

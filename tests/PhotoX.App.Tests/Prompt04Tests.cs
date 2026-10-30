@@ -93,6 +93,7 @@ public class Prompt04Tests
         window.Close();
     }
 
+    /// <summary>prompt_05 §7: the explorer sits under the formats; a click on a photo loads it.</summary>
     [AvaloniaFact]
     public async Task Id_photos_choose_the_portrait_with_the_built_in_explorer()
     {
@@ -102,14 +103,14 @@ public class Prompt04Tests
         await shell.Browse.OpenFolderAsync(order);
         shell.ShowIdCommand.Execute(null);
         var id = shell.Id;
-        Assert.True(id.IsPicking);                                    // no portrait yet: the picker is shown
+        Assert.False(id.HasSource);
         await UiHelpers.WaitUntil(() => id.Picker.Photos.Count == 3 && id.Picker.Photos.All(p => p.Thumbnail is not null));
         Assert.Equal(order, id.Picker.Explorer.CurrentFolder);        // starts in the order open in Photos
-        UiHelpers.Capture(window, "id-picker-1366x768");
+        Assert.Null(id.Picker.SelectedPhoto);                         // nothing loads until the operator clicks
+        UiHelpers.Capture(window, "id-explorer-1366x768");
 
-        id.Picker.SelectedPhoto = id.Picker.Photos[1];
-        id.Picker.PickCommand.Execute(null);
-        await UiHelpers.WaitUntil(() => id.Preview is not null && !id.IsPicking);
+        id.Picker.SelectedPhoto = id.Picker.Photos[1];                 // a click on a photo
+        await UiHelpers.WaitUntil(() => id.Preview is not null && id.HasSource);
         Assert.Equal("P2.jpg", id.SourceName);
         Assert.True(id.ShowFraming);
         window.Close();

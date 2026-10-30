@@ -14,6 +14,7 @@ public sealed partial class CollageView : UserControl
         Canvas.Zoomed += (i, f) => Vm?.Zoom(i, f);
         Canvas.SlotReset += i => Vm?.ResetSlot(i);
         Canvas.Swapped += (a, b) => Vm?.Swap(a, b);
+        Canvas.BoundaryMoved += (column, index, delta) => Vm?.MoveBoundary(column, index, delta);
     }
 
     private CollageViewModel? Vm => DataContext as CollageViewModel;

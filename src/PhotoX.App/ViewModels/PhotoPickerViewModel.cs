@@ -53,6 +53,16 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
 
     public double ThumbHeight { get; init; } = 150;
 
+    /// <summary>A click (selection) picks the photo, as in ID Photos where the explorer replaces the file dialog (prompt_05 §7).</summary>
+    public bool PickOnSelect { get; init; }
+
+    private bool _opening;
+
+    partial void OnSelectedPhotoChanged(PickerPhoto? value)
+    {
+        if (PickOnSelect && !_opening && value is { IsOpenable: true }) Picked?.Invoke(value);
+    }
+
     public ObservableCollection<PickerPhoto> Photos { get; } = [];
 
     [ObservableProperty]
@@ -91,6 +101,7 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
         IsScanning = true;
+        _opening = true;
         SelectedPhoto = null;
         Photos.Clear();
         OnPropertyChanged(nameof(HasFolder));
@@ -98,7 +109,8 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
         if (ct.IsCancellationRequested) return;
         var items = entries.Select(e => new PickerPhoto(e)).ToList();
         foreach (var item in items) Photos.Add(item);
-        SelectedPhoto = items.FirstOrDefault(p => p.IsOpenable);
+        if (!PickOnSelect) SelectedPhoto = items.FirstOrDefault(p => p.IsOpenable);
+        _opening = false;
         IsScanning = false;
         _ = ThumbnailSource.LoadAllAsync(_services.ThumbnailCache, items, p => p.IsOpenable ? p.Entry : null, (p, bitmap, _, error) =>
         {

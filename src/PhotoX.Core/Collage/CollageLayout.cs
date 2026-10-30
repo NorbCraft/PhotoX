@@ -8,17 +8,83 @@ namespace PhotoX.Core.Collage;
 /// </summary>
 public static class CollageLayout
 {
-    /// <summary>Slot rectangles on a sheet of <paramref name="pageWidthMm"/> × <paramref name="pageHeightMm"/>, in template order.</summary>
-    public static IReadOnlyList<RectD> Slots(CollageTemplate template, double pageWidthMm, double pageHeightMm, double spacingMm)
+    /// <summary>Smallest column width or row height when the layout is adjusted (prompt_05 §8).</summary>
+    public const double MinCellMm = 10;
+
+    /// <summary>The template's grid on a sheet of this orientation: transposed for landscape.</summary>
+    public static CollageTemplate GridFor(CollageTemplate template, double pageWidthMm, double pageHeightMm) =>
+        pageWidthMm > pageHeightMm ? template.Transposed() : template;
+
+    /// <summary>
+    /// Slot rectangles on a sheet of <paramref name="pageWidthMm"/> × <paramref name="pageHeightMm"/>, in template order.
+    /// Column and row weights (of the grid for this orientation) share out the width and height; equal by default.
+    /// </summary>
+    public static IReadOnlyList<RectD> Slots(CollageTemplate template, double pageWidthMm, double pageHeightMm, double spacingMm,
+        IReadOnlyList<double>? columnWeights = null, IReadOnlyList<double>? rowWeights = null)
     {
-        var t = pageWidthMm > pageHeightMm ? template.Transposed() : template;
-        var unitW = (pageWidthMm - 2 * spacingMm - (t.Columns - 1) * spacingMm) / t.Columns;
-        var unitH = (pageHeightMm - 2 * spacingMm - (t.Rows - 1) * spacingMm) / t.Rows;
+        var t = GridFor(template, pageWidthMm, pageHeightMm);
+        var xs = Edges(columnWeights, t.Columns, pageWidthMm, spacingMm);
+        var ys = Edges(rowWeights, t.Rows, pageHeightMm, spacingMm);
         return t.Cells.Select(c => new RectD(
-            spacingMm + c.Column * (unitW + spacingMm),
-            spacingMm + c.Row * (unitH + spacingMm),
-            c.ColumnSpan * unitW + (c.ColumnSpan - 1) * spacingMm,
-            c.RowSpan * unitH + (c.RowSpan - 1) * spacingMm)).ToList();
+            xs[c.Column].Start,
+            ys[c.Row].Start,
+            xs[c.Column + c.ColumnSpan - 1].End - xs[c.Column].Start,
+            ys[c.Row + c.RowSpan - 1].End - ys[c.Row].Start)).ToList();
+    }
+
+    /// <summary>Width (or height) left for photos once the margins and gaps of <paramref name="count"/> cells are taken.</summary>
+    public static double Available(double pageMm, int count, double spacingMm) => pageMm - 2 * spacingMm - (count - 1) * spacingMm;
+
+    /// <summary>
+    /// New weights that give cells <paramref name="start"/> … <paramref name="start"/>+<paramref name="span"/>−1 together
+    /// <paramref name="sizeMm"/> (gaps between them included); the other cells share the rest in their old proportions.
+    /// Every cell keeps at least <see cref="MinCellMm"/>, so the photos always stay within the sheet.
+    /// </summary>
+    public static double[] Resize(IReadOnlyList<double> weights, int start, int span, double sizeMm, double availableMm, double spacingMm)
+    {
+        var n = weights.Count;
+        if (span >= n) return [.. weights];
+        var target = Math.Clamp(sizeMm - (span - 1) * spacingMm, span * MinCellMm, availableMm - (n - span) * MinCellMm);
+        var total = weights.Sum();
+        var inside = Enumerable.Range(start, span).Sum(i => weights[i]);
+        var outside = total - inside;
+        var result = new double[n];
+        for (var i = 0; i < n; i++)
+        {
+            var mine = i >= start && i < start + span;
+            var share = mine ? weights[i] / inside * target : weights[i] / outside * (availableMm - target);
+            result[i] = share / availableMm;
+        }
+
+        return result;
+    }
+
+    /// <summary>Moves the boundary after cell <paramref name="index"/> by <paramref name="deltaMm"/>, keeping both neighbours at least <see cref="MinCellMm"/>.</summary>
+    public static double[] MoveBoundary(IReadOnlyList<double> weights, int index, double deltaMm, double availableMm)
+    {
+        var total = weights.Sum();
+        var sizes = weights.Select(w => w / total * availableMm).ToArray();
+        var pair = sizes[index] + sizes[index + 1];
+        sizes[index] = Math.Clamp(sizes[index] + deltaMm, MinCellMm, pair - MinCellMm);
+        sizes[index + 1] = pair - sizes[index];
+        return sizes.Select(s => s / availableMm).ToArray();
+    }
+
+    private static (double Start, double End)[] Edges(IReadOnlyList<double>? weights, int count, double pageMm, double spacingMm)
+    {
+        var w = weights is { } given && given.Count == count && given.All(v => v > 0) ? given : Enumerable.Repeat(1.0, count).ToList();
+        var total = w.Sum();
+        var available = Available(pageMm, count, spacingMm);
+        var edges = new (double, double)[count];
+        var x = spacingMm;
+        for (var i = 0; i < count; i++)
+        {
+            var size = available * w[i] / total;
+            edges[i] = (x, x + size);
+            x += size + spacingMm;
+        }
+
+        return edges;
     }
 
     /// <summary>

@@ -18,18 +18,20 @@ public static class CollageRenderer
 
     public static (int Width, int Height) PagePixels(double widthMm, double heightMm) => (Units.MmToPx(widthMm, Ppi), Units.MmToPx(heightMm, Ppi));
 
-    public static MagickImage Render(double pageWidthMm, double pageHeightMm, IReadOnlyList<RectD> slotsMm, IReadOnlyList<CollagePhoto?> photos)
+    /// <param name="ppi">Output resolution; lower for a print preview.</param>
+    /// <param name="sourceMaxEdge">Read the photos smaller (preview only); the saved and printed collage uses full resolution.</param>
+    public static MagickImage Render(double pageWidthMm, double pageHeightMm, IReadOnlyList<RectD> slotsMm, IReadOnlyList<CollagePhoto?> photos, double ppi = Ppi, int? sourceMaxEdge = null)
     {
-        var (w, h) = PagePixels(pageWidthMm, pageHeightMm);
+        var (w, h) = (Units.MmToPx(pageWidthMm, ppi), Units.MmToPx(pageHeightMm, ppi));
         var page = new MagickImage(MagickColors.White, (uint)w, (uint)h);
         try
         {
             for (var i = 0; i < slotsMm.Count && i < photos.Count; i++)
             {
                 if (photos[i] is not { } photo) continue;
-                var slot = CollageLayout.ToPixels(slotsMm[i], Ppi);
+                var slot = CollageLayout.ToPixels(slotsMm[i], ppi);
                 if (slot.Width <= 0 || slot.Height <= 0) continue;
-                using var image = ImageLoader.Load(photo.Path);
+                using var image = ImageLoader.Load(photo.Path, sourceMaxEdge);
                 var crop = CropMath.ToPixelRect(photo.Crop, (int)image.Width, (int)image.Height);
                 image.Crop(new MagickGeometry(crop.X, crop.Y, (uint)Math.Max(1, crop.Width), (uint)Math.Max(1, crop.Height)));
                 image.ResetPage();
@@ -37,7 +39,7 @@ public static class CollageRenderer
                 page.Composite(image, slot.X, slot.Y, CompositeOperator.Over);
             }
 
-            page.Density = new Density(Ppi, Ppi, DensityUnit.PixelsPerInch);
+            page.Density = new Density(ppi, ppi, DensityUnit.PixelsPerInch);
             return page;
         }
         catch

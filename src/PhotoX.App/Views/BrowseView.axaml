@@ -10,10 +10,7 @@
 
     <!-- Explorer (FR-001), the same control as in ID Photos and Collages (prompt_04 §6) -->
     <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-      <DockPanel>
-        <TextBlock DockPanel.Dock="Bottom" Margin="18,6,18,14" Text="{l:Tr OriginalsNote}" FontSize="12" Foreground="{StaticResource Text3Brush}" TextWrapping="Wrap" />
-        <v:ExplorerView DataContext="{Binding Explorer}" />
-      </DockPanel>
+      <v:ExplorerView DataContext="{Binding Explorer}" />
     </Border>
 
     <!-- Gallery (FR-002) -->
@@ -41,8 +38,9 @@
       <TextBlock Grid.Row="2" IsVisible="{Binding !HasFolder}" Text="{l:Tr NoFolder}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Grid.Row="2" IsVisible="{Binding IsEmpty}" Text="{l:Tr NoPhotos}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Grid.Row="2" IsVisible="{Binding IsScanning}" Text="{l:Tr Loading}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <!-- Ctrl + click and Shift + click select several photos; Ctrl + A selects all (prompt_05 §5) -->
       <ListBox Grid.Row="2" x:Name="Gallery" Margin="16,0,8,8" Background="Transparent" ItemsSource="{Binding VisiblePhotos}" SelectedItem="{Binding SelectedPhoto}"
-               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+               SelectionMode="Multiple" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListBox.ItemsPanel>
           <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
         </ListBox.ItemsPanel>
@@ -83,8 +81,10 @@
                 <ContextMenu>
                   <MenuItem Header="{l:Tr EditSelected}" IsEnabled="{Binding IsOpenable}" Click="OnEditClick" />
                   <MenuItem Header="{l:Tr UseForId}" IsEnabled="{Binding IsOpenable}" Click="OnUseForIdClick" />
+                  <MenuItem Header="{l:Tr PrintMenu}" IsEnabled="{Binding IsOpenable}" Click="OnPrintClick" />
                   <Separator />
                   <MenuItem Header="{l:Tr DuplicateImage}" Click="OnDuplicateClick" />
+                  <MenuItem Header="{l:Tr RestoreOriginal}" IsEnabled="{Binding IsOpenable}" Click="OnRestoreClick" />
                 </ContextMenu>
               </Border.ContextMenu>
               <Grid RowDefinitions="132,*" Margin="8">
@@ -93,6 +93,10 @@
                 <Border IsVisible="{Binding HasBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4" CornerRadius="10" Padding="7,1"
                         Background="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeBrush}}">
                   <TextBlock Text="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeGlyph}}" FontWeight="Bold" FontSize="12" Foreground="#151515" />
+                </Border>
+                <!-- Print counter (prompt_05 §6): copies accepted by Windows through PhotoX -->
+                <Border Classes="printcount" Classes.printed="{Binding IsPrinted}" ToolTip.Tip="{Binding PrintCountTip}">
+                  <TextBlock Text="{Binding PrintCountText}" />
                 </Border>
                 <StackPanel Grid.Row="1" Margin="2,8,2,0" Spacing="2">
                   <TextBlock Classes="name" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -108,40 +112,53 @@
 
     <!-- Details (collapsible, FR-039) -->
     <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+      <!-- The actions always show; the photo preview and progress fold away (FR-039) -->
       <Panel>
-        <Button IsVisible="{Binding DetailsCollapsed}" Classes="list" Focusable="False" VerticalAlignment="Top" Margin="6,12" Width="36"
-                Command="{Binding ToggleDetailsCommand}" ToolTip.Tip="{l:Tr Details}" Content="‹" FontSize="20" />
-        <Grid IsVisible="{Binding !DetailsCollapsed}" Width="330" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20,16,20,20">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="section" Text="{l:Tr SelectedPhoto}" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,0" Command="{Binding ToggleDetailsCommand}" ToolTip.Tip="{l:Tr HideDetails}" Content="›" FontSize="20" />
-          </Grid>
+        <Grid Width="330" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20,16,20,20">
+          <Button Classes="list" Focusable="False" Padding="0,2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Command="{Binding ToggleDetailsCommand}" ToolTip.Tip="{l:Tr Details}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Classes="section" Text="{l:Tr SelectedPhoto}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DetailsCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{StaticResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
           <StackPanel Grid.Row="1" Spacing="6" Margin="0,10,0,0" IsVisible="{Binding HasSelection}">
-            <Border Background="{StaticResource CanvasBrush}" CornerRadius="8" Height="210" Padding="6">
+            <Border Background="{StaticResource CanvasBrush}" CornerRadius="8" Height="190" Padding="6" IsVisible="{Binding !DetailsCollapsed}">
               <Image Source="{Binding SelectedPhoto.Thumbnail}" Stretch="Uniform" />
             </Border>
-            <TextBlock Text="{Binding SelectedPhoto.Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
-            <TextBlock Text="{Binding SelectedPhoto.Info}" Classes="muted" />
-            <TextBlock Text="{Binding SelectedPhoto.StateText}" Classes="muted" />
-            <TextBlock Text="{Binding SelectedPhoto.ErrorText}" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" IsVisible="{Binding SelectedPhoto.ErrorText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            <TextBlock Text="{Binding SelectionText}" IsVisible="{Binding HasMultipleSelection}" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <StackPanel IsVisible="{Binding !HasMultipleSelection}" Spacing="4">
+              <TextBlock Text="{Binding SelectedPhoto.Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
+              <TextBlock Text="{Binding SelectedPhoto.Info}" Classes="muted" />
+              <TextBlock Classes="muted"><Run Text="{Binding SelectedPhoto.StateText}" /><Run Text="  ·  " /><Run Text="{Binding SelectedPhoto.PrintCountTip}" /></TextBlock>
+              <TextBlock Text="{Binding SelectedPhoto.ErrorText}" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" IsVisible="{Binding SelectedPhoto.ErrorText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
           </StackPanel>
-          <StackPanel Grid.Row="2" Spacing="8" Margin="0,24,0,0" IsVisible="{Binding HasFolder}">
+          <StackPanel Grid.Row="2" Spacing="8" Margin="0,20,0,0" IsVisible="{Binding !DetailsCollapsed}">
             <TextBlock Classes="section" Text="{l:Tr OrderProgress}" />
             <TextBlock Text="{Binding ProgressText}" FontSize="18" FontWeight="SemiBold" />
             <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" />
             <TextBlock Text="{Binding PhotosLeftText}" Classes="muted" FontSize="12.5" />
           </StackPanel>
-          <StackPanel Grid.Row="4" Spacing="10">
-            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="54" Command="{Binding PrimaryActionCommand}" IsEnabled="{Binding HasFolder}">
+          <!-- Actions (prompt_05 §5): print, edit or use one photo, save or restore the selection -->
+          <StackPanel Grid.Row="4" Spacing="8">
+            <Grid ColumnDefinitions="*,8,*">
+              <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Command="{Binding PrintSelectedCommand}" IsEnabled="{Binding HasSelection}">
+                <TextBlock Text="{l:Tr PrintSelected}" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+              </Button>
+              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Command="{Binding PrintAllCommand}" IsEnabled="{Binding HasFolder}" Content="{l:Tr PrintAll}" />
+            </Grid>
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding EditPhotoCommand}" IsEnabled="{Binding HasSingleSelection}">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock IsVisible="{Binding !IsOrderDone}" Text="{l:Tr StartEditing}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <TextBlock IsVisible="{Binding IsOrderDone}" Text="{l:Tr Finish}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
+                <TextBlock Text="{l:Tr EditSelected}" HorizontalAlignment="Center" />
+                <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" /></Border>
               </Grid>
             </Button>
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding EditPhotoCommand}" CommandParameter="{Binding SelectedPhoto}" IsEnabled="{Binding HasSelection}" Content="{l:Tr EditSelected}" />
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding UseForIdCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr UseForId}" />
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding FinishOrderCommand}" IsEnabled="{Binding HasFolder}" IsVisible="{Binding !IsOrderDone}" Content="{l:Tr Finish}" />
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding UseForIdCommand}" IsEnabled="{Binding HasSingleSelection}" Content="{l:Tr UseForId}" />
+            <Grid ColumnDefinitions="*,8,*">
+              <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr SaveChanges}" ToolTip.Tip="{l:Tr SaveChangesTip}" />
+              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding RestoreOriginalCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr RestoreOriginal}" ToolTip.Tip="{l:Tr RestoreTip}" />
+            </Grid>
+            <TextBlock Text="{l:Tr SelectionHint}" Foreground="{StaticResource Text3Brush}" FontSize="11.5" TextWrapping="Wrap" />
           </StackPanel>
         </Grid>
       </Panel>

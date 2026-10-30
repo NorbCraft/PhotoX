@@ -125,7 +125,7 @@ public class CropPreviewTests
         UiHelpers.Capture(window, "editor-close-mode");
         await editor.SaveAndNextAsync();                     // Close: back to the gallery
         Assert.IsType<BrowseViewModel>(shell.CurrentPage);
-        Assert.True(shell.Browse.IsOrderDone);
+        Assert.All(shell.Browse.AllPhotos, p => Assert.True(p.IsDone));
         window.Close();
     }
 }

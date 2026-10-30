@@ -7,7 +7,15 @@ namespace PhotoX.App.Views;
 
 public sealed partial class BrowseView : UserControl
 {
-    public BrowseView() => InitializeComponent();
+    public BrowseView()
+    {
+        InitializeComponent();
+        // The view model gets the whole selection (Ctrl/Shift + click), not only the anchor photo.
+        Gallery.SelectionChanged += (_, _) =>
+        {
+            if (DataContext is BrowseViewModel vm) vm.SetSelection(Gallery.SelectedItems?.OfType<PhotoItemViewModel>() ?? []);
+        };
+    }
 
     private void OnPhotoDoubleTapped(object? sender, TappedEventArgs e)
     {
@@ -23,6 +31,10 @@ public sealed partial class BrowseView : UserControl
     private void OnUseForIdClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.UseForIdCommand.Execute(item));
 
     private void OnDuplicateClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.DuplicateCommand.Execute(item));
+
+    private void OnPrintClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.PrintSelectedCommand.Execute(item));
+
+    private void OnRestoreClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.RestoreOriginalCommand.Execute(item));
 
     private void Run(object? sender, Action<BrowseViewModel, PhotoItemViewModel> action)
     {

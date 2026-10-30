@@ -17,6 +17,10 @@ public static class Icons
     /// <summary>Four arrows pointing to the corners: reset the crop to the largest frame (prompt_04 §7).</summary>
     public static readonly Geometry ResetCrop = Geometry.Parse("M9.5 9.5 4 4 M4 9V4h5 M14.5 9.5 20 4 M15 4h5v5 M14.5 14.5 20 20 M20 15v5h-5 M9.5 14.5 4 20 M9 20H4v-5");
 
+    /// <summary>Printer: the print queue (prompt_05 §4).</summary>
+    public static readonly Geometry Printer = Geometry.Parse(
+        "M7 9V4h10v5 M6.5 17H4.5A1.5 1.5 0 0 1 3 15.5v-5A1.5 1.5 0 0 1 4.5 9h15a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-2 M7 13.5h10V20H7z");
+
     /// <summary>Gear (settings), drawn as one clean outline with a centre hole (prompt_04 §3).</summary>
     public static readonly Geometry Settings = Geometry.Parse(GearPath());
 

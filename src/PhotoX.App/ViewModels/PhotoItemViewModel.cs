@@ -48,6 +48,17 @@ public sealed partial class PhotoItemViewModel : ViewModelBase
     [ObservableProperty]
     public partial string Info { get; set; } = string.Empty;
 
+    /// <summary>Copies of this photo accepted by Windows through PhotoX (prompt_05 §6); not a physical-print confirmation.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPrinted), nameof(PrintCountText), nameof(PrintCountTip))]
+    public partial int PrintCount { get; set; }
+
+    public bool IsPrinted => PrintCount > 0;
+
+    public string PrintCountText => PrintCount > 0 ? PrintCount.ToString(Localizer.Instance.Culture) : "–";
+
+    public string PrintCountTip => PrintCount > 0 ? Localizer.Instance.Plural("PrintedTimes", PrintCount) : Localizer.Instance["NotPrinted"];
+
     /// <summary>True for the photo open in the editor (filmstrip highlight).</summary>
     [ObservableProperty]
     public partial bool IsCurrent { get; set; }
@@ -79,7 +90,11 @@ public sealed partial class PhotoItemViewModel : ViewModelBase
         _ => "StateToDo",
     }];
 
-    public void RefreshTexts() => OnPropertyChanged(nameof(StateText));
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(StateText));
+        OnPropertyChanged(nameof(PrintCountTip));
+    }
 
     public void UpdateEntry()
     {

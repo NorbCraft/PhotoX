@@ -65,6 +65,9 @@ public sealed partial class CollageViewModel : ViewModelBase
 
     private readonly AppServices _services;
     private readonly CollageItem?[] _items = new CollageItem?[MaxSlots];
+    private double[] _columnWeights = [];
+    private double[] _rowWeights = [];
+    private bool _syncing;
 
     public CollageViewModel(AppServices services)
     {
@@ -72,8 +75,8 @@ public sealed partial class CollageViewModel : ViewModelBase
         Picker = new PhotoPickerViewModel(services) { ThumbWidth = 116, ThumbHeight = 116 };
         Picker.Picked += photo => _ = PlaceAsync(photo.Path);
         foreach (var t in CollageTemplates.All) Templates.Add(new CollageTemplateItem(t));
-        Sheet = PrintFormats.P10x15;
         Template = CollageTemplates.Default;
+        Sheet = PrintFormats.P10x15;
         OutputFolder = services.Settings.CollageOutputFolder;
         RefreshTemplates();
         Localizer.Instance.LanguageChanged += (_, _) => RaiseTexts();
@@ -90,7 +93,26 @@ public sealed partial class CollageViewModel : ViewModelBase
 
     public ObservableCollection<CollageTemplateItem> Templates { get; } = [];
 
-    public IReadOnlyList<PrintFormat> Sheets => PrintFormats.Sheets;
+    /// <summary>Collage sheets: 10×15 and 15×20 (prompt_05 §8).</summary>
+    public IReadOnlyList<PrintFormat> Sheets => PrintFormats.PrintSizes;
+
+    /// <summary>Raised by Print with the collage and its sheet size (prompt_05 §8).</summary>
+    public event Action<Printing.PrintItem, PrintFormat>? PrintRequested;
+
+    /// <summary>Width of the selected slot in cm; typing a value resizes its columns (prompt_05 §8).</summary>
+    [ObservableProperty]
+    public partial decimal SlotWidthCm { get; set; }
+
+    [ObservableProperty]
+    public partial decimal SlotHeightCm { get; set; }
+
+    public bool CanResizeWidth => SelectedCell is { } c && c.ColumnSpan < Grid.Columns;
+
+    public bool CanResizeHeight => SelectedCell is { } c && c.RowSpan < Grid.Rows;
+
+    private CollageTemplate Grid => CollageLayout.GridFor(Template, PageWidthMm, PageHeightMm);
+
+    private CollageCell? SelectedCell => SelectedSlot < Grid.Cells.Count ? Grid.Cells[SelectedSlot] : null;
 
     [ObservableProperty]
     public partial PrintFormat Sheet { get; set; }
@@ -135,7 +157,7 @@ public sealed partial class CollageViewModel : ViewModelBase
 
     public double PageHeightMm => IsLandscape ? Sheet.WidthMm : Sheet.HeightMm;
 
-    public IReadOnlyList<RectD> Slots => CollageLayout.Slots(Template, PageWidthMm, PageHeightMm, (double)SpacingMm);
+    public IReadOnlyList<RectD> Slots => CollageLayout.Slots(Template, PageWidthMm, PageHeightMm, (double)SpacingMm, _columnWeights, _rowWeights);
 
     public double TemplateIconWidth => IsLandscape ? 54 : 36;
 
@@ -159,11 +181,16 @@ public sealed partial class CollageViewModel : ViewModelBase
     /// <summary>Called when the workspace is shown: the picker opens the folder of the Photos workspace the first time.</summary>
     public void Activate() => Picker.EnsureStarted(StartFolder?.Invoke());
 
-    partial void OnSheetChanged(PrintFormat value) => Changed();
+    partial void OnSheetChanged(PrintFormat value)
+    {
+        ResetWeights();
+        Changed();
+    }
 
     partial void OnIsLandscapeChanged(bool value)
     {
         RefreshTemplates();
+        ResetWeights();
         Changed();
     }
 
@@ -171,7 +198,50 @@ public sealed partial class CollageViewModel : ViewModelBase
     {
         foreach (var t in Templates) t.IsSelected = t.Template == value;
         if (SelectedSlot >= value.Count) SelectedSlot = 0;
+        ResetWeights();
         Changed();
+    }
+
+    partial void OnSlotWidthCmChanged(decimal value)
+    {
+        if (_syncing || SelectedCell is not { } c || !CanResizeWidth) return;
+        var g = Grid;
+        _columnWeights = CollageLayout.Resize(_columnWeights, c.Column, c.ColumnSpan, (double)value * 10, CollageLayout.Available(PageWidthMm, g.Columns, (double)SpacingMm), (double)SpacingMm);
+        Changed();
+    }
+
+    partial void OnSlotHeightCmChanged(decimal value)
+    {
+        if (_syncing || SelectedCell is not { } c || !CanResizeHeight) return;
+        var g = Grid;
+        _rowWeights = CollageLayout.Resize(_rowWeights, c.Row, c.RowSpan, (double)value * 10, CollageLayout.Available(PageHeightMm, g.Rows, (double)SpacingMm), (double)SpacingMm);
+        Changed();
+    }
+
+    /// <summary>Dragging a gap: the columns (or rows) on both sides change, the photos stay inside the sheet.</summary>
+    public void MoveBoundary(bool column, int index, double deltaMm)
+    {
+        var g = Grid;
+        if (column && index < g.Columns - 1) _columnWeights = CollageLayout.MoveBoundary(_columnWeights, index, deltaMm, CollageLayout.Available(PageWidthMm, g.Columns, (double)SpacingMm));
+        else if (!column && index < g.Rows - 1) _rowWeights = CollageLayout.MoveBoundary(_rowWeights, index, deltaMm, CollageLayout.Available(PageHeightMm, g.Rows, (double)SpacingMm));
+        else return;
+        Changed();
+    }
+
+    /// <summary>Back to the template's equal columns and rows.</summary>
+    [RelayCommand]
+    public void ResetLayout()
+    {
+        ResetWeights();
+        Changed();
+    }
+
+    private void ResetWeights()
+    {
+        if (Template is null || Sheet is null) return;
+        var g = Grid;
+        _columnWeights = Enumerable.Repeat(1.0, g.Columns).ToArray();
+        _rowWeights = Enumerable.Repeat(1.0, g.Rows).ToArray();
     }
 
     partial void OnSpacingMmChanged(decimal value) => Changed();
@@ -181,7 +251,29 @@ public sealed partial class CollageViewModel : ViewModelBase
     [RelayCommand]
     private void SetSheet(string id)
     {
-        if (PrintFormats.FindSheet(id) is { } sheet) Sheet = sheet;
+        if (PrintFormats.FindPrintSize(id) is { } sheet) Sheet = sheet;
+    }
+
+    /// <summary>Print (prompt_05 §8): the same composition as Save, on paper of the collage's sheet size.</summary>
+    [RelayCommand]
+    private void Print()
+    {
+        if (!HasPhotos) return;
+        var (pageW, pageH, slots, photos) = Composition();
+        PrintRequested?.Invoke(new Printing.ImagePrintItem(
+            Localizer.Instance.Format("CollageJobName", Sheet.Name, Template.Count),
+            preview => CollageRenderer.Render(pageW, pageH, slots, photos, preview ? 75 : CollageRenderer.Ppi, preview ? 800 : null),
+            1), Sheet);
+    }
+
+    /// <summary>The final composition: page, slots and each photo's part, as used by Save and Print.</summary>
+    private (double W, double H, IReadOnlyList<RectD> Slots, IReadOnlyList<CollagePhoto?> Photos) Composition()
+    {
+        var slots = Slots;
+        var photos = Enumerable.Range(0, Template.Count)
+            .Select(i => _items[i] is { } item ? new CollagePhoto(item.Path, item.CropFor(slots[i].Width / slots[i].Height)) : null)
+            .ToList();
+        return (PageWidthMm, PageHeightMm, slots, photos);
     }
 
     [RelayCommand]
@@ -316,11 +408,7 @@ public sealed partial class CollageViewModel : ViewModelBase
         StatusMessage = Localizer.Instance["Saving"];
         try
         {
-            var slots = Slots;
-            var photos = Enumerable.Range(0, Template.Count)
-                .Select(i => _items[i] is { } item ? new CollagePhoto(item.Path, item.CropFor(slots[i].Width / slots[i].Height)) : null)
-                .ToList();
-            var (pageW, pageH) = (PageWidthMm, PageHeightMm);
+            var (pageW, pageH, slots, photos) = Composition();
             var folder = OutputFolder!;
             var quality = _services.Settings.JpegQuality;
             var path = await Task.Run(() =>
@@ -361,10 +449,44 @@ public sealed partial class CollageViewModel : ViewModelBase
         if (Template is null || Sheet is null) return;
         var slots = Slots;
         var photos = slots.Select((r, i) => _items[i] is { } item ? new CollageSceneItem(item.Preview, item.CropFor(r.Width / r.Height)) : null).ToList();
-        Scene = new CollageScene(PageWidthMm, PageHeightMm, slots, photos, SelectedSlot);
+        var labels = slots.Select(r => SizeLabel(r.Width, r.Height)).ToList();
+        var g = Grid;
+        var cols = Boundaries(slots, g, column: true);
+        var rows = Boundaries(slots, g, column: false);
+        Scene = new CollageScene(PageWidthMm, PageHeightMm, slots, photos, SelectedSlot, labels, cols, rows);
+        _syncing = true;
+        if (SelectedSlot < slots.Count)
+        {
+            SlotWidthCm = Math.Round((decimal)slots[SelectedSlot].Width / 10, 1);
+            SlotHeightCm = Math.Round((decimal)slots[SelectedSlot].Height / 10, 1);
+        }
+
+        _syncing = false;
         OnPropertyChanged(nameof(HasPhotos));
         OnPropertyChanged(nameof(SelectedHasPhoto));
+        OnPropertyChanged(nameof(CanResizeWidth));
+        OnPropertyChanged(nameof(CanResizeHeight));
+        PrintCommand.NotifyCanExecuteChanged();
         RaiseTexts();
+    }
+
+    /// <summary>Slot size in centimetres, as shown on the slot (prompt_05 §8).</summary>
+    public static string SizeLabel(double widthMm, double heightMm) =>
+        string.Format(Localizer.Instance.Culture, "{0:0.#} × {1:0.#} cm", widthMm / 10, heightMm / 10);
+
+    /// <summary>Centre of each gap between columns (or rows), from the edges of the slots in that column (or row).</summary>
+    private static List<double> Boundaries(IReadOnlyList<RectD> slots, CollageTemplate grid, bool column)
+    {
+        var count = column ? grid.Columns : grid.Rows;
+        var result = new List<double>();
+        for (var i = 0; i < count - 1; i++)
+        {
+            var before = grid.Cells.Select((c, k) => (c, k)).Where(x => (column ? x.c.Column + x.c.ColumnSpan - 1 : x.c.Row + x.c.RowSpan - 1) == i).Select(x => column ? slots[x.k].Right : slots[x.k].Bottom).DefaultIfEmpty(double.NaN).Max();
+            var after = grid.Cells.Select((c, k) => (c, k)).Where(x => (column ? x.c.Column : x.c.Row) == i + 1).Select(x => column ? slots[x.k].X : slots[x.k].Y).DefaultIfEmpty(double.NaN).Min();
+            result.Add(double.IsNaN(before) || double.IsNaN(after) ? double.NaN : (before + after) / 2);
+        }
+
+        return result;
     }
 
     private void RaiseTexts()

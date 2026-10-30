@@ -82,24 +82,34 @@ public class BrowseTests
         window.Close();
     }
 
+    /// <summary>prompt_05 §5: actions follow the selection (several photos print and save; one photo edits).</summary>
     [AvaloniaFact]
-    public async Task Main_button_becomes_finish_order_when_every_photo_is_done()
+    public async Task Actions_follow_the_gallery_selection()
     {
         using var dir = new TempDir();
         var order = Path.Combine(dir.Path, "order");
         Directory.CreateDirectory(order);
-        Fixtures.WriteJpeg(order, "P1.jpg", 300, 200);
+        for (var i = 1; i <= 4; i++) Fixtures.WriteJpeg(order, $"P{i}.jpg", 300, 200);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
         await shell.Browse.OpenFolderAsync(order);
-        Assert.False(shell.Browse.IsOrderDone);
-        new PhotoSaver().Save(Path.Combine(order, "P1.jpg"), new Core.Editing.EditRecipe { Exposure = 0.5 }, FileStamp.Of(Path.Combine(order, "P1.jpg"))!.Value);
-        shell.Browse.RefreshStates();
-        Assert.True(shell.Browse.IsOrderDone);
+        var gallery = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "Gallery");
+        Assert.Equal(SelectionMode.Multiple, gallery.SelectionMode);
 
-        shell.Browse.PrimaryActionCommand.Execute(null);  // = Finish Order
-        await UiHelpers.WaitUntil(() => shell.Dialog is { HasChoices: true });
-        UiHelpers.Capture(window, "browse-finish-from-primary");
-        shell.Dialog!.PressCommand.Execute("cancel");
+        gallery.SelectedItems!.Add(shell.Browse.VisiblePhotos[2]);         // Ctrl + click adds to the selection
+        Assert.Equal(["P1.jpg", "P3.jpg"], shell.Browse.SelectedPhotos.Select(p => p.Name));
+        Assert.True(shell.Browse.HasMultipleSelection);
+        Assert.False(shell.Browse.HasSingleSelection);                   // Edit this photo needs one photo
+        UiHelpers.Capture(window, "browse-multi-select");
+
+        shell.Browse.PrintSelectedCommand.Execute(null);
+        Assert.NotNull(shell.PrintDialog);
+        Assert.Equal(2, shell.PrintDialog!.PhotoCount);
+        shell.PrintDialog.CancelCommand.Execute(null);
+        Assert.Null(shell.PrintDialog);
+
+        shell.Browse.PrintAllCommand.Execute(null);
+        Assert.Equal(4, shell.PrintDialog!.PhotoCount);
+        shell.PrintDialog.CancelCommand.Execute(null);
         window.Close();
     }
 }

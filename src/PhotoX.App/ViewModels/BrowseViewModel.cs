@@ -32,6 +32,11 @@ public sealed partial class BrowseViewModel : ViewModelBase
         Explorer = new ExplorerViewModel(services);
         Explorer.FolderOpened += OpenFolder;
         Localizer.Instance.LanguageChanged += (_, _) => RefreshTexts();
+        // Counters change on the print worker once Windows accepts (or loses) a job.
+        services.PrintHistory.Changed += path => Dispatcher.UIThread.Post(() =>
+        {
+            foreach (var p in AllPhotos.Where(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase))) p.PrintCount = services.PrintHistory.CountFor(p.Path);
+        });
     }
 
     /// <summary>The built-in explorer (FR-001), shared in design with the ID Photos and Collages workspaces.</summary>
@@ -40,11 +45,60 @@ public sealed partial class BrowseViewModel : ViewModelBase
     /// <summary>Raised when a photo should open in the editor.</summary>
     public event Action<PhotoItemViewModel>? EditRequested;
 
-    /// <summary>Raised when the operator asks to finish the order (FR-072).</summary>
-    public event Action? FinishRequested;
+    /// <summary>Raised with the photos to print (Print selected / Print all, prompt_05 §5).</summary>
+    public event Action<IReadOnlyList<PhotoItemViewModel>>? PrintRequested;
+
+    /// <summary>Raised with the photos whose changes should be saved and originals removed (prompt_05 §5).</summary>
+    public event Action<IReadOnlyList<PhotoItemViewModel>>? SaveChangesRequested;
+
+    /// <summary>Raised with the photos to restore from their originals (prompt_05 §5).</summary>
+    public event Action<IReadOnlyList<PhotoItemViewModel>>? RestoreRequested;
+
+    /// <summary>The photos selected in the gallery (Ctrl/Shift + click, Select all), in gallery order.</summary>
+    public IReadOnlyList<PhotoItemViewModel> SelectedPhotos { get; private set; } = [];
+
+    public int SelectionCount => SelectedPhotos.Count;
+
+    public bool HasSingleSelection => SelectedPhotos.Count == 1;
+
+    public bool HasMultipleSelection => SelectedPhotos.Count > 1;
+
+    public string SelectionText => Localizer.Instance.Plural("PhotosSelected", SelectedPhotos.Count);
+
+    /// <summary>Called by the gallery when its selection changes.</summary>
+    public void SetSelection(IEnumerable<PhotoItemViewModel> photos)
+    {
+        var set = photos.ToHashSet();
+        SelectedPhotos = VisiblePhotos.Where(set.Contains).ToList();
+        OnPropertyChanged(nameof(SelectedPhotos));
+        OnPropertyChanged(nameof(SelectionCount));
+        OnPropertyChanged(nameof(HasSingleSelection));
+        OnPropertyChanged(nameof(HasMultipleSelection));
+        OnPropertyChanged(nameof(SelectionText));
+        PrintSelectedCommand.NotifyCanExecuteChanged();
+        SaveChangesCommand.NotifyCanExecuteChanged();
+        RestoreOriginalCommand.NotifyCanExecuteChanged();
+    }
+
+    private IReadOnlyList<PhotoItemViewModel> Targets(PhotoItemViewModel? item) =>
+        item is not null && !SelectedPhotos.Contains(item) ? [item] : SelectedPhotos.Count > 0 ? SelectedPhotos : SelectedPhoto is { } p ? [p] : [];
+
+    private bool HasTargets(PhotoItemViewModel? item) => item is not null || SelectedPhotos.Count > 0 || SelectedPhoto is not null;
+
+    [RelayCommand(CanExecute = nameof(HasTargets))]
+    private void PrintSelected(PhotoItemViewModel? item) => PrintRequested?.Invoke(Targets(item));
 
     [RelayCommand]
-    private void FinishOrder() => FinishRequested?.Invoke();
+    private void PrintAll()
+    {
+        if (AllPhotos.Any(p => p.IsOpenable)) PrintRequested?.Invoke(AllPhotos.Where(p => p.IsOpenable).ToList());
+    }
+
+    [RelayCommand(CanExecute = nameof(HasTargets))]
+    private void SaveChanges(PhotoItemViewModel? item) => SaveChangesRequested?.Invoke(Targets(item));
+
+    [RelayCommand(CanExecute = nameof(HasTargets))]
+    private void RestoreOriginal(PhotoItemViewModel? item) => RestoreRequested?.Invoke(Targets(item));
 
     /// <summary>Raised when the selected photo should open in the ID Photo Creator.</summary>
     public event Action<PhotoItemViewModel>? UseForIdRequested;
@@ -95,9 +149,6 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
     public double Progress => TotalCount == 0 ? 0 : (double)DoneCount / TotalCount;
 
-    /// <summary>Every photo is saved or reviewed and nothing is pending: the main action becomes Finish Order (prompt_03 §5).</summary>
-    public bool IsOrderDone => TotalCount > 0 && DoneCount == TotalCount && AllPhotos.All(p => p.PendingRecipe is null);
-
     public string ProgressText => Localizer.Instance.Format("DoneOf", DoneCount, TotalCount);
 
     public string PhotosLeftText => Localizer.Instance.Plural("PhotosLeft", TotalCount - DoneCount);
@@ -118,13 +169,6 @@ public sealed partial class BrowseViewModel : ViewModelBase
         _services.SaveSettings();
     }
 
-    /// <summary>The primary button: Start editing, or Finish Order once every photo is done.</summary>
-    [RelayCommand]
-    private void PrimaryAction()
-    {
-        if (IsOrderDone) FinishRequested?.Invoke();
-        else StartEditing();
-    }
 
     [RelayCommand]
     private void SetFilter(PhotoFilter filter) => Filter = filter;
@@ -226,7 +270,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         var items = new List<PhotoItemViewModel>(entries.Count);
         foreach (var entry in entries)
         {
-            var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry));
+            var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry)) { PrintCount = _services.PrintHistory.CountFor(entry.Path) };
             item.ErrorText = entry.Kind switch
             {
                 ImageKind.Heic => ErrorTexts.ForImage(ImageError.UnsupportedHeic),
@@ -276,7 +320,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(CountAll));
         OnPropertyChanged(nameof(CountToDo));
         OnPropertyChanged(nameof(CountDone));
-        OnPropertyChanged(nameof(IsOrderDone));
+
     }
 
     /// <summary>

@@ -10,13 +10,25 @@ namespace PhotoX.App.Controls;
 /// <summary>A photo as drawn in a slot: its preview bitmap and the part of it that shows.</summary>
 public sealed record CollageSceneItem(Bitmap Preview, NormalizedRect Crop);
 
-/// <summary>Everything the collage canvas draws: the sheet and slots in millimetres, the photos and the selected slot.</summary>
-public sealed record CollageScene(double PageWidthMm, double PageHeightMm, IReadOnlyList<RectD> Slots, IReadOnlyList<CollageSceneItem?> Photos, int Selected);
+/// <summary>
+/// Everything the collage canvas draws: the sheet and slots in millimetres, the photos, the selected slot, each slot's
+/// size label (prompt_05 §8) and the positions of the adjustable column and row boundaries (centre of each gap, mm).
+/// </summary>
+public sealed record CollageScene(
+    double PageWidthMm,
+    double PageHeightMm,
+    IReadOnlyList<RectD> Slots,
+    IReadOnlyList<CollageSceneItem?> Photos,
+    int Selected,
+    IReadOnlyList<string>? Labels = null,
+    IReadOnlyList<double>? ColumnBoundaries = null,
+    IReadOnlyList<double>? RowBoundaries = null);
 
 /// <summary>
 /// Collage preview and arrangement (prompt_04 §5): the whole sheet in true proportions, each photo drawn into its slot
 /// by the GPU (moving or zooming a photo costs only a redraw). Click selects a slot; dragging moves the photo inside
-/// its slot; the wheel zooms; double-click resets; dragging the round handle onto another slot swaps the two photos.
+/// its slot; the wheel zooms; double-click resets; dragging the round handle onto another slot swaps the two photos;
+/// dragging a gap between columns or rows changes their sizes (prompt_05 §8).
 /// </summary>
 public sealed class CollageCanvas : Control
 {
@@ -32,6 +44,10 @@ public sealed class CollageCanvas : Control
     private static readonly IBrush HandleFill = new SolidColorBrush(Color.FromArgb(230, 59, 130, 246));
     private static readonly IPen HandlePen = new Pen(Brushes.White, 1.8, lineCap: PenLineCap.Round);
     private static readonly BoxShadows PageShadow = BoxShadows.Parse("0 6 18 0 #90000000");
+    private static readonly IBrush LabelFill = new SolidColorBrush(Color.FromArgb(170, 0, 0, 0));
+    private static readonly IPen BoundaryPen = new Pen(new SolidColorBrush(Color.Parse("#3B82F6")), 3);
+    private (bool Column, int Index)? _boundary;
+    private (bool Column, int Index)? _hoverBoundary;
 
     private int _dragSlot = -1;
     private bool _moving;
@@ -59,6 +75,9 @@ public sealed class CollageCanvas : Control
     public event Action<int>? SlotReset;
 
     public event Action<int, int>? Swapped;
+
+    /// <summary>A column (true) or row boundary moved by a distance in millimetres.</summary>
+    public event Action<bool, int, double>? BoundaryMoved;
 
     public CollageScene? Scene { get => GetValue(SceneProperty); set => SetValue(SceneProperty, value); }
 
@@ -132,9 +151,67 @@ public sealed class CollageCanvas : Control
             if (s.Selected < s.Photos.Count && s.Photos[s.Selected] is not null) DrawHandle(context, HandleCenter(s.Selected));
         }
 
+        if (s.Labels is { } labels)
+        {
+            for (var i = 0; i < s.Slots.Count && i < labels.Count; i++) DrawLabel(context, SlotRect(i), labels[i]);
+        }
+
+        if ((_boundary ?? _hoverBoundary) is { } b)
+        {
+            var (from, to) = BoundaryLine(b.Column, b.Index);
+            context.DrawLine(BoundaryPen, from, to);
+        }
+
         if (_moving && _target >= 0) context.DrawRectangle(null, TargetPen, SlotRect(_target).Deflate(1.5));
         if (_moving) DrawHandle(context, _pointer);
     }
+
+    /// <summary>The slot's size in centimetres, at the bottom of the slot.</summary>
+    private static void DrawLabel(DrawingContext context, Rect slot, string text)
+    {
+        var ft = new FormattedText(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default, 12, Brushes.White);
+        if (ft.Width + 16 > slot.Width || ft.Height + 12 > slot.Height) return;
+        var box = new Rect(slot.Center.X - ft.Width / 2 - 8, slot.Bottom - ft.Height - 12, ft.Width + 16, ft.Height + 6);
+        context.DrawRectangle(LabelFill, null, box, 6, 6);
+        context.DrawText(ft, new Point(box.X + 8, box.Y + 3));
+    }
+
+    private double Scale => Scene is { } s ? Page.Width / s.PageWidthMm : 1;
+
+    private (Point From, Point To) BoundaryLine(bool column, int index)
+    {
+        var page = Page;
+        var s = Scene!;
+        if (column)
+        {
+            var x = page.X + s.ColumnBoundaries![index] * Scale;
+            return (new Point(x, page.Y), new Point(x, page.Bottom));
+        }
+
+        var y = page.Y + s.RowBoundaries![index] * Scale;
+        return (new Point(page.X, y), new Point(page.Right, y));
+    }
+
+    /// <summary>A gap between columns or rows under the pointer (within the gap, plus 3 px).</summary>
+    private (bool Column, int Index)? BoundaryAt(Point p)
+    {
+        if (Scene is not { } s || !Page.Contains(p)) return null;
+        var tolerance = 3 + GapPx(s) / 2;
+        for (var i = 0; s.ColumnBoundaries is { } cols && i < cols.Count; i++)
+        {
+            if (Math.Abs(p.X - (Page.X + cols[i] * Scale)) <= tolerance) return (true, i);
+        }
+
+        for (var i = 0; s.RowBoundaries is { } rows && i < rows.Count; i++)
+        {
+            if (Math.Abs(p.Y - (Page.Y + rows[i] * Scale)) <= tolerance) return (false, i);
+        }
+
+        return null;
+    }
+
+    /// <summary>The gap width on screen: the distance between the first slot's left edge and the sheet's edge.</summary>
+    private double GapPx(CollageScene s) => s.Slots.Count == 0 ? 0 : s.Slots.Min(r => r.X) * Scale;
 
     /// <summary>The move handle: a round button with four arrows.</summary>
     private static void DrawHandle(DrawingContext context, Point c)
@@ -155,6 +232,16 @@ public sealed class CollageCanvas : Control
         base.OnPointerPressed(e);
         if (Scene is not { } s || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         var p = e.GetPosition(this);
+        if (BoundaryAt(p) is { } boundary)
+        {
+            _boundary = boundary;
+            _last = p;
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            InvalidateVisual();
+            return;
+        }
+
         // The handle of the selected slot starts a move to another slot; anywhere else selects and pans.
         var onHandle = s.Selected >= 0 && s.Selected < s.Photos.Count && s.Photos[s.Selected] is not null
             && Distance(p, HandleCenter(s.Selected)) <= HandleRadius + 2;
@@ -172,8 +259,28 @@ public sealed class CollageCanvas : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        if (_dragSlot < 0) return;
         var p = e.GetPosition(this);
+        if (_boundary is { } b)
+        {
+            var delta = (b.Column ? p.X - _last.X : p.Y - _last.Y) / Scale;
+            _last = p;
+            if (Math.Abs(delta) > 0) BoundaryMoved?.Invoke(b.Column, b.Index, delta);
+            return;
+        }
+
+        if (_dragSlot < 0)
+        {
+            var hover = BoundaryAt(p);
+            if (hover != _hoverBoundary)
+            {
+                _hoverBoundary = hover;
+                Cursor = hover is { } h ? new Cursor(h.Column ? StandardCursorType.SizeWestEast : StandardCursorType.SizeNorthSouth) : Cursor.Default;
+                InvalidateVisual();
+            }
+
+            return;
+        }
+
         if (_moving)
         {
             _pointer = p;
@@ -193,6 +300,14 @@ public sealed class CollageCanvas : Control
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        if (_boundary is not null)
+        {
+            _boundary = null;
+            e.Pointer.Capture(null);
+            InvalidateVisual();
+            return;
+        }
+
         if (_dragSlot < 0) return;
         if (_moving && _target >= 0) Swapped?.Invoke(_dragSlot, _target);
         EndDrag(e.Pointer);
@@ -201,6 +316,7 @@ public sealed class CollageCanvas : Control
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
+        _boundary = null;
         _dragSlot = -1;
         _moving = false;
         _target = -1;

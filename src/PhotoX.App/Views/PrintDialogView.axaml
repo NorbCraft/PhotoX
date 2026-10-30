@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:l="using:PhotoX.App.Localization"
+             xmlns:f="using:PhotoX.Core.Formats"
+             xmlns:s="using:PhotoX.App.Services"
+             x:Class="PhotoX.App.Views.PrintDialogView"
+             x:DataType="vm:PrintDialogViewModel">
+  <!-- Print (prompt_05 §3): printer, size, paper, copies and a preview; the driver keeps its other settings -->
+  <Border Width="920" MaxHeight="660" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{l:Tr PrintTitle}" FontSize="19" FontWeight="Bold" />
+        <TextBlock Text="{Binding SummaryText}" Classes="muted" />
+      </StackPanel>
+
+      <Grid Grid.Row="1" ColumnDefinitions="320,24,*" Margin="0,16,0,0">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="section" Text="{l:Tr Printer}" />
+            <TextBlock IsVisible="{Binding !HasPrinters}" Text="{l:Tr NoPrinter}" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" />
+            <ComboBox IsVisible="{Binding HasPrinters}" HorizontalAlignment="Stretch" ItemsSource="{Binding Printers}" SelectedItem="{Binding SelectedPrinter}" />
+            <Button Classes="link" Focusable="False" Content="{l:Tr PrinterSettings}" Command="{Binding PrinterSettingsCommand}" IsVisible="{Binding HasPrinters}" ToolTip.Tip="{l:Tr PrinterSettingsTip}" />
+
+            <TextBlock Classes="section" Text="{l:Tr PrintSize}" Margin="0,10,0,0" />
+            <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding !IsSizeFixed}">
+              <Button Classes="chip" Focusable="False" Padding="16,6" Content="10 × 15" Command="{Binding SetSizeCommand}" CommandParameter="{x:Static f:PrintFormats.P10x15}"
+                      Classes.selected="{Binding SelectedSize.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
+              <Button Classes="chip" Focusable="False" Padding="16,6" Content="15 × 20" Command="{Binding SetSizeCommand}" CommandParameter="{x:Static f:PrintFormats.P15x20}"
+                      Classes.selected="{Binding SelectedSize.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
+            </StackPanel>
+
+            <TextBlock Classes="section" Text="{l:Tr Paper}" Margin="0,10,0,0" IsVisible="{Binding HasPrinters}" />
+            <ComboBox IsVisible="{Binding HasPrinters}" HorizontalAlignment="Stretch" ItemsSource="{Binding Papers}" SelectedItem="{Binding SelectedPaper}" PlaceholderText="{l:Tr ChoosePaper}" />
+            <TextBlock Text="{Binding PaperNote}" IsVisible="{Binding PaperNote, Converter={x:Static ObjectConverters.IsNotNull}}" Foreground="{StaticResource WarnBrush}" FontSize="12" TextWrapping="Wrap" />
+
+            <TextBlock Classes="section" Text="{l:Tr Copies}" Margin="0,10,0,0" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="square" Focusable="False" Content="−" Command="{Binding CopiesMinusCommand}" />
+              <Border Background="{StaticResource Panel2Brush}" CornerRadius="7" Width="56" Height="34">
+                <TextBlock Text="{Binding Copies}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <Button Classes="square" Focusable="False" Content="+" Command="{Binding CopiesPlusCommand}" />
+              <TextBlock Text="{l:Tr EachPhoto}" Classes="muted" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border Background="#1A3B82F6" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,14,0,0">
+              <TextBlock Text="{Binding LoadedPaperText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- Preview: the pages as they will print -->
+        <Border Grid.Column="2" Background="{StaticResource CanvasBrush}" CornerRadius="8" Padding="12">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="8">
+              <ItemsControl ItemsSource="{Binding Previews}" HorizontalAlignment="Center">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PrintPreviewItem">
+                    <StackPanel Margin="8" Spacing="4" Width="{Binding $parent[UserControl].((vm:PrintDialogViewModel)DataContext).PreviewWidth}">
+                      <Border Background="White" BoxShadow="0 3 10 0 #90000000"
+                              Width="{Binding $parent[UserControl].((vm:PrintDialogViewModel)DataContext).PreviewWidth}"
+                              Height="{Binding $parent[UserControl].((vm:PrintDialogViewModel)DataContext).PreviewHeight}">
+                        <Panel>
+                          <Image Source="{Binding Page}" Stretch="Fill" />
+                          <TextBlock Text="…" Foreground="#888888" IsVisible="{Binding Page, Converter={x:Static ObjectConverters.IsNull}}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                      </Border>
+                      <TextBlock Text="{Binding Name}" FontSize="11.5" Classes="muted" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding MorePreviewsText}" IsVisible="{Binding HasMorePreviews}" Classes="muted" HorizontalAlignment="Center" />
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+      </Grid>
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,16,0,0">
+        <Button MinWidth="120" MinHeight="40" Focusable="False" Content="{l:Tr Cancel}" Command="{Binding CancelCommand}" />
+        <Button Classes="primary" MinWidth="200" MinHeight="40" Focusable="False" Content="{Binding PrintButtonText}" Command="{Binding PrintCommand}" IsEnabled="{Binding CanPrint}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

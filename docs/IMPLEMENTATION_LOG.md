@@ -403,9 +403,12 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - the later optimisation of two 10×15 photos on one 15×20 sheet.
 
   Nothing else was added.
-- **CI result for 0.8.0 (tag v0.8.0):** runs 41049317024 (main) and 41049317604 (tag) **failed**; the package was not built. 126 core tests passed on Windows and 124 on Linux, including the virtual-printer test where a PDF printer exists. Two UI test problems caused the failures:
-  - **Linux:** a setup failure in `Romanian_plurals` inside Avalonia's per-test application setup ("a different thread owns it", `DefaultRenderLoop.Add`), most likely caused by background work of an earlier test reaching the dispatcher during that setup.
-  - **Windows:** `Saved_crop_is_shown_as_the_result_and_matches_the_file` measured 3.8 % against a 3.5 % limit; the same check gives 1.3 % on Linux.
+- **CI result for 0.8.0:** two runs of the same commit gave different results, so the failures were intermittent.
+  - **Run 41049317024 (main) failed** in two UI tests:
+    - **Linux:** a setup failure in `Romanian_plurals` inside Avalonia's per-test application setup ("a different thread owns it", `DefaultRenderLoop.Add`). The likely cause is background work from an earlier test reaching the dispatcher during that setup.
+    - **Windows:** `Saved_crop_is_shown_as_the_result_and_matches_the_file` measured 3.8 % against a 3.5 % limit (1.3 % on Linux).
+  - **Run 41049317604 (tag v0.8.0) passed** on `ubuntu-latest` and `windows-latest` (Windows: 126 core and 43 UI tests) and built the Windows package.
+  - **Virtual printer:** in both Windows runs, `Windows_virtual_printer_accepts_a_photo_at_true_size` ran and passed (it is not among the skipped tests). A 10×15 photo went as a real job through the spooler and GDI to Microsoft Print to PDF: the job was accepted, followed until it left the queue, and the PDF had two pages for two copies.
 
 ### 2026-10-30: Version 0.8.1, test and dispatcher fixes after the 0.8.0 CI run
 - **Work done:**

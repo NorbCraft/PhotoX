@@ -4,6 +4,33 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-30
+
+Direct printing and a simpler Photos workflow ([prompt_05](prompts/prompt_05.md)). Verified with automated tests on Linux and with a virtual printer in Windows CI. **Not yet printed on the Citizen CY-02.**
+
+### Added
+- **Print directly from PhotoX** through the installed Windows printer driver (the Citizen CY-02), without LinkServer:
+  - **Print selected** and **Print all** in the gallery; **Print** on the ID print sheet and in Collages.
+  - A print dialog: printer, 10 × 15 or 15 × 20, the driver's paper for that size, copies, a preview of the pages, and a reminder of which paper must be loaded.
+  - **Printer settings…** opens the driver's own options (quality, glossy or matte, cutting); PhotoX remembers them per printer.
+  - Photos with unsaved changes print as they are shown, without being saved. Printing never changes a photo.
+- **Print queue** (printer button in the top bar): each job with its status in the Windows queue, cancel for pending jobs, and failures with the reason.
+- **Print counter** in the lower-right corner of every thumbnail: how many copies Windows accepted from PhotoX.
+- **Multiple selection** in the gallery: Ctrl + click, Shift + click, Ctrl + A.
+- **Save changes:** saves the selected photos' changes and, after a clear warning, deletes the originals PhotoX kept for them.
+- **Restore original:** puts the kept original back, after a warning that the edits are discarded.
+- **Collages:** each photo's size in cm on the collage; change sizes by dragging the gaps between photos or typing the selected photo's width and height; Reset layout.
+
+### Changed
+- **Finish Order is gone.** Save changes and Restore original replace it; the gallery shows Print selected, Print all, Edit this photo (Enter), Use for ID photo, Save changes and Restore original.
+- The top bar: workspaces on the left with the selected one in blue; the print queue, language, settings and the PhotoX logo and name on the right. The logo's PX is larger.
+- **ID Photos:**
+  - the sizes are compact buttons, with the explorer and the folder's photos right under them; a click on a photo loads it;
+  - the "Source photo" section and the "Geometric sizes…" note are gone;
+  - the print sheet has **Save sheet** and **Print**.
+- Collages offer 10 × 15 and 15 × 20 only (20 × 30 removed).
+- The "Originals are kept until…" note under the explorer is gone; the selected-photo panel folds away, but its actions stay.
+
 ## [0.7.0] - 2026-10-30
 
 New requirements and refinements from [prompt_04](prompts/prompt_04.md). Verified with automated tests on Linux; Windows CI runs on push. Not yet tried on the studio PC or printed.

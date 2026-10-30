@@ -36,8 +36,11 @@ src/
   PhotoX.Imaging/    Magick.NET: load (orient, colour), render recipe, encode, thumbnails,
                      histogram, Auto Correct estimation, ID render, sheet render, collage render;
                      face detection (0.4.0)
-  PhotoX.Storage/    file handling: folder scan, order state + sidecar, safe save, Finish Order
-                     cleanup, Duplicate image, thumbnail cache, settings, data files
+  PhotoX.Storage/    file handling: folder scan, order state + sidecar, safe save, Save Changes and
+                     Restore Original (OrderBackups), Duplicate image, thumbnail cache, settings,
+                     data files, print counters
+  PhotoX.Printing/   print items, page preparation, the print queue (PrintService) and the
+                     Windows driver backend (spooler + GDI); no printing on other platforms
   PhotoX.App/        Avalonia UI: views, view models, localization, composition
 tests/
   PhotoX.Tests/      Core + Imaging + Storage tests (synthetic fixtures generated at test time)
@@ -52,7 +55,10 @@ flowchart BT
     Imaging[PhotoX.Imaging<br/>Magick.NET] --> Core
     Storage[PhotoX.Storage<br/>files, sidecar, cache] --> Core
     Storage --> Imaging
-    App[PhotoX.App<br/>Avalonia MVVM] --> Storage
+    Printing[PhotoX.Printing<br/>queue, Windows spooler] --> Storage
+    Printing --> Imaging
+    App[PhotoX.App<br/>Avalonia MVVM] --> Printing
+    App --> Storage
     App --> Imaging
     App --> Core
 ```
@@ -63,11 +69,11 @@ Rules:
 
 ## 4. UI structure
 
-- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.7.0", shown once, prompt_03 §8, prompt_04 §1); top bar (PhotoX icon, Photos | ID Photos | Collages, folder/photo context, EN|RO, settings) and a content area. The four pages (Browse, Edit, ID, Collages) are created once and shown or hidden, so switching never rebuilds the gallery.
+- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.8.0", prompt_04 §1); top bar (Photos | ID Photos | Collages with the selected one in blue, folder/photo context, print queue, EN|RO, settings, then the PhotoX logo and name, prompt_05 §1) and a content area. The print dialog and the print queue panel are overlays of the shell. The four pages (Browse, Edit, ID, Collages) are created once and shown or hidden, so switching never rebuilds the gallery.
 - **Explorer (DEC-055):** `ExplorerViewModel` + `ExplorerView` (locations, four recent orders, folder tree) is one control used by Browse, by the ID portrait picker and by Collages. `PhotoPickerViewModel` adds the thumbnail grid (`PickerGrid`) of the open folder; thumbnails come from the same cache and loader as the gallery (`ThumbnailSource`). Each workspace keeps its own folder; pickers start in the order open in Photos.
-- **Photos workspace:** *Browse* (explorer, gallery with a right-click menu: Edit, Use for ID photo, Duplicate image; collapsible details, Start editing / Finish) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
-- **ID workspace:** the portrait picker (explorer + thumbnails) until a portrait is chosen, then *1 Framing & adjustment* → *2 Print sheet*, with the same resizable panel.
-- **Collages workspace:** explorer and thumbnails (left), the collage canvas (centre), sheet, orientation, templates, spacing and Save JPG (right); see §7.1.
+- **Photos workspace:** *Browse* (explorer, gallery with multiple selection, state badges top right and print counters bottom right, a right-click menu: Edit, Use for ID photo, Print, Duplicate image, Restore original; an action panel: Print selected, Print all, Edit this photo, Use for ID photo, Save changes, Restore original) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
+- **ID workspace:** size chips, then the explorer and the folder's thumbnails (a click loads the portrait); *1 Framing & adjustment* → *2 Print sheet* (Save sheet, Print), with the same resizable panel.
+- **Collages workspace:** explorer and thumbnails (left), the collage canvas with slot sizes (centre), sheet, orientation, templates, spacing, the selected slot's size, Save JPG and Print (right); see §7.1.
 - **Shared adjustments:** `ToneAdjustmentsViewModel` + `ToneAdjustmentsView` (levels histogram with three triangle handles, Auto Correct / Auto Adjust, exposure, contrast, white balance, tint, saturation with gradient tracks; exposure also on the + / − keys) are used by the Photos and ID workspaces (prompt_03 §7, prompt_04 §§7–8).
 - **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
 - **Keyboard:** handled at window level with `KeyDown` (tunnelling). Shortcuts are ignored when `e.Handled`, when a `TextBox`/`NumericUpDown`/`ComboBox` has focus, when a dialog is open, or for auto-repeat. Avalonia exposes no repeat flag, so the handler tracks key-down/key-up pairs and ignores repeated `KeyDown` events for a key that is still held (FR-018).
@@ -78,11 +84,14 @@ stateDiagram-v2
     Browse --> Edit: open photo / Enter
     Edit --> Edit: Save & Next (after successful save) / Previous / Next
     Edit --> Browse: Back to folder (Esc)
-    Browse --> FinishOrder: Finish Order
-    FinishOrder --> Browse
+    Browse --> PrintDialog: Print selected / Print all
+    PrintDialog --> Browse: Print (jobs queued) / Cancel
+    Browse --> SaveChanges: Save changes / Restore original (warning)
+    SaveChanges --> Browse
     Browse --> IdFraming: ID Photos tab / Use for ID
     IdFraming --> IdSheet: Continue
     IdSheet --> IdFraming: Back
+    IdSheet --> PrintDialog: Print
 ```
 
 ## 5. Image processing (Magick.NET)
@@ -175,19 +184,22 @@ Order/
 
 If any step fails, the temp file is deleted and the existing photo and backup are unchanged. **The UI advances only after step 7 succeeds.** There is no journal or recovery service. Because the original is *copied* before the atomic replace, an interruption at any point leaves either the old or the new photo at its path, plus at most a stray temp file. Stray temp files are ignored by the gallery and deleted on the next save of that photo or at Finish Order.
 
-### 6.3 Finish Order (FR-072)
+### 6.3 Save Changes and Restore Original (FR-072, FR-083, DEC-056)
 
-1. If there are unsaved manual edits, offer **Save them** or **Return to editing**.
-2. Show one confirmation with **Erase originals and edit history** (selected by default) or **Keep**.
-3. **Erase:**
-   - delete each backup recorded in the sidecar (only if it still exists);
-   - delete the sidecar;
-   - delete PhotoX temp files of the order;
-   - delete the order's cached thumbnails;
-   - delete `Original/` only if it is empty.
+Both work per photo, only through the sidecar, in `OrderBackups` (Storage). Finish Order and its folder-wide cleanup are gone.
 
-   Unknown files are never touched. Failures are listed and the finished photos stay.
-4. **Keep:** nothing is deleted. The order is marked finished in settings (recent list).
+- **Save Changes:** the App saves pending edits with `PhotoSaver` (stopping at the first failure), then `RemoveBackups(folder, names)`. For each name, the backup is deleted only if:
+  - the sidecar names it with plain file names inside `Original/`;
+  - the edited photo exists, is non-empty, reads as an image, and still has the size and write time recorded when PhotoX saved it;
+  - the backup still has its recorded size and write time.
+
+  Then the photo's record goes. Otherwise the backup is kept and recorded, and the reason is reported (photo not verified, photo changed, not PhotoX's backup, delete failed). The sidecar is deleted when empty, `Original/` only when empty (never recursively).
+- **Restore Original:**
+  - the backup (identity checked as above, and readable) is copied to the photo's temp name, compared by SHA-256, and moved over the photo atomically;
+  - the photo is compared again;
+  - only then are the backup and the record removed.
+
+  Read-only photos and backups that are not PhotoX's are refused and left untouched.
 
 ### 6.4 Thumbnail cache (FR-053)
 
@@ -221,9 +233,40 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 - **Logs:** Serilog daily files in `%LOCALAPPDATA%/PhotoX/logs`, kept for 14 days. File paths are logged, never image content (FR-051).
 - **Errors:** unhandled exceptions are logged and shown as a localized message. Expected failures (save, load) return typed results with a message key.
 
-## 9. Printing boundary (deferred, FR-050)
+## 9. Printing (FR-050, FR-080–FR-082, DEC-057, DEC-058)
 
-Print formats are data (`print-formats.json`, see §8). A later version could copy finished files into a Citizen LinkServer hot folder chosen in Settings. No printing code exists now.
+```mermaid
+flowchart LR
+    Dialog[Print dialog<br/>printer, size, paper, copies, preview] --> Queue[PrintService<br/>one job at a time, off the UI thread]
+    Queue --> Content[PrintContent<br/>unsaved edit / saved photo / original / sheet / collage]
+    Content --> Page[PrintLayout + PrintRenderer<br/>page at device pixels]
+    Page --> Backend[IPrintBackend]
+    Backend --> Win[WindowsPrintBackend<br/>DEVMODE, GDI StartDoc/StretchDIBits, spooler GetJob/SetJob]
+    Win --> Driver[Citizen CY-02 driver]
+    Queue --> History[PrintHistory<br/>print-history.json]
+```
+
+- **Content (read-only):**
+  - an unsaved edit is rendered like a save (`RecipeRenderer.RenderFinal` on the trusted original) without writing anything;
+  - a saved photo is loaded as it is;
+  - an untouched original is cropped to fill the paper;
+  - ID sheets and collages are rendered by their own renderers at full resolution (previews from smaller copies).
+- **Page:** `PrintLayout` (Core) turns the content upright to the paper, fills (originals, or ratio within 2 %) or fits; `PrintRenderer` (Imaging) resamples once (Lanczos) to the device pixels and produces a top-down 24-bit DIB.
+  - On the driver's paper of the print size, the page covers the driver's physical page (borderless area).
+  - Otherwise it is centred at true size.
+- **Windows backend:** P/Invoke to `winspool.drv` and `gdi32.dll` (no extra dependency):
+  - papers and sizes from `DeviceCapabilities`;
+  - the printer's default `DEVMODE` (or the one saved from the driver's own dialog, `DocumentProperties` with prompt) with paper, portrait and one copy set;
+  - `StartDoc` returns the spooler job id; the page is drawn with `StretchDIBits` at 1:1 in bands, once per copy;
+  - `GetJob`/`SetJob` report status and cancel.
+
+  Colours are sRGB with no printer profile applied by PhotoX. `DOCINFO.lpszOutput` lets tests print to a PDF printer without a dialog. Other platforms use `UnavailablePrintBackend`.
+- **Queue and counters:**
+  - one worker prepares and submits jobs in order, then polls the Windows queue every 2 s;
+  - counters (`PrintHistory`, in the data folder) are added when Windows accepts a job and taken back when the job is cancelled through PhotoX or seen deleting and then gone;
+  - a job that left the queue without being deleted is "done in the Windows queue";
+  - nothing is resubmitted automatically.
+- **Two 10×15 photos on one 15×20 sheet** (a Citizen driver paper) is a later optimisation; the dialog prefers the plain paper of each size.
 
 ## 10. Performance notes
 

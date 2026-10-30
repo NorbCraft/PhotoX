@@ -359,3 +359,47 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Run 41039471662 passed on `windows-latest` (115 core and 39 UI tests; skipped: owner-sample tests and opt-in benchmarks) and on `ubuntu-latest`.
   - The `windows-package` job produced the artifact `PhotoX-0.7.0-windows` with `PhotoX-0.7.0-win-Setup.exe` and `PhotoX-0.7.0-win-Portable.zip`. All seven frames of the new `photox.ico` were found embedded in the packaged `PhotoX.exe`. Neither package has been installed or run on a Windows machine.
   - The run before (40956546045, a docs-only commit after 0.6.0) had failed on Windows in `Saved_crop_is_shown_as_the_result_and_matches_the_file`: 4.5 % against a 3.5 % limit, because the test photo was random. The fixture is now seeded and lightly blurred (1.3 %).
+
+### 2026-10-30: Version 0.8.0, prompt_05 (direct printing, new Photos workflow)
+- **Prompt:** [docs/prompts/prompt_05.md](prompts/prompt_05.md), archived unchanged. The owner also asked for a bigger PX in the logo during the work.
+- **Work done:**
+  - **Printing (§§2–4, 6; DEC-057, DEC-058):**
+    - new project `PhotoX.Printing`: print items (unsaved edit, saved photo, original, ID sheet, collage), the queue (`PrintService`) and the Windows backend (spooler and GDI through P/Invoke; no new package);
+    - `PrintLayout` (Core) and `PrintRenderer` (Imaging) prepare the page at device pixels;
+    - `PrintHistory` (Storage) keeps the counters in the data folder.
+    - App: print dialog, queue panel, counter badges.
+  - **Photos workflow (§5, DEC-056):**
+    - multiple selection; Print selected / Print all / Edit this photo / Use for ID photo / Save changes / Restore original (also in the right-click menu);
+    - Finish Order and `OrderCleanup` removed; `OrderBackups` implements Save Changes and Restore per photo with strict identity checks.
+  - **ID (§7):** compact size chips, the explorer and thumbnails under them (a click loads the photo), no source section or disclaimer, Save sheet and Print.
+  - **Collages (§8, DEC-059):** 10×15 and 15×20 only; slot sizes in cm on the canvas; resizing by dragging gaps or typing the selected slot's size (at least 1 cm per cell); Save and Print share the composition.
+  - **UI (§1, DEC-060):**
+    - branding at the right of the top bar with the X in the lens colours; blue selected workspace;
+    - explorer note removed; the details panel folds only the preview;
+    - disabled buttons dim their text; larger PX in the icon.
+- **Verification (actually run, Linux):**
+  - 127 core tests and 45 headless UI tests pass. Skipped: the Windows-only tests (hidden photos, the PDF-printer job) and the two opt-in benchmarks.
+  - New tests with a fake printer (TS-20):
+    - layout and page geometry (matched paper, A4 centring, paper too small);
+    - an unsaved edit printed equals the saved render and writes nothing;
+    - an ID sheet printed pixel for pixel;
+    - counters for accepted, cancelled before Windows, cancelled in Windows, removed outside PhotoX, refused, and a cancel that Windows refuses, plus persistence;
+    - spooler flag mapping;
+    - UI: dialog defaults, the plain 6x8 paper, PDF A4 centring, an ID sheet and a collage printed at 1200 × 1800, counters on thumbnails and after reopening, cancelling in the queue.
+  - New Save Changes / Restore tests (TS-09) with the customer-file scenario of the old Finish Order tests, partial selections, kept backups and their reasons, path traversal, read-only photos, and UI flows with warning and cancel.
+  - Screenshots inspected: gallery with multiple selection and actions, print dialog, print queue, ID explorer, collage sizes. Found and fixed: disabled button text not dimmed; a squeezed folder tree in ID and Collages.
+  - The app started on the Linux desktop with empty settings folders (no printers: the dialog explains that direct printing is Windows-only) and logged no errors.
+- **Not tested:**
+  - the Citizen CY-02 and any physical print (no printer here);
+  - the driver's settings dialog;
+  - Windows runs outside CI.
+
+  The Windows CI result for the virtual PDF printer is recorded below once the run has finished.
+- **Plan review (prompt_05 §10):** every Must requirement is Implemented. Multiple selection (FR-041, formerly deferred) and printing (FR-050) are now Implemented too. What remains needs the owner or new material:
+  - Citizen printing and calibration (OQ-031, FR-071);
+  - studio use on Windows and studio-PC measurements (NFR-002/003/007);
+  - the Romanian review (NFR-008, now with the printing texts);
+  - background whitening, which waits for samples (FR-065);
+  - the later optimisation of two 10×15 photos on one 15×20 sheet.
+
+  Nothing else was added.

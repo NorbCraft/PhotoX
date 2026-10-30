@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Plan revision** | **P-2** (2026-10-29), updated with the owner's feedback of [prompt_03.md](prompts/prompt_03.md) (marked "prompt_03") and the requirements of [prompt_04.md](prompts/prompt_04.md) (marked "prompt_04", 2026-10-30). Supersedes P-1. |
+| **Plan revision** | **P-2** (2026-10-29), updated with the owner's feedback of [prompt_03.md](prompts/prompt_03.md) (marked "prompt_03") the requirements of [prompt_04.md](prompts/prompt_04.md) (marked "prompt_04", 2026-10-30) and [prompt_05.md](prompts/prompt_05.md) (direct printing and the new Photos workflow, marked "prompt_05"). Supersedes P-1. |
 | **Approval** | Approved for implementation by the owner in [prompt_02.md](prompts/prompt_02.md), which supersedes conflicting parts of [prompt_01.md](prompts/prompt_01.md). |
 | **Current version** | see `Directory.Build.props` and [CHANGELOG.md](CHANGELOG.md) |
 
@@ -50,10 +50,9 @@ The operator works on **copies** of customer photos, and independent backups exi
 **Not in scope:**
 - a general-purpose photo editor;
 - a file manager;
-- a printing platform;
+- a printing platform or printer-management application (PhotoX prints through the installed Windows driver, prompt_05);
 - an extensible framework;
 - batch editing;
-- direct printing;
 - HEIC/HEIF;
 - country-specific biometric templates;
 - monitor colour management;
@@ -71,29 +70,28 @@ The operator works on **copies** of customer photos, and independent backups exi
 
 ## 4. Workflows
 
-**W-1: Ordinary order.**
-1. Open the order folder in the built-in explorer and see thumbnails with status and progress.
-2. Open a photo. On an unedited photo the crop tool is active with **10×15**, oriented like the photo, using the largest centred rectangle; the ratio is locked.
-3. Adjust the crop and corrections.
-4. Press **Enter** (= **Save & Next**). PhotoX saves with *exactly* the current crop and edits, **waits for success**, then opens the next photo.
-5. Repeat until the order is done. At the end there is no wrap-around.
+**W-1: Ordinary order** (prompt_05: Open folder → Select photos → Edit if needed → Print or Save Changes).
+1. Open the order folder in the built-in explorer and see thumbnails with status, print count and progress.
+2. Select photos (Ctrl/Shift + click, Ctrl + A). **Print selected** or **Print all** prints them as they are now, including unsaved edits, without saving.
+3. To edit, open a photo. On an unedited photo the crop tool is active with **10×15**, oriented like the photo, using the largest centred rectangle; the ratio is locked.
+4. Adjust the crop and corrections. Press **Enter** (= **Save & Next**). PhotoX saves with *exactly* the current crop and edits, **waits for success**, then opens the next photo. At the end there is no wrap-around.
 
 **W-2: Re-edit.** Reopening a saved photo restores its saved crop and adjustments, and re-renders from the preserved original (no cumulative JPEG loss).
 
-**W-3: Finish.** When the order is done, **Finish** saves or resolves pending edits, then by default **erases the temporary originals and edit history**. The operator can choose to keep them.
+**W-3: Save Changes / Restore Original** (prompt_05, replaces Finish Order). **Save Changes** saves the unsaved edits of the selected photos and, after a clear warning, permanently deletes the originals PhotoX kept for them. **Restore Original** puts the kept original back after a warning that the edits are discarded.
 
-**W-4: ID photo** (Select portrait → Align/Edit → Choose layout → Save JPG).
-1. Choose a portrait with the built-in explorer in the ID workspace (or *Use for ID photo* in Photos).
-2. Choose a size.
+**W-4: ID photo** (prompt_05: Choose format → Select photo in explorer → Align/Edit → Save Sheet or Print).
+1. Choose a size.
+2. Click the portrait in the explorer under the size list (or *Use for ID photo* in Photos).
 3. Frame the face using the oval and guides; optionally press **Auto Align**, then correct by hand.
 4. Adjust the photo (optionally **Auto Adjust**).
-5. Go to the sheet, choose the copy count and options, and press **Save**. A timestamped JPG is written to the remembered ID output folder. The portrait is never modified.
+5. Go to the sheet, choose the copy count and options, and press **Save sheet** (a timestamped JPG in the remembered ID output folder) or **Print**. The portrait is never modified.
 
-**W-5: Collage** (prompt_04: Select photos → Choose template → Arrange → Save JPG).
-1. Choose photos with the built-in explorer.
-2. Choose the sheet (10×15, 15×20, 20×30), its orientation and a template.
-3. Place photos in the slots, swap them, and frame each one inside its slot.
-4. Press **Save JPG**. A timestamped, print-ready file is written to the remembered collage output folder. The photos are never modified.
+**W-5: Collage** (prompt_05: Select template → Add photos → Adjust layout → Save or Print).
+1. Choose the sheet (10×15 or 15×20), its orientation and a template.
+2. Add photos from the built-in explorer, swap them, and frame each one inside its slot.
+3. Adjust the layout: drag the gaps or type a slot's size in cm.
+4. Press **Save JPG** (a timestamped, print-ready file in the remembered collage folder) or **Print**. The photos are never modified.
 
 ## 5. Functional requirements
 
@@ -103,16 +101,16 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, the **four most recent orders in a collapsible section**. The tree behaves like a desktop explorer: clicking a folder selects, opens and expands it; subfolders are nested; folders without subfolders have no arrow; the selected folder is clearly marked (prompt_03). Hidden/system folders and `Original` are not shown as part of an order. **The same explorer serves Photos, ID Photos and Collages**; ID Photos opens its portrait with it, Collages chooses photos with it (prompt_04). | M | Owner | 0.1.0, 0.5.0, 0.7.0 | Implemented | TS-10, TS-18 |
-| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. The selected photo is clearly highlighted (prompt_03). | M | Owner | 0.1.0 | Implemented | TS-10, TS-18 |
-| FR-008 | **Three workspaces**, *Photos*, *ID Photos* and *Collages* (prompt_04), switched from a persistent top bar that also shows the PhotoX icon. | M | Owner | 0.1.0, 0.7.0 | Implemented | TS-18 |
+| FR-001 | **Built-in folder explorer:** drives (fixed and removable), folder tree, remembered last folder, the **four most recent orders in a collapsible section**. The tree behaves like a desktop explorer: clicking a folder selects, opens and expands it; subfolders are nested; folders without subfolders have no arrow; the selected folder is clearly marked (prompt_03). Hidden/system folders and `Original` are not shown as part of an order. **The same explorer serves Photos, ID Photos and Collages**; ID Photos shows it under the size list and a click on a photo loads it (prompt_05), Collages chooses photos with it (prompt_04). | M | Owner | 0.1.0, 0.5.0, 0.7.0, 0.8.0 | Implemented | TS-10, TS-18 |
+| FR-002 | **Thumbnail gallery:** JPEG/PNG photos with filename and basic info. Clear status: To do, Edited, Reviewed, Unsaved, Error/Unsupported. Filters **All / To do / Done**: *To do* shows only photos not yet edited or reviewed. Natural filename sort. Generated ID sheets (`ID_*` timestamp names) are excluded by default. Order position and progress (e.g. 23 / 85) are shown. The selected photo is clearly highlighted (prompt_03). The lower-right corner of each thumbnail shows its print count (FR-082). | M | Owner | 0.1.0, 0.8.0 | Implemented | TS-10, TS-18 |
+| FR-008 | **Three workspaces**, *Photos*, *ID Photos* and *Collages* (prompt_04), switched from a persistent top bar (workspaces on the left, the selected one in blue). | M | Owner | 0.1.0, 0.7.0 | Implemented | TS-18 |
 | FR-009 | **English/Romanian**, switchable at runtime from the top bar; choice remembered; culture-correct numbers (RO `3,5 × 4,5 cm`); comma-below ș/ț; consistent terminology and form of address. | M | Owner | 0.1.0 | Implemented | TS-16 |
-| FR-039 | **Neutral dark theme**, large clear primary actions, collapsible browse details panel, a recognisable folder/back icon for *Back to folder*, and adjustment panels (Photos and ID) that are resized by dragging their separator, with the image using the remaining space (prompt_03). | M | Owner | 0.1.0, 0.5.0 | Implemented | TS-18 |
+| FR-039 | **Neutral dark theme**, large clear primary actions, a browse details panel whose photo preview folds away while the actions (FR-041, FR-050, FR-072) stay visible, the PhotoX logo and name (the X in the lens colours) at the right of the top bar and the selected workspace in blue (prompt_05), a recognisable folder/back icon for *Back to folder*, and adjustment panels (Photos and ID) that are resized by dragging their separator, with the image using the remaining space (prompt_03). | M | Owner | 0.1.0, 0.5.0 | Implemented | TS-18 |
 | FR-040 | **Settings** for infrequent options: print-format and ID-size dimensions (data files, location shown in Settings), JPEG quality, ID print scale correction, thumbnail cache (size and age shown, *Clear cache*), ID output folder (on the sheet step). Not needed for daily work. | M | Planner | 0.2.0, 0.6.0 | Implemented | TS-18 |
-| FR-041 | **Multiple selection** in the gallery. | C | Owner (“consider”) | Deferred | Deferred | — |
+| FR-041 | **Multiple selection** in the gallery (prompt_05): Ctrl + click, Shift + click and Ctrl + A, clearly highlighted. **Print selected**, **Save Changes** and **Restore Original** act on the selection; **Edit this photo** and **Use for ID photo** need one photo. | M | Owner | 0.8.0 | Implemented | TS-18 |
 | FR-053 | **Thumbnails:** generated in the background (visible first); persistent cache capped at 1 GB, 30-day retention, with *Clear cache*. Cache entries of an order are removed by Finish Order where practical. | M | Owner | 0.1.0 (gen), 0.2.0 (cache) | Implemented | TS-11 |
 | FR-054 | **Removable-media warning:** opening a folder on removable media shows a clear warning recommending a local working copy. Editing is allowed. | S | Owner | 0.2.0 | Implemented | TS-18 |
-| FR-077 | **Logo, application icon and version:** a flat PhotoX icon (navy rounded square, white camera outline, dual-tone blue lens ring, bold white PX; SVG master, PNG exports, multi-resolution ICO) used for the window, taskbar and executable, the Windows installer, the Linux desktop entry, the About screen and the top bar beside the workspaces (prompt_04, DEC-050). The native title bar shows the name and version once (prompt_03, DEC-048); the installer file names include the version (prompt_04). | S | Owner | 0.4.0, 0.7.0 | Implemented | TS-18 |
+| FR-077 | **Logo, application icon and version:** a flat PhotoX icon (navy rounded square, white camera outline, dual-tone blue lens ring, bold white PX; SVG master, PNG exports, multi-resolution ICO) used for the window, taskbar and executable, the Windows installer, the Linux desktop entry, the About screen and the top bar, where the logo and the name "PhotoX" (the X in the lens colours) sit at the right, after Settings (prompt_04, prompt_05, DEC-050). The PX of the icon was enlarged (prompt_05). The native title bar shows the name and version once (prompt_03, DEC-048); the installer file names include the version (prompt_04). | S | Owner | 0.4.0, 0.7.0, 0.8.0 | Implemented | TS-18 |
 | FR-078 | **Duplicate image** in the gallery's right-click menu: copies the photo in its folder as `name_copy.ext` (then `name_copy_2.ext`, …), never overwrites, and shows the copy in the gallery (prompt_04). | S | Owner | 0.7.0 | Implemented | TS-10 |
 
 ### 5.2 Editor navigation and saving workflow
@@ -121,7 +119,7 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 |---|---|---|---|---|---|---|
 | FR-003 | **Default crop on an unedited photo:** crop tool active, preset **10×15**, orientation matching the photo, **largest centred rectangle** of the ratio, ratio locked. If the photo already has the ratio, the whole image. Opening a photo never writes to disk. | M | Owner | 0.1.0 | Implemented | TS-01, TS-07 |
 | FR-004 | **Save & Next (Enter and button):** save using the **current edits and exactly the currently selected crop** (never reset, re-centred or enlarged), **wait until the save succeeds**, then open the next photo. On failure: stay on the photo, keep the edits, explain the problem. No background save queue. Work runs off the UI thread so the UI stays responsive (a progress indicator is shown). | M | Owner | 0.1.0 | Implemented | TS-07 |
-| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. When every photo is saved or reviewed, **Save & Next becomes Close** (back to the gallery, still on Enter) and the gallery's main **Start editing** button becomes **Finish** (prompt_03). The buttons carry no descriptive lines under their labels (prompt_04). | M | Owner | 0.1.0, 0.5.0, 0.7.0 | Implemented | TS-07, TS-18 |
+| FR-017 | **Navigation:** Save (Ctrl+S, stays on the photo), Previous, Next/Skip (no save), Reset, Back to folder, position and progress. No wrap from the last photo to the first; the end of the order is announced. When every photo is saved or reviewed, **Save & Next becomes Close** (back to the gallery, still on Enter). The gallery offers Print selected, Print all, Edit this photo (Enter), Use for ID photo, Save Changes and Restore Original instead of Start editing / Finish Order (prompt_05). The buttons carry no descriptive lines under their labels (prompt_04). | M | Owner | 0.1.0, 0.5.0, 0.7.0 | Implemented | TS-07, TS-18 |
 | FR-018 | **Keyboard:** Enter = Save & Next; Ctrl+S = Save; ←/→ (or PgUp/PgDn) = Previous / Next; Ctrl+Z / Ctrl+Y = Undo / Redo; Space (hold) = before/after; **+ / −** = exposure (prompt_04). Auto-repeat of held keys is ignored. Editor shortcuts never act while a dialog, text field, numeric input or a control that uses the key has focus. | M | Owner | 0.1.0, 0.7.0 | Implemented | TS-07, TS-18 |
 | FR-019 | **Unsaved changes** are clearly indicated (editor and filmstrip/gallery). Skip/Previous keep *manual* edits in memory for the session (marked Unsaved) and never save them silently. Skipping never accepts or saves the default crop. | M | Owner | 0.1.0 | Implemented | TS-07 |
 | FR-016 | **Undo/redo** of edit steps for the current photo. One **Reset** button clears the image adjustments (levels, exposure, contrast, white balance, tint, saturation) as one undoable step and **keeps the crop** (prompt_04). | M | Owner | 0.2.0, 0.7.0 | Implemented | TS-04 |
@@ -157,7 +155,8 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | FR-024 | **Effectively unchanged photo:** if the recipe is a no-op (the crop keeps all pixels and there are no adjustments), Save marks the photo **Reviewed** without re-encoding or creating a backup. A crop that removes pixels is an effective change. | M | Owner | 0.1.0 | Implemented | TS-07, TS-08 |
 | FR-026 | **Edit history (sidecar):** a small, versioned `Original/.photox-order.json` stores the backup mapping, saved crop and adjustments, and Reviewed marks. Reopening restores them. No database. | M | Owner | 0.1.0 | Implemented | TS-08 |
 | FR-027 | **Order state** (To do / Edited / Reviewed) survives restarts via `Original/` and the sidecar. Unsaved edits exist only in memory. | M | Owner | 0.1.0 | Implemented | TS-07 |
-| FR-072 | **Finish Order** (the button is labelled **Finish**, prompt_04): first completes or resolves required saves. If manual edits are unsaved, the operator chooses *Save them* or *Return to editing*; nothing is discarded silently. Then a single confirmation with **Erase originals and edit history (default)** or **Keep**. Erase deletes only originals and history known to belong to this order (from the sidecar, and only while the finished photo exists and the backup still has its recorded size and time), PhotoX temp files and the order's cached thumbnails. Nothing is deleted recursively, and saved photos are never hidden (DEC-043). It keeps finished photos, exported ID images and unrelated files (including unknown files in `Original/`), and removes `Original/` only if empty. Failures are reported with what remains. Afterwards, editing starts from the saved photo. | M | Owner | 0.2.0 | Implemented | TS-09 |
+| FR-072 | **Save Changes** (prompt_05, replaces Finish Order): for the selected photos, saves the unsaved edits (verified saves; the first failure stops and is reported), then, after one warning that the originals are deleted permanently, deletes each original PhotoX kept for them, one photo at a time and only when PhotoX can identify it: the sidecar names it with plain file names inside `Original/`, it still has the size and write time recorded at creation, and the edited photo is the file PhotoX saved and reads as an image (DEC-056). Anything uncertain is kept, stays recorded and is reported with the reason. Nothing is deleted recursively; edited photos, ID exports and unrelated files (including unknown files in `Original/`) are never touched; `Original/` is removed only when empty. Afterwards those photos count as To do; editing starts from the saved photo. | M | Owner | 0.2.0, 0.8.0 | Implemented | TS-09 |
+| FR-083 | **Restore Original** (prompt_05): after a warning that the edits are discarded, discards the unsaved edits of the selected photos and copies each kept original back: copied to a temp file next to the photo, compared byte for byte, swapped in atomically; only then are the backup and its history removed. A backup that is not PhotoX's (size or time changed) is not restored. | M | Owner | 0.8.0 | Implemented | TS-09 |
 | FR-030 | **Formats:** JPEG and PNG in, same format out. The real format is detected from content. Supported variants are listed in §8.3. | M | Owner | 0.1.0 | Implemented | TS-06, TS-09 |
 | FR-031 | **HEIC/HEIF:** unsupported initially; shown in the gallery as *Unsupported (HEIC)* with an explanation instead of disappearing. Future point. | M (message) | Owner | 0.2.0 (message) | Implemented | TS-09 |
 | FR-032 | **EXIF orientation** applied on load; saved pixels are upright with Orientation = 1. | M | Owner | 0.1.0 | Implemented | TS-02 |
@@ -171,7 +170,7 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-007 | **ID workspace** with two steps, shown as large numbered tabs: **1. Framing & adjustment → 2. Print sheet**. The portrait is chosen with the built-in explorer (prompt_04) and is never overwritten. | M | Owner | 0.3.0, 0.7.0 | Implemented | TS-14, TS-18 |
+| FR-007 | **ID workspace** with two steps, shown as large numbered tabs: **1. Framing & adjustment → 2. Print sheet**. The portrait is chosen in the built-in explorer under the size list (prompt_05) and is never overwritten. The size list is compact; the "geometric sizes" note and the separate source-photo section are gone (prompt_05). | M | Owner | 0.3.0, 0.7.0, 0.8.0 | Implemented | TS-14, TS-18 |
 | FR-061 | **Geometric sizes:** 3×4 cm, 3.5×4.5 cm, **2×2 in** (50.8×50.8 mm, shown as ≈ 5.1 × 5.1 cm, for US visas), **4×6 cm**, **5×7 cm**, 9×12 cm. No country-specific templates and no compliance claims. Data, not code: the sizes are read from `id-sizes.json` in the settings folder, created with these defaults (DEC-049); unedited entries written by 0.6.0 are updated to the current defaults (DEC-052). **+ New size** adds custom sizes in centimetres, remembered and removable, listed apart from the built-in sizes. The size list shows centimetres, not pixels (prompt_04). | M | Owner | 0.3.0, 0.6.0 (data file), 0.7.0 (custom sizes) | Implemented | TS-14 |
 | FR-062 | **Framing:** fixed frame of the size's exact ratio (3:4, square for 2×2 in, prompt_04); the photo is moved, zoomed and rotated underneath (mouse, wheel, keys, sliders; double-click resets the zoom or rotation slider). Face oval plus crown, eye, chin and centre guides; the Romanian 3×4 frame puts the head at 70 % of the height under the unchanged crown line (prompt_04). The 9×12 police photo has no guides and is framed by hand. | M | Owner | 0.3.0, 0.7.0 | Implemented | TS-14 |
 | FR-063 | **Auto Align** only on button press: offline face detection positions, scales and levels the face to the guides (not offered for sizes without guides). The result is adjustable and undoable. **With several faces the operator chooses** (or keeps manual framing). No face found gives a clear message. | M | Owner | 0.4.0 | Implemented | TS-13 |
@@ -180,16 +179,19 @@ Columns: P = priority; Src = source; MS = target version; Progress; Tests = suit
 | FR-066 | **Sheet layouts:** simple uniform grids on a 4×6 in page (101.6×152.4 mm), calculated from photo size, margins and spacing. **3×4 photos use a landscape page; other sizes use landscape when it fits more copies** (prompt_03, DEC-046). Photos keep their size and upright orientation. Selectable copy count, with familiar lower counts available even when more fit. Photo dimensions are never shrunk to fit more. A size may bring its own sheet margins: **four 2×2 in photos fit only edge to edge** (2 × 50.8 mm = the 101.6 mm short edge), so 2×2 in has no margin or spacing by default (prompt_04, DEC-052). | M | Owner | 0.3.0, 0.5.0, 0.7.0 | Implemented | TS-15 |
 | FR-074 | **3×4 with 7 mm strip:** an option, offered only for 3×4 and on by default, reserves **7 mm of white space below each photo** (image exactly 30×40 mm), so a photo can be cut as 30×47 mm. The strip is also the gap to the next row (DEC-046). The copy count is reduced if needed. | M | Owner | 0.3.0, 0.5.0 | Implemented | TS-15 |
 | FR-067 | **Sheet preview and options:** true-proportion preview; copy count; spacing; margins; the 3×4 strip option. No general cut-guide option (prompt_03). | M | Owner | 0.3.0, 0.5.0 | Implemented | TS-15, TS-18 |
-| FR-068 | **ID export:** **JPEG only** (prompt_04) at **300 ppi**; page 1200×1800 px (portrait) or 1800×1200 px (landscape); each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Implemented | TS-15 |
+| FR-068 | **ID export:** **Save sheet** writes JPEG only (prompt_04); **Print** prints the same sheet at its exact size on 10×15 (prompt_05); at **300 ppi**; page 1200×1800 px (portrait) or 1800×1200 px (landscape); each photo exactly `round(mm × 300 / 25.4)` px; sRGB. Written to the **operator-chosen, remembered output folder**. | M | Owner | 0.3.0 | Implemented | TS-15 |
 | FR-075 | **ID filenames:** `ID_yyyyMMdd_HHmm.jpg` (local time). If the name exists, `_1`, `_2`, … is appended. Never overwrites. | M | Owner | 0.3.0 | Implemented | TS-15 |
-| FR-079 | **Collages** (prompt_04): a third workspace for simple, print-ready photo collages. Sheets 10×15, 15×20 and 20×30 (8×12 in), portrait or landscape. A template-based workflow, not a free-form editor: templates for two to nine photos (side by side, stacked, three in a row, one large with two or three small, grids), filling the sheet inside a small margin with equal gaps (adjustable, default 3 mm); a template's cells may differ in shape, so portrait and landscape photos mix on one sheet. Photos come from the built-in explorer; they can be placed, replaced, removed and swapped between slots, and framed in their slot (drag to move, wheel to zoom, double-click to reset). The preview shows the whole collage in true proportions. **Save JPG** renders at 300 ppi from the full-resolution photos (JPEG q95, sRGB) as `Collage_yyyyMMdd_HHmm.jpg` in a remembered output folder, never overwriting; such files are excluded from order galleries (DEC-053). | S | Owner | 0.7.0 | Implemented | TS-19 |
+| FR-079 | **Collages** (prompt_04): a third workspace for simple, print-ready photo collages. Sheets 10×15 and 15×20 (prompt_05 removed 20×30), portrait or landscape. A template-based workflow, not a free-form editor: templates for two to nine photos (side by side, stacked, three in a row, one large with two or three small, grids), filling the sheet inside a small margin with equal gaps (adjustable, default 3 mm); a template's cells may differ in shape, so portrait and landscape photos mix on one sheet. Photos come from the built-in explorer; they can be placed, replaced, removed and swapped between slots, and framed in their slot (drag to move, wheel to zoom, double-click to reset). The preview shows the whole collage in true proportions with each slot's size in cm; slots can be resized by dragging the gaps between them or typing the selected slot's width and height (columns and rows of the template change, every cell keeps at least 1 cm, the photos stay within the sheet; Reset layout returns to the template, prompt_05). **Save JPG** and **Print** use the same composition: it renders at 300 ppi from the full-resolution photos (JPEG q95, sRGB) as `Collage_yyyyMMdd_HHmm.jpg` in a remembered output folder, never overwriting; such files are excluded from order galleries (DEC-053). | S | Owner | 0.7.0, 0.8.0 | Implemented | TS-19 |
 | FR-071 | **Calibration test sheet:** a printable page with mm rulers, the 7 mm strip, a centred 13×18-on-15×20 frame and ID reference rectangles, for checking physical output through Citizen's software. A simple configurable scale correction for ID export (default none) can be applied if physical tests require it: *ID print scale correction (%)* in Settings scales the photos and their positions about the page centre. | S | Owner | 0.3.0, 0.6.0 (scale correction) | Implemented (physical print check pending) | TS-15 |
 
 ### 5.6 Printing and diagnostics
 
 | ID | Requirement | P | Src | MS | Progress | Tests |
 |---|---|---|---|---|---|---|
-| FR-050 | **Printing deferred.** Files are printed via Citizen software. The preferred future integration is **LinkServer hot folders** (not implemented now). No print queues, quantities, grouping or mixed-media management. | — | Owner | Deferred | Deferred | — |
+| FR-050 | **Direct printing through the Windows driver** (prompt_05, replaces "printing deferred"): photos (single, selected, all; unsaved edits included without saving), ID sheets and collages print through the installed printer driver (Citizen CY-02) and the Windows print spooler, without LinkServer and without the USB protocol. Printing never writes to the photos or their folder and uses the save pipeline at full quality. Linux keeps editing and exporting; it has no direct printing. Driver options (quality, glossy/matte, cutting, the two-up 15×20 paper) are left to the driver: its defaults, or its own dialog opened from PhotoX (remembered per printer). PhotoX sends sRGB and applies no printer profile, so the driver does the only colour conversion (DEC-057). | M | Owner | 0.8.0 | Implemented (Citizen CY-02 not yet tested) | TS-20 |
+| FR-080 | **Print dialog:** printer (the last used, else a Citizen, else the Windows default), print size **10×15** or **15×20** (fixed for ID sheets and collages), the driver's paper of that size chosen automatically (or chosen by the operator when the driver has none; then the print is centred at true size), copies, a preview of the pages with the print layout, and a confirmation that names the paper to load (the loaded media cannot be detected). | M | Owner | 0.8.0 | Implemented | TS-20 |
+| FR-081 | **Print queue:** a panel from the top bar listing this session's jobs with name, size, copies, printer and status (waiting, preparing, sending, in the Windows queue, needs attention, done in the Windows queue, removed, cancelled, failed with the reason). Pending jobs can be cancelled (in PhotoX or in the Windows queue). "Done" means Windows finished the job, not that a photo came out of the printer. Jobs are never resubmitted automatically (DEC-058). | M | Owner | 0.8.0 | Implemented | TS-20 |
+| FR-082 | **Print counter:** each gallery thumbnail shows in its lower-right corner the copies of that photo that Windows accepted through PhotoX (a dash when none). It changes only after Windows accepts a job and goes back down when the job is cancelled through PhotoX or seen removed from the Windows queue before finishing. Kept per photo path in PhotoX's data folder (`print-history.json`), not in the customer's folder (DEC-058). | S | Owner | 0.8.0 | Implemented | TS-20 |
 | FR-051 | **Logging and errors:** rolling local log file; plain-language localized error messages. The log never contains image content. | M | Planner | 0.1.0 | Implemented | TS-17 |
 
 ## 6. Non-functional requirements
@@ -244,6 +246,15 @@ These are **not active**. They are kept for traceability.
 
 **Effective ppi** = output long-edge pixels ÷ physical long edge in inches (for 13×18 and custom sizes on a sheet, of the sheet).
 
+### 8.1.1 Print layout (FR-050, FR-080)
+
+| Content | On the paper |
+|---|---|
+| Untouched original | turned upright to the paper and **cropped to fill** with the largest centred crop of the paper's ratio (the editor's default crop) |
+| Edited photo (saved or unsaved), ID sheet, collage | turned upright; **fills** the paper when its ratio is within 2 % (at most 2 % trimmed), otherwise **fits** inside it, centred on white |
+
+On the driver's paper of the print size, the page covers the driver's whole page (its borderless area). On another paper (a PDF printer's A4) the print size is centred at its true size. Pages are rendered at the device resolution and sent unscaled; copies are sent as pages of one job.
+
 ### 8.2 Order state
 
 | State | Meaning |
@@ -282,13 +293,13 @@ Progress = (Edited + Reviewed) / total. After Finish Order with **Erase**, all p
 
 ## 9. Deferred
 
-Direct printing and LinkServer hot-folder submission; HEIC/HEIF; batch operations; multiple selection; monitor colour management; printer overscan handling beyond FR-071; touch optimisation; country-specific templates.
+LinkServer hot-folder submission (not needed with direct printing); two 10×15 photos on one 15×20 sheet; printer-specific options inside PhotoX (they stay in the driver); HEIC/HEIF; batch editing; monitor colour management; printer overscan handling beyond FR-071; touch optimisation; country-specific templates.
 
 ## 10. Release acceptance (1.0.0)
 
 1. All **Must** requirements are *Implemented*, with tests passing on Linux, and on Windows once CI exists.
 2. The owner has used PhotoX on real orders on the Windows studio PC without data loss or blocking defects.
-3. Physical prints through Citizen software confirm the ID dimensions, the 7 mm strip and the centred 13×18 output (FR-071), or the documented calibration has been applied.
+3. Physical prints from PhotoX on the Citizen CY-02 confirm the print sizes, the ID dimensions, the 7 mm strip and the centred 13×18 output (FR-050, FR-071), or the documented calibration has been applied.
 4. Romanian wording has been reviewed by the owner.
 5. Third-party notices are included.
 

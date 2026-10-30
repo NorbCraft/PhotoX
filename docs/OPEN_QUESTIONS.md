@@ -8,7 +8,8 @@ Non-blocking: a default is applied and can be changed without a new version.
 
 | ID | Question | Default applied | Where |
 |---|---|---|---|
-| OQ-030 | Physical size of the 20×30 sheet (prompt_04 collages and custom sizes) | 8×12 in = 203.2 × 304.8 mm, the usual size of "20×30" photo prints and consistent with the inch-based 10×15 and 15×20. Editable as `20x30` in `print-formats.json`. The owner confirms with the printer or lab that prints 20×30 (the Citizen CY-02 is not assumed to). | FR-010, FR-079, DEC-051 |
+| OQ-031 | Citizen CY-02 driver behaviour with PhotoX (prompt_05): paper names and sizes, whether its 10×15 page includes a bleed area, its default colour handling, the two-up 15×20 paper, and which options (glossy/matte, quality, cutting) its own dialog offers | PhotoX uses the driver's paper of the print size, covers the driver's whole page, sends sRGB without a printer profile, prefers the plain paper over two-up, and leaves options in the driver dialog. To be checked with the printer, then calibrated (FR-071) if needed. | FR-050, FR-080, DEC-057 |
+| OQ-030 | Physical size of the 20×30 sheet (prompt_04 custom sizes; Collages no longer offer it, prompt_05) | 8×12 in = 203.2 × 304.8 mm, the usual size of "20×30" photo prints and consistent with the inch-based 10×15 and 15×20. Editable as `20x30` in `print-formats.json`. The owner confirms with the printer or lab that prints 20×30 (the Citizen CY-02 is not assumed to). | FR-010, FR-079, DEC-051 |
 
 ## Decided
 

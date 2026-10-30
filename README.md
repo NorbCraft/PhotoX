@@ -2,15 +2,16 @@
 
 PhotoX is a lightweight, offline photo-preparation desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software with one focused tool:
 
-- **Photos:** open an order folder, crop to 10×15 / 15×20 / 13×18 (centred on 15×20) or a custom size in cm (centred on the smallest sheet), correct exposure, colour and levels, then **Enter = Save & Next**. Originals are kept temporarily in an `Original` subfolder for re-editing until **Finish**.
-- **ID Photos:** choose a portrait in the built-in explorer, frame it with face guides and optional Auto Align, adjust it (Auto Adjust), and save a 10×15 sheet as JPG with a timestamped filename to a chosen folder.
-- **Collages:** choose photos, a 10×15 / 15×20 / 20×30 sheet and a template, arrange and frame the photos, and save a print-ready JPG.
+- **Photos:** open an order folder, select photos, edit if needed (crop to 10×15 / 15×20 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), then **Print** or **Save changes**. Originals are kept in an `Original` subfolder until Save changes, and Restore original can bring them back.
+- **ID Photos:** choose the format, click a portrait in the built-in explorer, frame it (face guides, Auto Align), adjust it, then **Save sheet** (JPG) or **Print**.
+- **Collages:** choose a 10×15 or 15×20 sheet and a template, add photos, adjust the layout, then **Save** (JPG) or **Print**.
+- **Printing:** directly through the installed Windows printer driver (Citizen CY-02), with a print queue and a print counter on every thumbnail.
 
 The UI is in Romanian and English. All processing is local and no customer photo ever leaves the computer.
 
 ## Current status
 
-> **Version 0.7.0**: ordinary-photo editing, Finish, ID Photo Creator with Auto Align, and a Windows installer; the owner's feedback from testing 0.4.0 (prompt_03, 0.4.1–0.6.0); and prompt_04: a new icon, the version in the title bar and installer name, a **Collages** workspace, one built-in explorer for all workspaces, Duplicate image, and refinements of the editor and the ID workspace. Verified by automated tests on Linux and in CI on Windows. **Studio use on Windows, physical Citizen prints and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.8.0**: photo editing, ID photos, collages and **direct printing through the Windows driver** (prompt_05), with multiple selection, Save changes and Restore original instead of Finish Order, a print queue and print counters. Earlier: the owner's feedback (prompt_03) and the new icon, Collages and refinements (prompt_04). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -48,7 +49,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 | Development platform | Linux Mint (with a Windows 11 VM and physical Windows PCs for testing) |
 | Stack | C# · .NET 10 LTS · Avalonia UI 12.1 · CommunityToolkit.Mvvm · Magick.NET 14.17 · ONNX Runtime (Auto Align) |
 | CI | GitHub Actions on `ubuntu-latest` and `windows-latest` once the remote exists |
-| Printing | via Citizen software (CY-02); future: LinkServer hot folders |
+| Printing | directly from PhotoX through the installed Windows driver (Citizen CY-02); no LinkServer |
 
 ## Build and run
 
@@ -57,7 +58,7 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.7.0 --packDir publish/win-x64 \
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.8.0 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --outputDir releases/win          # Windows installer
 python3 assets/logo/build_icons.py     # re-render the icon PNGs and ICO after editing the SVG masters
 ```

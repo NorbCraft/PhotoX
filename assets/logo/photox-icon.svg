@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <title>PhotoX icon</title>
-  <!-- Flat master (prompt_04 §2): navy rounded square, white camera outline, dual-tone lens ring, bold PX. -->
+  <!-- Flat master (prompt_04 §2, larger PX prompt_05): navy rounded square, white camera outline, dual-tone lens ring, bold PX. -->
   <rect width="256" height="256" rx="56" fill="#0E1A33"/>
-  <path d="M62 80H94L104 58H152L162 80H194A26 26 0 0 1 220 106V178A26 26 0 0 1 194 204H62A26 26 0 0 1 36 178V106A26 26 0 0 1 62 80Z"
+  <path d="M58 76H92L103 52H153L164 76H198A28 28 0 0 1 226 104V180A28 28 0 0 1 198 208H58A28 28 0 0 1 30 180V104A28 28 0 0 1 58 76Z"
         fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linejoin="round"/>
-  <path d="M98.3 171.7A42 42 0 0 1 98.3 112.3A42 42 0 0 1 157.7 112.3" fill="none" stroke="#3B82F6" stroke-width="14"/>
-  <path d="M157.7 112.3A42 42 0 0 1 157.7 171.7A42 42 0 0 1 98.3 171.7" fill="none" stroke="#6D5EF6" stroke-width="14"/>
-  <path d="M107 156V128H116A7 7 0 0 1 116 142H107M135 128L149 156M149 128L135 156"
-        fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M94.77 175.23A47 47 0 0 1 94.77 108.77A47 47 0 0 1 161.23 108.77" fill="none" stroke="#3B82F6" stroke-width="12"/>
+  <path d="M161.23 108.77A47 47 0 0 1 161.23 175.23A47 47 0 0 1 94.77 175.23" fill="none" stroke="#6D5EF6" stroke-width="12"/>
+  <path d="M102.5 162V122H112.5A10 10 0 0 1 112.5 142H102.5M135.5 122L153.5 162M153.5 122L135.5 162"
+        fill="none" stroke="#FFFFFF" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

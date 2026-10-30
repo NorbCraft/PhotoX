@@ -51,6 +51,9 @@ public sealed class PrintJob
 
     public int Id { get; }
 
+    /// <summary>The job's id in the print history (prompt_06 §7), unique across sessions.</summary>
+    public string HistoryId { get; } = Guid.NewGuid().ToString("N");
+
     public PrintRequest Request { get; }
 
     public string Name => Request.Item.Name;
@@ -97,11 +100,13 @@ public sealed class PrintService : IDisposable
     private readonly Task? _worker;
     private int _nextId;
 
+    /// <param name="log">The print history (prompt_06 §7); every job's outcome is recorded there.</param>
     /// <param name="startWorker">False in unit tests, which call <see cref="ProcessPending"/> and <see cref="Poll"/> themselves.</param>
-    public PrintService(IPrintBackend backend, PrintHistory history, TimeSpan? pollInterval = null, bool startWorker = true)
+    public PrintService(IPrintBackend backend, PrintHistory history, PrintLog? log = null, TimeSpan? pollInterval = null, bool startWorker = true)
     {
         Backend = backend;
         History = history;
+        Log = log;
         _poll = pollInterval ?? TimeSpan.FromSeconds(2);
         if (startWorker) _worker = Task.Run(RunAsync);
     }
@@ -112,6 +117,8 @@ public sealed class PrintService : IDisposable
     public IPrintBackend Backend { get; }
 
     public PrintHistory History { get; }
+
+    public PrintLog? Log { get; }
 
     public IReadOnlyList<PrintJob> Jobs
     {
@@ -163,6 +170,7 @@ public sealed class PrintService : IDisposable
         }
 
         if (deleteInWindows) DeleteInWindows(job);
+        else Record(job, PrintOutcome.Canceled);
         JobChanged?.Invoke(job);
     }
 
@@ -220,6 +228,11 @@ public sealed class PrintService : IDisposable
                 }
             }
 
+            if (before.State != job.State && job.State is PrintJobState.Removed or PrintJobState.Finished)
+            {
+                Record(job, job.State == PrintJobState.Removed ? PrintOutcome.Removed : PrintOutcome.Finished);
+            }
+
             if (before != (job.State, job.Detail)) JobChanged?.Invoke(job);
         }
     }
@@ -246,7 +259,11 @@ public sealed class PrintService : IDisposable
             }
 
             JobChanged?.Invoke(job);
-            if (job.State == PrintJobState.Canceled) return;
+            if (job.State == PrintJobState.Canceled)
+            {
+                Record(job, PrintOutcome.Canceled);
+                return;
+            }
 
             var id = Backend.Submit(new PrintSubmission(r.Printer, r.Paper, r.Settings, $"PhotoX – {r.Item.Name}", bitmap, x, y, r.Item.Copies, r.OutputFile));
             bool cancelNow;
@@ -263,11 +280,13 @@ public sealed class PrintService : IDisposable
                 cancelNow = job.CancelRequested;
             }
 
+            Record(job, PrintOutcome.Submitted);
             if (cancelNow) DeleteInWindows(job);
         }
         catch (Exception ex) when (ex is PrintException or ImageLoadException or MagickException or IOException or UnauthorizedAccessException)
         {
             lock (_gate) (job.State, job.Detail) = (PrintJobState.Failed, ex.Message);
+            Record(job, PrintOutcome.Failed);
         }
 
         JobChanged?.Invoke(job);
@@ -309,7 +328,14 @@ public sealed class PrintService : IDisposable
                 job.Detail = "cancel-failed";
             }
         }
+
+        if (ok) Record(job, PrintOutcome.Canceled);
     }
+
+    /// <summary>Writes the job's outcome to the print history.</summary>
+    private void Record(PrintJob job, PrintOutcome outcome) =>
+        Log?.Record(new PrintLogEntry(job.HistoryId, job.CreatedUtc, job.Name, job.Size.Id, job.Copies, job.Printer, outcome, job.Request.Item.CounterPath,
+            outcome == PrintOutcome.Failed ? job.Detail : null));
 
     private void Uncount(PrintJob job)
     {

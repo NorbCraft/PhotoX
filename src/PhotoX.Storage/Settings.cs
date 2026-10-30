@@ -3,7 +3,10 @@ namespace PhotoX.Storage;
 /// <summary>User settings (FR-009, FR-040). Stored as settings.json.</summary>
 public sealed class Settings
 {
-    public int Version { get; set; } = 1;
+    /// <summary>2 since 0.9.0: the JPEG quality default became 100 (prompt_06 §9).</summary>
+    public const int CurrentVersion = 2;
+
+    public int Version { get; set; } = CurrentVersion;
 
     public string Language { get; set; } = "ro";
 
@@ -25,7 +28,17 @@ public sealed class Settings
     /// <summary>Driver settings chosen in each printer's own dialog (Windows DEVMODE, base64), by printer name.</summary>
     public Dictionary<string, string> PrinterSettings { get; set; } = [];
 
-    public int JpegQuality { get; set; } = 95;
+    /// <summary>JPEG quality of saved photos, ID sheets and collages; 100 by default (prompt_06 §9).</summary>
+    public int JpegQuality { get; set; } = 100;
+
+    /// <summary>"dark" or "light" (prompt_06 §3).</summary>
+    public string Theme { get; set; } = "dark";
+
+    /// <summary>Size of the gallery thumbnails relative to the default (prompt_06 §4).</summary>
+    public double ThumbnailScale { get; set; } = 1;
+
+    /// <summary>Widths of the resizable side panels, by panel name (prompt_06 §1).</summary>
+    public Dictionary<string, double> PanelWidths { get; set; } = [];
 
     public int ThumbnailCacheMaxMb { get; set; } = 1024;
 
@@ -46,6 +59,18 @@ public sealed class Settings
     /// <summary>The correction as a factor, limited to a plausible range.</summary>
     public double IdScale => Math.Clamp(IdScalePercent, 90, 110) / 100;
 
+    /// <summary>
+    /// Brings settings written by an earlier version up to date. Version 1 stored the old default quality 95 in every
+    /// settings file; that value becomes the new default 100. Any other quality was chosen by the operator and stays.
+    /// </summary>
+    public bool Upgrade()
+    {
+        if (Version >= CurrentVersion) return false;
+        if (Version < 2 && JpegQuality == 95) JpegQuality = 100;
+        Version = CurrentVersion;
+        return true;
+    }
+
     public void AddRecent(string folder)
     {
         RecentFolders.RemoveAll(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase));
@@ -62,7 +87,9 @@ public sealed class SettingsStore(AppPaths paths)
     {
         try
         {
-            return JsonFile.Read<Settings>(paths.SettingsFile) ?? new Settings();
+            var settings = JsonFile.Read<Settings>(paths.SettingsFile) ?? new Settings();
+            if (settings.Upgrade()) TrySave(settings);
+            return settings;
         }
         catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
         {
@@ -80,4 +107,16 @@ public sealed class SettingsStore(AppPaths paths)
     }
 
     public void Save(Settings settings) => JsonFile.WriteAtomic(paths.SettingsFile, settings);
+
+    private void TrySave(Settings settings)
+    {
+        try
+        {
+            Save(settings);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The upgraded values apply in memory and are written with the next change.
+        }
+    }
 }

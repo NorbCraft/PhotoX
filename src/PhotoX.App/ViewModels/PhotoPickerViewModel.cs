@@ -56,6 +56,9 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
     /// <summary>A click (selection) picks the photo, as in ID Photos where the explorer replaces the file dialog (prompt_05 §7).</summary>
     public bool PickOnSelect { get; init; }
 
+    /// <summary>Photos can be dragged out of the grid (onto a collage frame, prompt_06 §6).</summary>
+    public bool CanDrag { get; init; }
+
     private bool _opening;
 
     partial void OnSelectedPhotoChanged(PickerPhoto? value)

@@ -29,6 +29,13 @@ public sealed class LevelsHistogram : Control
     private static readonly IBrush LumaFill = new SolidColorBrush(Color.FromArgb(150, 205, 205, 205));
     private static readonly IBrush Clipped = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0));
     private static readonly IPen MarkPen = new Pen(new SolidColorBrush(Color.FromArgb(110, 255, 255, 255)), 1, new DashStyle([2, 3], 0));
+
+    // Light mode (prompt_06 §3): a light plot with a dark histogram.
+    private static readonly IBrush LightBackground = new SolidColorBrush(Color.Parse("#E9EBEF"));
+    private static readonly IPen LightFrame = new Pen(new SolidColorBrush(Color.Parse("#C9CED6")), 1);
+    private static readonly IBrush LightLumaFill = new SolidColorBrush(Color.FromArgb(150, 70, 76, 86));
+    private static readonly IBrush LightClipped = new SolidColorBrush(Color.FromArgb(70, 0, 0, 0));
+    private static readonly IPen LightMarkPen = new Pen(new SolidColorBrush(Color.FromArgb(130, 0, 0, 0)), 1, new DashStyle([2, 3], 0));
     private static readonly IPen HandlePen = new Pen(new SolidColorBrush(Color.Parse("#A8A8A8")), 1.2);
     private static readonly IBrush BarBrush = new LinearGradientBrush
     {
@@ -40,6 +47,8 @@ public sealed class LevelsHistogram : Control
     private int _drag = -1;
 
     static LevelsHistogram() => AffectsRender<LevelsHistogram>(HistogramProperty, BlackProperty, MidProperty, WhiteProperty);
+
+    public LevelsHistogram() => ActualThemeVariantChanged += (_, _) => InvalidateVisual();
 
     public Histogram? Histogram { get => GetValue(HistogramProperty); set => SetValue(HistogramProperty, value); }
 
@@ -63,7 +72,8 @@ public sealed class LevelsHistogram : Control
     public override void Render(DrawingContext context)
     {
         var plot = Plot;
-        context.DrawRectangle(Background, Frame, new Rect(Bounds.Size), 6, 6);
+        var light = ActualThemeVariant == Avalonia.Styling.ThemeVariant.Light;
+        context.DrawRectangle(light ? LightBackground : Background, light ? LightFrame : Frame, new Rect(Bounds.Size), 6, 6);
         if (Histogram is { Count: > 0 } h)
         {
             // Linear scale, as in other photo software (a square-root scale exaggerated small populations). Pure black
@@ -79,15 +89,16 @@ public sealed class LevelsHistogram : Control
                 g.EndFigure(true);
             }
 
-            context.DrawGeometry(LumaFill, null, luma);
+            context.DrawGeometry(light ? LightLumaFill : LumaFill, null, luma);
         }
 
         // Inputs below the black point or above the white point become pure black or white.
-        context.FillRectangle(Clipped, new Rect(plot.X, plot.Y, X(Black) - plot.X, plot.Height));
-        context.FillRectangle(Clipped, new Rect(X(White), plot.Y, plot.Right - X(White), plot.Height));
+        var clipped = light ? LightClipped : Clipped;
+        context.FillRectangle(clipped, new Rect(plot.X, plot.Y, X(Black) - plot.X, plot.Height));
+        context.FillRectangle(clipped, new Rect(X(White), plot.Y, plot.Right - X(White), plot.Height));
         foreach (var v in new[] { Black, MidPosition, White })
         {
-            context.DrawLine(MarkPen, new Point(X(v), plot.Y), new Point(X(v), plot.Bottom));
+            context.DrawLine(light ? LightMarkPen : MarkPen, new Point(X(v), plot.Y), new Point(X(v), plot.Bottom));
         }
 
         context.DrawRectangle(BarBrush, null, new Rect(plot.X, BarTop, plot.Width, BarHeight), 2, 2);

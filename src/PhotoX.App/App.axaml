@@ -3,27 +3,88 @@
              x:Class="PhotoX.App.App"
              RequestedThemeVariant="Dark">
   <Application.Resources>
-    <SolidColorBrush x:Key="BgBrush" Color="#1E1E1E" />
-    <SolidColorBrush x:Key="BarBrush" Color="#191919" />
-    <SolidColorBrush x:Key="PanelBrush" Color="#242424" />
-    <SolidColorBrush x:Key="Panel2Brush" Color="#2B2B2B" />
-    <SolidColorBrush x:Key="RaisedBrush" Color="#353535" />
-    <SolidColorBrush x:Key="BorderBrush" Color="#333333" />
-    <SolidColorBrush x:Key="Border2Brush" Color="#474747" />
-    <SolidColorBrush x:Key="CanvasBrush" Color="#151515" />
-    <SolidColorBrush x:Key="TextBrush" Color="#EDEDED" />
-    <SolidColorBrush x:Key="Text2Brush" Color="#A8A8A8" />
-    <SolidColorBrush x:Key="Text3Brush" Color="#7A7A7A" />
-    <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
-    <SolidColorBrush x:Key="AccentTintBrush" Color="#1D3557" />
-    <SolidColorBrush x:Key="OkBrush" Color="#34C759" />
-    <SolidColorBrush x:Key="WarnBrush" Color="#F5A524" />
-    <SolidColorBrush x:Key="DangerBrush" Color="#FF5A52" />
-    <!-- The lens colours of the PhotoX icon, for the X of the name (prompt_05 §1) -->
-    <LinearGradientBrush x:Key="LensBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-      <GradientStop Color="#3B82F6" Offset="0" />
-      <GradientStop Color="#6D5EF6" Offset="1" />
-    </LinearGradientBrush>
+    <ResourceDictionary>
+      <!-- Light and dark mode (prompt_06 §3): the same names in both, used with DynamicResource so a switch applies at once.
+           Dark keeps the colours of earlier versions. The primary blue is the same in both, and is the blue of the icon. -->
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="BgBrush" Color="#1E1E1E" />
+          <SolidColorBrush x:Key="BarBrush" Color="#191919" />
+          <SolidColorBrush x:Key="PanelBrush" Color="#242424" />
+          <SolidColorBrush x:Key="Panel2Brush" Color="#2B2B2B" />
+          <SolidColorBrush x:Key="RaisedBrush" Color="#353535" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#333333" />
+          <SolidColorBrush x:Key="Border2Brush" Color="#474747" />
+          <SolidColorBrush x:Key="CanvasBrush" Color="#151515" />
+          <SolidColorBrush x:Key="TextBrush" Color="#EDEDED" />
+          <SolidColorBrush x:Key="Text2Brush" Color="#A8A8A8" />
+          <SolidColorBrush x:Key="Text3Brush" Color="#7A7A7A" />
+          <SolidColorBrush x:Key="AccentTintBrush" Color="#1D3557" />
+          <SolidColorBrush x:Key="SelectedTextBrush" Color="#D6E6FF" />
+          <SolidColorBrush x:Key="AccentDisabledBrush" Color="#24406B" />
+          <SolidColorBrush x:Key="AccentDisabledTextBrush" Color="#9DB3D3" />
+          <SolidColorBrush x:Key="OkBrush" Color="#34C759" />
+          <SolidColorBrush x:Key="WarnBrush" Color="#F5A524" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#FF5A52" />
+          <SolidColorBrush x:Key="WarnBgBrush" Color="#3A2C10" />
+          <SolidColorBrush x:Key="WarnBorderBrush" Color="#7A5714" />
+          <SolidColorBrush x:Key="WarnTextBrush" Color="#F8D48A" />
+          <SolidColorBrush x:Key="ErrorBgBrush" Color="#4A1715" />
+          <SolidColorBrush x:Key="ErrorBorderBrush" Color="#FF5A52" />
+          <SolidColorBrush x:Key="ErrorTextBrush" Color="#FFD0CC" />
+          <SolidColorBrush x:Key="KbdBrush" Color="#33FFFFFF" />
+          <SolidColorBrush x:Key="CardBrush" Color="#11FFFFFF" />
+          <SolidColorBrush x:Key="TrackBrush" Color="#4A4A4A" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#99000000" />
+          <SolidColorBrush x:Key="InfoBgBrush" Color="#1A3B82F6" />
+          <!-- Disabled buttons stay quieter than enabled ones (the Fluent default is a light grey) -->
+          <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#262626" />
+          <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#333333" />
+          <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#6E6E6E" />
+          <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="Transparent" />
+          <SolidColorBrush x:Key="ToggleButtonForegroundDisabled" Color="#6E6E6E" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="BgBrush" Color="#F2F3F5" />
+          <SolidColorBrush x:Key="BarBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="PanelBrush" Color="#FAFAFB" />
+          <SolidColorBrush x:Key="Panel2Brush" Color="#EEF0F3" />
+          <SolidColorBrush x:Key="RaisedBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="BorderBrush" Color="#E1E4E8" />
+          <SolidColorBrush x:Key="Border2Brush" Color="#C9CED6" />
+          <!-- A neutral mid-light grey behind photos: bright surroundings would bias the judgement of exposure -->
+          <SolidColorBrush x:Key="CanvasBrush" Color="#D4D7DC" />
+          <SolidColorBrush x:Key="TextBrush" Color="#1B1F24" />
+          <SolidColorBrush x:Key="Text2Brush" Color="#535B66" />
+          <SolidColorBrush x:Key="Text3Brush" Color="#7D8590" />
+          <SolidColorBrush x:Key="AccentTintBrush" Color="#DCE8FD" />
+          <SolidColorBrush x:Key="SelectedTextBrush" Color="#1D4ED8" />
+          <SolidColorBrush x:Key="AccentDisabledBrush" Color="#A9C7F9" />
+          <SolidColorBrush x:Key="AccentDisabledTextBrush" Color="#F3F7FE" />
+          <SolidColorBrush x:Key="OkBrush" Color="#16893A" />
+          <SolidColorBrush x:Key="WarnBrush" Color="#B26A00" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#D92D20" />
+          <SolidColorBrush x:Key="WarnBgBrush" Color="#FFF4DA" />
+          <SolidColorBrush x:Key="WarnBorderBrush" Color="#E9C46A" />
+          <SolidColorBrush x:Key="WarnTextBrush" Color="#734A00" />
+          <SolidColorBrush x:Key="ErrorBgBrush" Color="#FDECEA" />
+          <SolidColorBrush x:Key="ErrorBorderBrush" Color="#F09A93" />
+          <SolidColorBrush x:Key="ErrorTextBrush" Color="#9B1C14" />
+          <SolidColorBrush x:Key="KbdBrush" Color="#14000000" />
+          <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="TrackBrush" Color="#D3D8DF" />
+          <SolidColorBrush x:Key="OverlayBrush" Color="#66000000" />
+          <SolidColorBrush x:Key="InfoBgBrush" Color="#EAF2FE" />
+          <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#F3F4F6" />
+          <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#E1E4E8" />
+          <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#A2A9B2" />
+          <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="Transparent" />
+          <SolidColorBrush x:Key="ToggleButtonForegroundDisabled" Color="#A2A9B2" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <!-- The primary blue: buttons, selections and the camera outline of the icon (prompt_06 §2) -->
+      <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
+      <SolidColorBrush x:Key="AccentHoverBrush" Color="#2563EB" />
 
     <!-- Slider tracks that show what each adjustment does (prompt_03 §3) -->
     <LinearGradientBrush x:Key="ExposureTrack" StartPoint="0%,0%" EndPoint="100%,0%">
@@ -69,34 +130,35 @@
       <GradientStop Color="#9A9A9A" Offset="0" />
       <GradientStop Color="#FFFFFF" Offset="1" />
     </LinearGradientBrush>
+    </ResourceDictionary>
   </Application.Resources>
 
   <Application.Styles>
     <FluentTheme />
 
     <Style Selector="Window">
-      <Setter Property="Background" Value="{StaticResource BgBrush}" />
+      <Setter Property="Background" Value="{DynamicResource BgBrush}" />
     </Style>
     <Style Selector="TextBlock">
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     </Style>
     <Style Selector="TextBlock.section">
       <Setter Property="FontSize" Value="11.5" />
       <Setter Property="FontWeight" Value="Bold" />
       <Setter Property="LetterSpacing" Value="0.7" />
-      <Setter Property="Foreground" Value="{StaticResource Text3Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text3Brush}" />
     </Style>
     <Style Selector="TextBlock.muted">
-      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
     </Style>
 
     <!-- Buttons -->
     <Style Selector="Button">
-      <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="Padding" Value="14,6" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -107,36 +169,37 @@
       <Setter Property="Opacity" Value="0.45" />
     </Style>
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
       <Setter Property="Foreground" Value="White" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#2563EB" />
-      <Setter Property="BorderBrush" Value="#2563EB" />
+      <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#24406B" />
-      <Setter Property="Foreground" Value="#9DB3D3" />
+      <Setter Property="Background" Value="{DynamicResource AccentDisabledBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentDisabledBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentDisabledTextBrush}" />
     </Style>
     <Style Selector="Button.chip">
       <Setter Property="CornerRadius" Value="16" />
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="12,4" />
-      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
     </Style>
     <Style Selector="Button.chip.selected">
-      <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-      <Setter Property="Foreground" Value="#D6E6FF" />
+      <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.link">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="MinHeight" Value="24" />
       <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -150,26 +213,26 @@
     </Style>
     <Style Selector="Button.list:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{StaticResource Text3Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text3Brush}" />
     </Style>
     <Style Selector="Button.film">
-      <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="Button.film.current">
-      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
       <Setter Property="BorderThickness" Value="3" />
     </Style>
     <Style Selector="Button.choice">
-      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="1.5" />
       <Setter Property="CornerRadius" Value="9" />
     </Style>
     <Style Selector="Button.choice.selected">
-      <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
     <Style Selector="Button.square">
       <Setter Property="Width" Value="34" />
@@ -186,7 +249,7 @@
     <!-- Icons are drawn on their 24 × 24 grid without stretching, so each stays centred as designed
          (a uniform stretch pins a wide icon to the top of its box). -->
     <Style Selector="Button.icon Path, ToggleButton.icon Path">
-      <Setter Property="Stroke" Value="{StaticResource TextBrush}" />
+      <Setter Property="Stroke" Value="{DynamicResource TextBrush}" />
       <Setter Property="StrokeThickness" Value="1.8" />
       <Setter Property="StrokeLineCap" Value="Round" />
       <Setter Property="StrokeJoin" Value="Round" />
@@ -204,7 +267,7 @@
     </Style>
     <!-- Hold-to-compare button: filled with the accent colour while pressed -->
     <Style Selector="Button.hold:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
     <Style Selector="Button.hold:pressed Path">
       <Setter Property="Stroke" Value="White" />
@@ -214,12 +277,12 @@
       <Setter Property="Height" Value="24" />
       <Setter Property="Margin" Value="4,0" />
       <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Background" Value="{StaticResource Border2Brush}" />
+      <Setter Property="Background" Value="{DynamicResource Border2Brush}" />
     </Style>
     <!-- Segmented buttons: one box, the active part filled with the accent colour -->
     <Style Selector="Border.segbox">
-      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="9" />
       <Setter Property="Padding" Value="2" />
@@ -229,7 +292,7 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="7" />
-      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
       <Setter Property="Padding" Value="12,5" />
       <Setter Property="MinHeight" Value="30" />
     </Style>
@@ -243,13 +306,13 @@
       <Setter Property="Height" Value="32" />
     </Style>
     <Style Selector="ToggleButton.segacc.outlined">
-      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Height" Value="34" />
     </Style>
     <Style Selector="ToggleButton.segacc:checked /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="ToggleButton.segacc:checked">
@@ -259,10 +322,10 @@
       <Setter Property="Stroke" Value="White" />
     </Style>
     <Style Selector="ToggleButton.segacc Rectangle">
-      <Setter Property="Stroke" Value="{StaticResource Text2Brush}" />
+      <Setter Property="Stroke" Value="{DynamicResource Text2Brush}" />
     </Style>
     <Style Selector="Button.icon:disabled Path, ToggleButton.icon:disabled Path">
-      <Setter Property="Stroke" Value="{StaticResource Text3Brush}" />
+      <Setter Property="Stroke" Value="{DynamicResource Text3Brush}" />
     </Style>
     <Style Selector="Button.chip.compact">
       <Setter Property="Padding" Value="10,4" />
@@ -270,11 +333,11 @@
     <Style Selector="GridSplitter.panel">
       <Setter Property="Width" Value="5" />
       <Setter Property="MinWidth" Value="5" />
-      <Setter Property="Background" Value="{StaticResource BorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
       <Setter Property="Cursor" Value="SizeWestEast" />
     </Style>
     <Style Selector="GridSplitter.panel:pointerover">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
     <!-- Print counter on thumbnails (prompt_05 §6): grey dash when never printed, blue with the number of copies -->
     <Style Selector="Border.printcount">
@@ -297,14 +360,14 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Border.printcount.printed">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
       <Setter Property="BorderBrush" Value="#99FFFFFF" />
     </Style>
     <Style Selector="Border.printcount.printed > TextBlock">
       <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="Border.kbd">
-      <Setter Property="Background" Value="#33FFFFFF" />
+      <Setter Property="Background" Value="{DynamicResource KbdBrush}" />
       <Setter Property="CornerRadius" Value="4" />
       <Setter Property="Padding" Value="6,1" />
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -314,35 +377,102 @@
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
+    <!-- Shortcut keys inside a blue button stay light -->
+    <Style Selector="Button.primary Border.kbd, ToggleButton:checked Border.kbd">
+      <Setter Property="Background" Value="#33FFFFFF" />
+    </Style>
+    <Style Selector="Button.primary Border.kbd > TextBlock">
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <!-- Status colours as classes, so they follow the theme -->
+    <Style Selector="TextBlock.ok">
+      <Setter Property="Foreground" Value="{DynamicResource OkBrush}" />
+    </Style>
+    <Style Selector="TextBlock.warn">
+      <Setter Property="Foreground" Value="{DynamicResource WarnBrush}" />
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+    <Style Selector="TextBlock.faint">
+      <Setter Property="Foreground" Value="{DynamicResource Text3Brush}" />
+    </Style>
+
     <!-- Workspace and language switches -->
     <Style Selector="ToggleButton.seg">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="7" />
-      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
       <Setter Property="Padding" Value="16,6" />
       <Setter Property="MinHeight" Value="30" />
     </Style>
     <Style Selector="ToggleButton.seg:checked /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     </Style>
     <!-- The selected workspace is blue, like the other selected buttons (prompt_05 §1) -->
     <Style Selector="ToggleButton.ws">
       <Setter Property="FontSize" Value="14.5" />
     </Style>
     <Style Selector="ToggleButton.ws:checked /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="ToggleButton.ws:checked">
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="ToggleButton.ws:not(:checked):pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    </Style>
+    <!-- Workspace icons (prompt_06 §1): drawn in the text colour, white on the selected workspace -->
+    <Style Selector="ToggleButton.ws">
+      <Setter Property="Padding" Value="14,6,16,6" />
+    </Style>
+    <Style Selector="ToggleButton.ws Path">
+      <Setter Property="Stroke" Value="{DynamicResource Text2Brush}" />
+      <Setter Property="StrokeThickness" Value="1.7" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Stretch" Value="None" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.ws:pointerover Path">
+      <Setter Property="Stroke" Value="{DynamicResource TextBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.ws:checked Path">
+      <Setter Property="Stroke" Value="White" />
+    </Style>
+    <Style Selector="Border.wsbadge">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="MinWidth" Value="18" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Padding" Value="5,0" />
+    </Style>
+    <Style Selector="Border.wsbadge > TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.ws:checked Border.wsbadge">
+      <Setter Property="Background" Value="White" />
+    </Style>
+    <Style Selector="ToggleButton.ws:checked Border.wsbadge > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.wsbadge.attention, ToggleButton.ws:checked Border.wsbadge.attention">
+      <Setter Property="Background" Value="{DynamicResource WarnBrush}" />
+    </Style>
+    <Style Selector="Border.wsbadge.attention > TextBlock, ToggleButton.ws:checked Border.wsbadge.attention > TextBlock">
+      <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="ToggleButton.lang:checked /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
 
@@ -363,8 +493,8 @@
       <Setter Property="Opacity" Value="0.9" />
     </Style>
     <Style Selector="ProgressBar">
-      <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
-      <Setter Property="Background" Value="#4A4A4A" />
+      <Setter Property="Foreground" Value="{DynamicResource OkBrush}" />
+      <Setter Property="Background" Value="{DynamicResource TrackBrush}" />
       <Setter Property="MinHeight" Value="6" />
       <Setter Property="CornerRadius" Value="3" />
     </Style>

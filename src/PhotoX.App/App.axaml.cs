@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using PhotoX.App.Services;
 using PhotoX.App.ViewModels;
 using PhotoX.App.Views;
@@ -12,9 +13,16 @@ public sealed class App : Application
 {
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
+    /// <summary>Light or dark mode for the whole application (prompt_06 §3).</summary>
+    public static void ApplyTheme(string theme)
+    {
+        if (Current is { } app) app.RequestedThemeVariant = theme == "light" ? ThemeVariant.Light : ThemeVariant.Dark;
+    }
+
     public override void OnFrameworkInitializationCompleted()
     {
         AppServices.Current ??= new AppServices(new AppPaths());
+        ApplyTheme(AppServices.Current.Settings.Theme);
         var cache = AppServices.Current.ThumbnailCache;
         _ = Task.Run(() =>
         {

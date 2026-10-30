@@ -35,18 +35,18 @@ public class Prompt05Tests
         Assert.Equal("–", p1.PrintCountText);
 
         shell.PrintPhotos([p1, shell.Browse.AllPhotos.Single(p => p.Name == "P2.jpg")]);
-        var dialog = shell.PrintDialog!;
+        Assert.True(shell.IsPrintWorkspace);
+        var dialog = shell.Print;
         Assert.Equal("Citizen CY-02", dialog.SelectedPrinter);              // the Citizen is preferred
         Assert.Equal("(6x4)", dialog.SelectedPaper!.Paper.Name);            // the driver's 10×15 paper
         Assert.True(dialog.PaperMatches);
         dialog.CopiesPlusCommand.Execute(null);
         await UiHelpers.WaitUntil(() => dialog.Previews.All(p => p.Page is not null));
-        UiHelpers.Capture(window, "print-dialog");
+        UiHelpers.Capture(window, "print-workspace");
         dialog.PrintCommand.Execute(null);
-        Assert.Null(shell.PrintDialog);
-        Assert.True(shell.PrintQueue.IsOpen);
+        Assert.False(dialog.HasItems);                                       // sent; a second Print needs a new choice
 
-        await UiHelpers.WaitUntil(() => shell.PrintQueue.Jobs.Count == 2 && shell.PrintQueue.Jobs.All(j => j.Job.State == PrintJobState.InQueue));
+        await UiHelpers.WaitUntil(() => shell.Print.Queue.Active.Count == 2 && shell.Print.Queue.Active.All(j => j.Job.State == PrintJobState.InQueue));
         await UiHelpers.WaitUntil(() => p1.PrintCount == 2);
         Assert.Equal("2", p1.PrintCountText);
         UiHelpers.Capture(window, "print-queue");
@@ -72,9 +72,10 @@ public class Prompt05Tests
         Assert.NotNull(p1.PendingRecipe);                                    // the edit is still unsaved
 
         // Cancelling a job in the queue takes its copies back.
-        var job = shell.PrintQueue.Jobs.Single(j => j.Name == "P1.jpg");
-        shell.PrintQueue.CancelCommand.Execute(job);
+        var job = shell.Print.Queue.Active.Single(j => j.Name == "P1.jpg");
+        shell.Print.Queue.CancelCommand.Execute(job);
         await UiHelpers.WaitUntil(() => job.Job.State == PrintJobState.Canceled && p1.PrintCount == 0);
+        await UiHelpers.WaitUntil(() => shell.Print.Queue.Active.Count == 1);   // the cancelled job moved to the history
 
         // Reopening the order keeps the counters.
         await shell.Browse.OpenFolderAsync(order);
@@ -97,7 +98,7 @@ public class Prompt05Tests
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"));
         await shell.Browse.OpenFolderAsync(order);
         shell.Browse.PrintAllCommand.Execute(null);
-        var dialog = shell.PrintDialog!;
+        var dialog = shell.Print;
         dialog.SetSizeCommand.Execute(PrintFormats.P15x20);
         Assert.Equal("(6x8)", dialog.SelectedPaper!.Paper.Name);             // not the two-up variant
         dialog.SelectedPrinter = "Microsoft Print to PDF";
@@ -126,7 +127,7 @@ public class Prompt05Tests
         id.SelectSizeCommand.Execute(id.Sizes.Single(s => s.Size.Id == "3x4"));
         id.ContinueToSheetCommand.Execute(null);
         id.PrintSheetCommand.Execute(null);
-        var dialog = shell.PrintDialog!;
+        var dialog = shell.Print;
         Assert.True(dialog.IsSizeFixed);
         Assert.Equal("10x15", dialog.SelectedSize.Id);
         dialog.PrintCommand.Execute(null);
@@ -165,7 +166,7 @@ public class Prompt05Tests
         foreach (var p in c.Picker.Photos.Take(3)) await c.PlaceAsync(p.Path);
         UiHelpers.Capture(window, "collage-sizes");
         c.PrintCommand.Execute(null);
-        var dialog = shell.PrintDialog!;
+        var dialog = shell.Print;
         Assert.True(dialog.IsSizeFixed);
         dialog.PrintCommand.Execute(null);
         await UiHelpers.WaitUntil(() => UiHelpers.Printer.Submitted.Count == 1);

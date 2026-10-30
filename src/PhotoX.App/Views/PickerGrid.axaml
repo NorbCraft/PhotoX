@@ -25,16 +25,16 @@
         </Style>
         <Style Selector="Border.card">
           <Setter Property="BorderThickness" Value="2" />
-          <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-          <Setter Property="Background" Value="#11FFFFFF" />
+          <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+          <Setter Property="Background" Value="{DynamicResource CardBrush}" />
         </Style>
         <Style Selector="ListBoxItem:selected Border.card">
-          <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-          <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+          <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
           <Setter Property="BorderThickness" Value="3" />
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.card">
-          <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
         </Style>
       </ListBox.Styles>
       <ListBox.ItemTemplate>
@@ -44,8 +44,7 @@
             <Grid RowDefinitions="*,Auto" Margin="6">
               <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
               <TextBlock Text="…" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
-              <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="12" Margin="2,5,2,0" TextTrimming="CharacterEllipsis"
-                         Foreground="{Binding IsOpenable, Converter={x:Static s:IconConverter.OpenableBrush}}" />
+              <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="12" Margin="2,5,2,0" TextTrimming="CharacterEllipsis" Classes.faint="{Binding !IsOpenable}" />
             </Grid>
           </Border>
         </DataTemplate>

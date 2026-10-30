@@ -19,17 +19,23 @@ using Serilog;
 
 namespace PhotoX.App.ViewModels;
 
-/// <summary>A photo in a collage slot: a screen-sized preview, the upright photo size, and its framing in the slot.</summary>
-public sealed class CollageItem(string path, Bitmap preview, double width, double height)
+/// <summary>
+/// A photo in a collage slot: a screen-sized preview, the photo size after its quarter turns, and its framing in the
+/// slot.
+/// </summary>
+public sealed class CollageItem(string path, Bitmap preview, double width, double height, int quarterTurns = 0)
 {
     public string Path { get; } = path;
 
     public Bitmap Preview { get; } = preview;
 
-    /// <summary>Upright size of the photo file in pixels (the crop is relative to it).</summary>
+    /// <summary>Size of the photo in pixels, upright and turned (the crop is relative to it).</summary>
     public double Width { get; } = width;
 
     public double Height { get; } = height;
+
+    /// <summary>90° clockwise turns from the right-click menu (prompt_06 §6).</summary>
+    public int QuarterTurns { get; } = quarterTurns;
 
     /// <summary>1 = the largest crop of the slot's ratio; larger values zoom in.</summary>
     public double Zoom { get; set; } = 1;
@@ -72,7 +78,7 @@ public sealed partial class CollageViewModel : ViewModelBase
     public CollageViewModel(AppServices services)
     {
         _services = services;
-        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 116, ThumbHeight = 116 };
+        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 116, ThumbHeight = 116, CanDrag = true };
         Picker.Picked += photo => _ = PlaceAsync(photo.Path);
         foreach (var t in CollageTemplates.All) Templates.Add(new CollageTemplateItem(t));
         Template = CollageTemplates.Default;
@@ -271,7 +277,7 @@ public sealed partial class CollageViewModel : ViewModelBase
     {
         var slots = Slots;
         var photos = Enumerable.Range(0, Template.Count)
-            .Select(i => _items[i] is { } item ? new CollagePhoto(item.Path, item.CropFor(slots[i].Width / slots[i].Height)) : null)
+            .Select(i => _items[i] is { } item ? new CollagePhoto(item.Path, item.CropFor(slots[i].Width / slots[i].Height), item.QuarterTurns) : null)
             .ToList();
         return (PageWidthMm, PageHeightMm, slots, photos);
     }
@@ -283,9 +289,18 @@ public sealed partial class CollageViewModel : ViewModelBase
     private void SetTemplate(CollageTemplateItem item) => Template = item.Template;
 
     /// <summary>Puts a photo into the selected slot (replacing what was there), then selects the next empty slot.</summary>
-    public async Task PlaceAsync(string path)
+    public Task PlaceAsync(string path) => PlaceAtAsync(SelectedSlot, path, selectNext: true);
+
+    /// <summary>A photo dragged onto a slot (prompt_06 §6): it fills that slot, replacing the photo there.</summary>
+    public Task DropAsync(int slot, string path)
     {
-        var slot = SelectedSlot;
+        if (slot < 0 || slot >= Template.Count) return Task.CompletedTask;
+        SelectedSlot = slot;
+        return PlaceAtAsync(slot, path, selectNext: false);
+    }
+
+    private async Task PlaceAtAsync(int slot, string path, bool selectNext)
+    {
         ErrorMessage = null;
         try
         {
@@ -305,9 +320,63 @@ public sealed partial class CollageViewModel : ViewModelBase
         }
 
         var next = Enumerable.Range(1, Template.Count).Select(k => (slot + k) % Template.Count).FirstOrDefault(i => _items[i] is null, -1);
-        if (next >= 0) SelectedSlot = next;
+        if (selectNext && next >= 0) SelectedSlot = next;
         Changed();
     }
+
+    /// <summary>
+    /// Rotate left or right by 90° (right-click menu, prompt_06 §6): the photo turns, keeps its proportions and stays
+    /// centred on the same point; the slot and the layout do not change.
+    /// </summary>
+    public async Task RotateSlotAsync(int slot, int turns)
+    {
+        if (ItemAt(slot) is not { } item) return;
+        var t = (((item.QuarterTurns + turns) % 4) + 4) % 4;
+        try
+        {
+            var pixels = await Task.Run(() =>
+            {
+                using var proxy = ImageLoader.Load(item.Path, PreviewEdge);
+                if (t != 0) proxy.Rotate(90 * t);
+                return PixelData.From(proxy);
+            });
+            if (_items[slot] != item) return;
+            var odd = (turns % 2) != 0;
+            var turned = new CollageItem(item.Path, BitmapFactory.Create(pixels), odd ? item.Height : item.Width, odd ? item.Width : item.Height, t) { Zoom = item.Zoom };
+            (turned.CenterX, turned.CenterY) = (((turns % 4) + 4) % 4) switch
+            {
+                1 => (1 - item.CenterY, item.CenterX),
+                2 => (1 - item.CenterX, 1 - item.CenterY),
+                3 => (item.CenterY, 1 - item.CenterX),
+                _ => (item.CenterX, item.CenterY),
+            };
+            _items[slot] = turned;
+        }
+        catch (Exception ex) when (ex is ImageLoadException or MagickException)
+        {
+            ErrorMessage = ex is ImageLoadException le ? ErrorTexts.ForImage(le.Error) : ex.Message;
+            return;
+        }
+
+        Changed();
+    }
+
+    [RelayCommand]
+    private Task RotateLeft() => RotateSlotAsync(SelectedSlot, -1);
+
+    [RelayCommand]
+    private Task RotateRight() => RotateSlotAsync(SelectedSlot, 1);
+
+    /// <summary>The largest centred crop again (double-click, or Fit photo in the menu).</summary>
+    [RelayCommand]
+    private void FitPhoto() => ResetSlot(SelectedSlot);
+
+    /// <summary>Quarter turns of the photo in a slot (0 when empty).</summary>
+    public int TurnsAt(int slot) => ItemAt(slot)?.QuarterTurns ?? 0;
+
+    public bool HasPhotoAt(int slot) => ItemAt(slot) is not null;
+
+    public string? PathAt(int slot) => ItemAt(slot)?.Path;
 
     [RelayCommand]
     public void RemovePhoto()

@@ -101,15 +101,17 @@ public class BrowseTests
         Assert.False(shell.Browse.HasSingleSelection);                   // Edit this photo needs one photo
         UiHelpers.Capture(window, "browse-multi-select");
 
-        shell.Browse.PrintSelectedCommand.Execute(null);
-        Assert.NotNull(shell.PrintDialog);
-        Assert.Equal(2, shell.PrintDialog!.PhotoCount);
-        shell.PrintDialog.CancelCommand.Execute(null);
-        Assert.Null(shell.PrintDialog);
+        shell.Browse.PrintSelectedCommand.Execute(null);                  // Print opens the Printing workspace (prompt_06 §7)
+        Assert.True(shell.IsPrintWorkspace);
+        Assert.Equal(2, shell.Print.PhotoCount);
+        shell.Print.ClearCommand.Execute(null);
+        Assert.False(shell.Print.HasItems);
+        shell.Print.BackCommand.Execute(null);
+        Assert.True(shell.IsBrowsing);
 
         shell.Browse.PrintAllCommand.Execute(null);
-        Assert.Equal(4, shell.PrintDialog!.PhotoCount);
-        shell.PrintDialog.CancelCommand.Execute(null);
+        Assert.Equal(4, shell.Print.PhotoCount);
+        Assert.Empty(UiHelpers.Printer.Submitted);                         // nothing is sent before Print is pressed
         window.Close();
     }
 }

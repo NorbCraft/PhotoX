@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:l="using:PhotoX.App.Localization"
+             x:Class="PhotoX.App.Views.EditActionsView"
+             x:DataType="vm:ToneAdjustmentsViewModel">
+  <!-- Top of the editing sidebar, the same in Photos and ID Photos (prompt_06 §1): Undo, Redo and one Reset for the
+       image adjustments (the crop or framing stays) -->
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+    <Button Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{l:Tr UndoTip}" HorizontalAlignment="Left" />
+    <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{l:Tr RedoTip}" HorizontalAlignment="Left" />
+    <Button Grid.Column="3" Focusable="False" Padding="14,4" Content="{l:Tr Reset}" Command="{Binding ResetAdjustmentsCommand}" ToolTip.Tip="{Binding ResetTip}" VerticalAlignment="Center" />
+  </Grid>
+</UserControl>

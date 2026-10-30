@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using PhotoX.App.Services;
 using PhotoX.Core.Geometry;
 
 namespace PhotoX.App.Controls;
@@ -27,8 +28,10 @@ public sealed record CollageScene(
 /// <summary>
 /// Collage preview and arrangement (prompt_04 §5): the whole sheet in true proportions, each photo drawn into its slot
 /// by the GPU (moving or zooming a photo costs only a redraw). Click selects a slot; dragging moves the photo inside
-/// its slot; the wheel zooms; double-click resets; dragging the round handle onto another slot swaps the two photos;
-/// dragging a gap between columns or rows changes their sizes (prompt_05 §8).
+/// its slot; the wheel zooms; double-click resets; dragging the round handle (shown on the selected and the hovered
+/// photo) onto another slot swaps the two photos; dragging a gap between columns or rows changes their sizes
+/// (prompt_05 §8); photos dragged from the thumbnails or the file manager drop into the slot under the pointer, and a
+/// right-click selects the slot for its menu (prompt_06 §6).
 /// </summary>
 public sealed class CollageCanvas : Control
 {
@@ -50,6 +53,8 @@ public sealed class CollageCanvas : Control
     private (bool Column, int Index)? _hoverBoundary;
 
     private int _dragSlot = -1;
+    private int _hoverSlot = -1;
+    private int _dropTarget = -1;
     private bool _moving;
     private int _target = -1;
     private Point _last;
@@ -64,7 +69,45 @@ public sealed class CollageCanvas : Control
         {
             if (SlotAt(e.GetPosition(this)) is >= 0 and var i) SlotReset?.Invoke(i);
         };
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DragLeaveEvent, (_, _) => SetDropTarget(-1));
+        AddHandler(DragDrop.DropEvent, OnDrop);
     }
+
+    /// <summary>A photo was dropped on a slot (its path).</summary>
+    public event Action<int, string>? PhotoDropped;
+
+    /// <summary>The slot under the last right-click (-1 outside the slots), for the slot menu.</summary>
+    public int ContextSlot { get; private set; } = -1;
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        var slot = PhotoDrag.CanAccept(e.DataTransfer) ? SlotAt(e.GetPosition(this)) : -1;
+        e.DragEffects = slot >= 0 ? DragDropEffects.Copy : DragDropEffects.None;
+        SetDropTarget(slot);
+        e.Handled = true;
+    }
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        var slot = SlotAt(e.GetPosition(this));
+        SetDropTarget(-1);
+        if (slot >= 0 && PhotoDrag.PathFrom(e.DataTransfer) is { } path)
+        {
+            PhotoDropped?.Invoke(slot, path);
+            e.Handled = true;
+        }
+    }
+
+    private void SetDropTarget(int slot)
+    {
+        if (_dropTarget == slot) return;
+        _dropTarget = slot;
+        InvalidateVisual();
+    }
+
+    private bool HasPhoto(int slot) => Scene is { } s && slot >= 0 && slot < s.Photos.Count && s.Photos[slot] is not null;
 
     public event Action<int>? SlotSelected;
 
@@ -148,8 +191,10 @@ public sealed class CollageCanvas : Control
         {
             var sel = SlotRect(s.Selected);
             context.DrawRectangle(null, SelectedPen, sel.Deflate(1.5));
-            if (s.Selected < s.Photos.Count && s.Photos[s.Selected] is not null) DrawHandle(context, HandleCenter(s.Selected));
+            if (HasPhoto(s.Selected) && !_moving) DrawHandle(context, HandleCenter(s.Selected));
         }
+
+        if (_hoverSlot != s.Selected && HasPhoto(_hoverSlot) && _dragSlot < 0) DrawHandle(context, HandleCenter(_hoverSlot));
 
         if (s.Labels is { } labels)
         {
@@ -163,6 +208,7 @@ public sealed class CollageCanvas : Control
         }
 
         if (_moving && _target >= 0) context.DrawRectangle(null, TargetPen, SlotRect(_target).Deflate(1.5));
+        if (_dropTarget >= 0 && _dropTarget < s.Slots.Count) context.DrawRectangle(null, TargetPen, SlotRect(_dropTarget).Deflate(1.5));
         if (_moving) DrawHandle(context, _pointer);
     }
 
@@ -230,8 +276,17 @@ public sealed class CollageCanvas : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        if (Scene is not { } s || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (Scene is not { } s) return;
         var p = e.GetPosition(this);
+        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        {
+            // The slot menu acts on the slot under the pointer.
+            ContextSlot = SlotAt(p);
+            if (ContextSlot >= 0) SlotSelected?.Invoke(ContextSlot);
+            return;
+        }
+
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         if (BoundaryAt(p) is { } boundary)
         {
             _boundary = boundary;
@@ -242,10 +297,10 @@ public sealed class CollageCanvas : Control
             return;
         }
 
-        // The handle of the selected slot starts a move to another slot; anywhere else selects and pans.
-        var onHandle = s.Selected >= 0 && s.Selected < s.Photos.Count && s.Photos[s.Selected] is not null
-            && Distance(p, HandleCenter(s.Selected)) <= HandleRadius + 2;
-        _dragSlot = onHandle ? s.Selected : SlotAt(p);
+        // The handle of the selected or hovered photo starts a move to another slot; anywhere else selects and pans.
+        var handleSlot = new[] { s.Selected, _hoverSlot }.FirstOrDefault(i => HasPhoto(i) && Distance(p, HandleCenter(i)) <= HandleRadius + 2, -1);
+        var onHandle = handleSlot >= 0;
+        _dragSlot = onHandle ? handleSlot : SlotAt(p);
         if (_dragSlot < 0) return;
         _moving = onHandle;
         _target = -1;
@@ -270,6 +325,13 @@ public sealed class CollageCanvas : Control
 
         if (_dragSlot < 0)
         {
+            var slot = SlotAt(p);
+            if (slot != _hoverSlot)
+            {
+                _hoverSlot = slot;
+                InvalidateVisual();
+            }
+
             var hover = BoundaryAt(p);
             if (hover != _hoverBoundary)
             {
@@ -311,6 +373,14 @@ public sealed class CollageCanvas : Control
         if (_dragSlot < 0) return;
         if (_moving && _target >= 0) Swapped?.Invoke(_dragSlot, _target);
         EndDrag(e.Pointer);
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (_hoverSlot < 0 || _dragSlot >= 0) return;
+        _hoverSlot = -1;
+        InvalidateVisual();
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)

@@ -29,6 +29,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
     {
         _services = services;
         DetailsCollapsed = services.Settings.BrowseDetailsCollapsed;
+        ThumbScale = Math.Clamp(services.Settings.ThumbnailScale, MinThumbScale, MaxThumbScale);
         Explorer = new ExplorerViewModel(services);
         Explorer.FolderOpened += OpenFolder;
         Localizer.Instance.LanguageChanged += (_, _) => RefreshTexts();
@@ -37,6 +38,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         services.PrintHistory.Changed += path => ui.Post(() =>
         {
             foreach (var p in AllPhotos.Where(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase))) p.PrintCount = services.PrintHistory.CountFor(p.Path);
+            OnPropertyChanged(nameof(PrintedText));
         });
     }
 
@@ -150,9 +152,45 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
     public double Progress => TotalCount == 0 ? 0 : (double)DoneCount / TotalCount;
 
-    public string ProgressText => Localizer.Instance.Format("DoneOf", DoneCount, TotalCount);
+    /// <summary>Edit progress (prompt_06 §4): edited or reviewed photos of the folder.</summary>
+    public string ProgressText => Localizer.Instance.Format("EditedOf", DoneCount, TotalCount);
 
-    public string PhotosLeftText => Localizer.Instance.Plural("PhotosLeft", TotalCount - DoneCount);
+    /// <summary>Copies of this folder's photos that Windows accepted (the sum of the gallery counters, prompt_06 §4).</summary>
+    public int PrintedCount => AllPhotos.Sum(p => p.PrintCount);
+
+    public string PrintedText => Localizer.Instance.Plural("PrintedCopies", PrintedCount);
+
+    public const double MinThumbScale = 0.6;
+    public const double MaxThumbScale = 2;
+
+    /// <summary>Gallery thumbnail size relative to the default (prompt_06 §4); remembered.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CardWidth), nameof(CardHeight), nameof(ThumbHeight))]
+    public partial double ThumbScale { get; set; } = 1;
+
+    public double CardWidth => Math.Round(176 * ThumbScale);
+
+    public double ThumbHeight => Math.Round(132 * ThumbScale);
+
+    public double CardHeight => ThumbHeight + 56;
+
+    partial void OnThumbScaleChanged(double value)
+    {
+        _services.Settings.ThumbnailScale = Math.Round(value, 2);
+        _thumbScaleSave?.Cancel();
+        var cts = _thumbScaleSave = new CancellationTokenSource();
+        // Saved once the slider rests, not at every step of a drag.
+        _ = Task.Delay(600, cts.Token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled) _services.SaveSettings();
+        }, TaskScheduler.Default);
+    }
+
+    private CancellationTokenSource? _thumbScaleSave;
+
+    /// <summary>Double-click on the slider: the default thumbnail size.</summary>
+    [RelayCommand]
+    public void ResetThumbScale() => ThumbScale = 1;
 
     public string FolderTitle => CurrentFolder is null ? string.Empty : Path.GetFileName(CurrentFolder.TrimEnd(Path.DirectorySeparatorChar));
 
@@ -314,7 +352,8 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(DoneCount));
         OnPropertyChanged(nameof(Progress));
         OnPropertyChanged(nameof(ProgressText));
-        OnPropertyChanged(nameof(PhotosLeftText));
+        OnPropertyChanged(nameof(PrintedCount));
+        OnPropertyChanged(nameof(PrintedText));
         OnPropertyChanged(nameof(HasFolder));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(FolderTitle));

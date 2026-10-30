@@ -15,11 +15,19 @@ public sealed partial class IdView : UserControl
         Canvas.Moved += (dx, dy) => Vm?.MoveBy(dx, dy);
         Canvas.Zoomed += f => Vm?.ZoomBy(f);
         Canvas.Rotated += d => Vm?.RotateBy(d);
-        PanelWidth.Apply(Root.ColumnDefinitions[3], AppServices.Current?.Settings.IdPanelWidth ?? 360);
+        PanelWidth.Apply(Root.ColumnDefinitions[0], "id-left", 290, PanelWidth.MinLeft);
+        PanelWidth.Apply(Root.ColumnDefinitions[4], AppServices.Current?.Settings.IdPanelWidth ?? 360);
+        // Before / after shows the photo without adjustments only while the button is held, like Space.
+        BeforeButton.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Button.IsPressedProperty && Vm is { } vm) vm.ShowBefore = BeforeButton.IsPressed;
+        };
     }
 
     private void OnSplitterDragCompleted(object? sender, VectorEventArgs e) =>
-        PanelWidth.Save(s => s.IdPanelWidth = Root.ColumnDefinitions[3].ActualWidth);
+        PanelWidth.Save(s => s.IdPanelWidth = Root.ColumnDefinitions[4].ActualWidth);
+
+    private void OnLeftSplitterDragCompleted(object? sender, VectorEventArgs e) => PanelWidth.Save("id-left", Root.ColumnDefinitions[0]);
 
     private IdViewModel? Vm => DataContext as IdViewModel;
 
@@ -28,11 +36,17 @@ public sealed partial class IdView : UserControl
         base.OnDataContextChanged(e);
         if (Vm is not { } vm) return;
         vm.PickFolder = PickFolderAsync;
+        vm.SizeChosen += () => FormatButton.Flyout?.Hide();
     }
 
     private void OnZoomDoubleTapped(object? sender, TappedEventArgs e) => Vm?.ResetZoom();
 
     private void OnRotationDoubleTapped(object? sender, TappedEventArgs e) => Vm?.ResetRotation();
+
+    private void OnBackgroundDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Vm is { } vm) vm.BackgroundBrightness = 0;
+    }
 
     private async Task<string?> PickFolderAsync()
     {

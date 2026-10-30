@@ -5,7 +5,7 @@ using PhotoX.App.Services;
 
 namespace PhotoX.App.ViewModels;
 
-/// <summary>Infrequent options (FR-040): JPEG quality, thumbnail cache, about.</summary>
+/// <summary>Infrequent options (FR-040): light or dark mode, JPEG quality, ID scale, thumbnail cache, about.</summary>
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly AppServices _services;
@@ -18,6 +18,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         DataFilesText = Localizer.Instance.Format("DataFiles", services.Paths.ConfigDir);
         AboutText = Localizer.Instance.Format("AboutText", version);
         LogsText = Localizer.Instance.Format("Logs", services.Paths.LogDir);
+        // Where PhotoX is installed and how to remove it (prompt_06 §8).
+        InstallText = Localizer.Instance.Format("InstalledIn", AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))
+            + (OperatingSystem.IsWindows() ? " " + Localizer.Instance["UninstallHint"] : string.Empty);
         RefreshCache();
     }
 
@@ -41,6 +44,20 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public string AboutText { get; }
 
     public string LogsText { get; }
+
+    public string InstallText { get; }
+
+    public bool IsLight => _services.Settings.Theme == "light";
+
+    /// <summary>Light or dark mode (prompt_06 §3), applied at once and remembered.</summary>
+    [RelayCommand]
+    private void SetTheme(string theme)
+    {
+        _services.Settings.Theme = theme == "light" ? "light" : "dark";
+        _services.SaveSettings();
+        App.ApplyTheme(_services.Settings.Theme);
+        OnPropertyChanged(nameof(IsLight));
+    }
 
     partial void OnJpegQualityChanged(decimal value)
     {

@@ -11,7 +11,7 @@
       <Setter Property="FontSize" Value="13" />
     </Style>
     <Style Selector="TextBlock.value">
-      <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
       <Setter Property="FontSize" Value="12.5" />
       <Setter Property="HorizontalAlignment" Value="Right" />
     </Style>
@@ -19,14 +19,14 @@
       <Setter Property="Margin" Value="0,-6,0,-2" />
     </Style>
   </UserControl.Styles>
-  <!-- Shared by the Photos editor and the ID Photo Creator (prompt_03 §7). Double-click a slider to reset it. -->
+  <!-- Shared by the Photos editor and the ID Photo Creator (prompt_03 §7, prompt_06 §1). Double-click a slider to reset it. -->
   <StackPanel Spacing="8">
     <TextBlock Classes="section" Text="{l:Tr Histogram}" />
     <c:LevelsHistogram Height="112" Histogram="{Binding Histogram}" Black="{Binding LevelsBlack}" Mid="{Binding LevelsMid}" White="{Binding LevelsWhite}"
                        ToolTip.Tip="{l:Tr LevelsHint}" />
     <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Levels}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding LevelsText}" /></Grid>
-    <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{Binding AutoText}" Command="{Binding AutoCorrectCommand}"
-            IsVisible="{Binding HasAutoCorrect}" Margin="0,4,0,2" />
+    <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr AutoAdjust}" Command="{Binding AutoAdjustCommand}"
+            IsVisible="{Binding HasAutoAdjust}" Margin="0,4,0,2" />
 
     <TextBlock Classes="section" Text="{l:Tr Adjustments}" Margin="0,8,0,0" />
 

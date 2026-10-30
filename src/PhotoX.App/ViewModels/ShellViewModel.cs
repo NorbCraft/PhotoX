@@ -5,7 +5,7 @@ using PhotoX.App.Services;
 
 namespace PhotoX.App.ViewModels;
 
-/// <summary>Main window: workspaces (Photos, ID Photos, Collages), language switch and page navigation (FR-008, FR-009).</summary>
+/// <summary>Main window: workspaces (Photos, ID Photos, Collages, Printing), language switch and page navigation (FR-008, FR-009).</summary>
 public sealed partial class ShellViewModel : ViewModelBase
 {
     private readonly AppServices _services;
@@ -17,13 +17,18 @@ public sealed partial class ShellViewModel : ViewModelBase
         Editor = new EditorViewModel(services, Browse);
         Id = new IdViewModel(services) { StartFolder = () => Browse.CurrentFolder };
         Collage = new CollageViewModel(services) { StartFolder = () => Browse.CurrentFolder };
-        PrintQueue = new PrintQueueViewModel(services.Printing);
+        Print = new PrintViewModel(services);
+        Print.BackRequested += BackFromPrinting;
         Browse.EditRequested += item => _ = OpenEditorAsync(item);
         Browse.PrintRequested += PrintPhotos;
         Browse.SaveChangesRequested += items => _ = SaveChangesAsync(items);
         Browse.RestoreRequested += items => _ = RestoreOriginalAsync(items);
         Id.PrintRequested += (item, size) => OpenPrint([item], size, sizeFixed: true);
         Collage.PrintRequested += (item, size) => OpenPrint([item], size, sizeFixed: true);
+        Print.Queue.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PrintQueueViewModel.ActiveCount)) OnPropertyChanged(nameof(PrintBadge));
+        };
         Browse.UseForIdRequested += item => _ = UseForIdAsync(item);
         Browse.DuplicateFailed += message =>
         {
@@ -51,12 +56,11 @@ public sealed partial class ShellViewModel : ViewModelBase
     [ObservableProperty]
     public partial SettingsViewModel? Settings { get; set; }
 
-    /// <summary>The open print dialog (prompt_05 §3), if any.</summary>
-    [ObservableProperty]
-    public partial PrintDialogViewModel? PrintDialog { get; set; }
+    /// <summary>The Printing workspace (prompt_06 §7): what to print, the queue, the history and the statistics.</summary>
+    public PrintViewModel Print { get; }
 
-    /// <summary>The print queue panel (prompt_05 §4).</summary>
-    public PrintQueueViewModel PrintQueue { get; }
+    /// <summary>Jobs in progress, shown on the Printing tab.</summary>
+    public string PrintBadge => Print.Queue.ActiveCount.ToString(Localizer.Instance.Culture);
 
     public EditorViewModel Editor { get; }
 
@@ -65,7 +69,7 @@ public sealed partial class ShellViewModel : ViewModelBase
     public CollageViewModel Collage { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsCollageWorkspace), nameof(IsEditing), nameof(IsBrowsing))]
+    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsCollageWorkspace), nameof(IsPrintWorkspace), nameof(IsEditing), nameof(IsBrowsing))]
     public partial ViewModelBase CurrentPage { get; set; }
 
     public bool IsPhotosWorkspace => CurrentPage is BrowseViewModel or EditorViewModel;
@@ -73,6 +77,8 @@ public sealed partial class ShellViewModel : ViewModelBase
     public bool IsIdWorkspace => CurrentPage is IdViewModel;
 
     public bool IsCollageWorkspace => CurrentPage is CollageViewModel;
+
+    public bool IsPrintWorkspace => CurrentPage is PrintViewModel;
 
     public bool IsEditing => CurrentPage is EditorViewModel;
 
@@ -135,6 +141,28 @@ public sealed partial class ShellViewModel : ViewModelBase
         CurrentPage = Collage;
         Collage.Activate();
     }
+
+    [RelayCommand]
+    private void ShowPrinting()
+    {
+        if (IsPrintWorkspace) return;
+        RememberPhotosPage();
+        CurrentPage = Print;
+        Print.Activate();
+    }
+
+    /// <summary>Back from Printing to the workspace that sent the print.</summary>
+    private void BackFromPrinting()
+    {
+        switch (_printOrigin)
+        {
+            case IdViewModel: ShowId(); break;
+            case CollageViewModel: ShowCollages(); break;
+            default: ShowPhotos(); break;
+        }
+    }
+
+    private ViewModelBase? _printOrigin;
 
     private void RememberPhotosPage()
     {

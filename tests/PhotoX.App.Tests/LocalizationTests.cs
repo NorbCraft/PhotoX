@@ -73,12 +73,12 @@ public class LocalizationTests
         Assert.Contains("Imprimare toate", texts);
         Assert.DoesNotContain("ID Photos", texts);
         Assert.Equal("ro", Localizer.Instance.Language);
-        Assert.Contains("din", shell.Browse.ProgressText);
+        Assert.Contains("Editate", shell.Browse.ProgressText);
         shell.Browse.StartEditingCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
         UiHelpers.Capture(window, "editor-ro-1920x1080");
         shell.SetLanguageCommand.Execute("en");
-        Assert.Contains("of", shell.Browse.ProgressText);
+        Assert.Contains("Edited", shell.Browse.ProgressText);
         Assert.Contains("Save & Next", Texts(window));
         window.Close();
     }

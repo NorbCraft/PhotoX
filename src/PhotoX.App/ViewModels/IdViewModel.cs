@@ -24,7 +24,7 @@ public sealed partial class IdSizeItem(IdSize size) : ViewModelBase
 
     public string Label => Localizer.Instance.Language == "ro" ? Size.Label.Replace('.', ',') : Size.Label;
 
-    /// <summary>The centimetre equivalent of inch sizes (2 × 2 in ≈ 5,1 × 5,1 cm).</summary>
+    /// <summary>The exact size behind a rounded label (5 × 5 cm is 2 × 2 in, 50.8 × 50.8 mm, prompt_06 §5).</summary>
     public string? Detail => Size.Approximation is { } a ? (Localizer.Instance.Language == "ro" ? a.Replace('.', ',') : a) : null;
 
     public bool HasDetail => Detail is not null;
@@ -51,22 +51,30 @@ public sealed partial class IdViewModel : ViewModelBase
     private readonly AppServices _services;
     private readonly SemaphoreSlim _renderGate = new(1, 1);
     private readonly List<(IdFraming F, IdAdjustments A)> _undo = [];
+    private readonly List<(IdFraming F, IdAdjustments A)> _redo = [];
     private MagickImage? _source;
     private MagickImage? _proxy;
     private List<MagickImage> _levels = [];
     private double _proxyScale = 1;
     private int _renderVersion;
     private bool _syncing;
-    private IdFraming? _initial;
+
+    /// <summary>
+    /// The adjustments as they were before the change being made: a slider has already moved when its change is
+    /// reported, so undo records this snapshot, not the current values.
+    /// </summary>
+    private IdAdjustments _committed = new();
 
     public IdViewModel(AppServices services)
     {
         _services = services;
-        Tone = new ToneAdjustmentsViewModel(AutoAdjustCommand, "AutoAdjust");
+        // The same sidebar as in the Photos editor (prompt_06 §5): Undo, Redo and Reset above the adjustments.
+        Tone = new ToneAdjustmentsViewModel(AutoAdjustCommand, UndoCommand, RedoCommand, ResetAdjustmentsCommand, "ResetIdAdjustmentsTip");
         Tone.Changed += tag =>
         {
             if (_syncing || Framing is null) return;
             PushUndo(tag ?? "adjust");
+            _committed = Adjustments;
             Rerender();
         };
         Picker = new PhotoPickerViewModel(services) { ThumbWidth = 124, ThumbHeight = 124, PickOnSelect = true };
@@ -77,10 +85,9 @@ public sealed partial class IdViewModel : ViewModelBase
             CustomSizes.Add(new IdSizeItem(IdSizes.Custom(c.WidthMm, c.HeightMm)));
         }
 
-        var start = Sizes.FirstOrDefault(s => s.Size.Id == IdSizes.S35x45.Id) ?? Sizes[0];
-        SelectedSize = start;
-        start.IsSelected = true;
-        PreviousRatio = start.Size.Ratio;
+        // 3 × 4 cm is the default format, eight to a sheet (prompt_06 §5).
+        SelectedSize = Sizes.FirstOrDefault(s => s.Size.Id == IdSizes.S3x4.Id) ?? Sizes[0];
+        SelectSize(SelectedSize);
         OutputFolder = services.Settings.IdOutputFolder;
         Localizer.Instance.LanguageChanged += (_, _) =>
         {
@@ -113,6 +120,9 @@ public sealed partial class IdViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool IsAddingSize { get; set; }
+
+    /// <summary>Raised when a format was chosen, so the format list in the toolbar can close.</summary>
+    public event Action? SizeChosen;
 
     /// <summary>New size in centimetres.</summary>
     [ObservableProperty]
@@ -165,9 +175,13 @@ public sealed partial class IdViewModel : ViewModelBase
                     return;
                 }
 
+                var turns = Framing?.QuarterTurns ?? 0;
                 faces = await Task.Run(() =>
                 {
-                    lock (detector) return detector.Detect(proxy);
+                    // Faces are found on the photo as shown, so a photo turned by 90° is aligned too.
+                    using var shown = (MagickImage)proxy.Clone();
+                    if (turns != 0) shown.Rotate(90 * turns);
+                    lock (detector) return detector.Detect(shown);
                 });
             }
             finally
@@ -222,11 +236,18 @@ public sealed partial class IdViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasFaceChoices));
     }
 
+    /// <summary>
+    /// Places a face found on the photo as shown (after its quarter turns) on the guides. The framing is computed in
+    /// that view, then its centre is mapped back to the stored photo.
+    /// </summary>
     private void ApplyFace(DetectedFace face)
     {
+        if (_source is null || Framing is null) return;
         var k = _proxyScale;
-        var f = IdFraming.FromFace(face.LeftEye.X / k, face.LeftEye.Y / k, face.RightEye.X / k, face.RightEye.Y / k, face.HeadHeightEstimate / k, SelectedSize.Size);
-        SetFraming(f, null);
+        var shown = IdFraming.FromFace(face.LeftEye.X / k, face.LeftEye.Y / k, face.RightEye.X / k, face.RightEye.Y / k, face.HeadHeightEstimate / k, SelectedSize.Size);
+        var turns = Framing.QuarterTurns;
+        var (cx, cy) = IdFraming.Unturn(shown.CenterX, shown.CenterY, _source.Width, _source.Height, turns);
+        SetFraming(shown with { CenterX = cx, CenterY = cy, QuarterTurns = turns }, null);
         StatusMessage = Localizer.Instance["AutoAlignDone"];
     }
 
@@ -235,7 +256,7 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial IdSizeItem SelectedSize { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSource), nameof(ShowFraming), nameof(ShowSheet))]
+    [NotifyPropertyChangedFor(nameof(HasSource), nameof(ShowFraming), nameof(ShowSheet), nameof(ShowEmpty))]
     public partial string? SourcePath { get; set; }
 
     [ObservableProperty]
@@ -248,7 +269,7 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial Bitmap? SheetPreview { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFraming), nameof(ShowFraming), nameof(ShowSheet))]
+    [NotifyPropertyChangedFor(nameof(IsFraming), nameof(ShowFraming), nameof(ShowSheet), nameof(ShowEmpty))]
     public partial bool IsSheetStep { get; set; }
 
     [ObservableProperty]
@@ -256,6 +277,7 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatus))]
     public partial string? StatusMessage { get; set; }
 
     [ObservableProperty]
@@ -275,7 +297,7 @@ public sealed partial class IdViewModel : ViewModelBase
 
     // Sheet options
     [ObservableProperty]
-    public partial int Copies { get; set; } = 6;
+    public partial int Copies { get; set; } = 8;
 
     [ObservableProperty]
     public partial decimal MarginMm { get; set; } = 3;
@@ -300,6 +322,14 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public bool ShowSheet => HasSource && IsSheetStep;
 
+    /// <summary>No portrait loaded yet: the hint to choose one.</summary>
+    public bool ShowEmpty => !HasSource;
+
+    public bool CanUndo => _undo.Count > 0;
+
+    public bool CanRedo => _redo.Count > 0;
+
+    public bool HasStatus => StatusMessage is not null;
     /// <summary>Face guides and Auto Align; the 9×12 police photo is framed by hand (prompt_04 §8).</summary>
     public bool HasGuides => SelectedSize.Size.Guides;
 
@@ -413,13 +443,13 @@ public sealed partial class IdViewModel : ViewModelBase
             // Keep the centre and the frame height; adapt the width to the new ratio.
             var height = Framing.FrameWidthSource / PreviousRatio;
             Framing = Framing with { FrameWidthSource = height * item.Size.Ratio };
-            _initial = IdFraming.Initial(_source.Width, _source.Height, item.Size);
         }
 
         PreviousRatio = item.Size.Ratio;
         SyncSliders();
         Rerender();
         RaiseSheet();
+        SizeChosen?.Invoke();
     }
 
     private double PreviousRatio { get; set; }
@@ -464,14 +494,14 @@ public sealed partial class IdViewModel : ViewModelBase
         if (!CustomSizes.Remove(item)) return;
         _services.Settings.CustomIdSizes.RemoveAll(c => IdSizes.Custom(c.WidthMm, c.HeightMm).Id == item.Size.Id);
         _services.SaveSettings();
-        if (item.IsSelected) SelectSize(Sizes.FirstOrDefault(s => s.Size.Id == IdSizes.S35x45.Id) ?? Sizes[0]);
+        if (item.IsSelected) SelectSize(Sizes.FirstOrDefault(s => s.Size.Id == IdSizes.S3x4.Id) ?? Sizes[0]);
     }
 
     public void MoveBy(double dxPreview, double dyPreview)
     {
         if (Framing is null) return;
         var s = PreviewFrameWidth / Framing.FrameWidthSource;
-        var a = Framing.RotationDeg * Math.PI / 180;
+        var a = Framing.Angle * Math.PI / 180;
         // The photo moves with the pointer, so the frame centre moves the other way (in rotated source coordinates).
         var dx = -(dxPreview * Math.Cos(a) - dyPreview * Math.Sin(a)) / s;
         var dy = -(dxPreview * Math.Sin(a) + dyPreview * Math.Cos(a)) / s;
@@ -493,8 +523,8 @@ public sealed partial class IdViewModel : ViewModelBase
     partial void OnZoomChanged(double value)
     {
         OnPropertyChanged(nameof(ZoomText));
-        if (_syncing || Framing is null || _initial is null) return;
-        SetFraming(Framing with { FrameWidthSource = _initial.FrameWidthSource * 100 / Math.Max(10, value) }, "zoom");
+        if (_syncing || Framing is null || InitialFraming(Framing.QuarterTurns) is not { } initial) return;
+        SetFraming(Framing with { FrameWidthSource = initial.FrameWidthSource * 100 / Math.Max(10, value) }, "zoom");
     }
 
     partial void OnRotationChanged(double value)
@@ -508,6 +538,7 @@ public sealed partial class IdViewModel : ViewModelBase
     {
         if (_syncing || Framing is null) return;
         PushUndo("background");
+        _committed = Adjustments;
         Rerender();
     }
 
@@ -525,52 +556,122 @@ public sealed partial class IdViewModel : ViewModelBase
 
     partial void OnIncludeStripChanged(bool value) => RaiseSheet();
 
+    /// <summary>The start framing of the loaded portrait for the given quarter turns (zoom 100 %).</summary>
+    private IdFraming? InitialFraming(int quarterTurns) =>
+        _source is null ? null : IdFraming.Initial(_source.Width, _source.Height, SelectedSize.Size, quarterTurns);
+
+    /// <summary>Reset framing (toolbar): the start position and zoom, without the fine rotation; a 90° turn stays.</summary>
     [RelayCommand]
     private void ResetFraming()
     {
-        if (_initial is not null) SetFraming(_initial, null);
+        if (Framing is not null && InitialFraming(Framing.QuarterTurns) is { } initial) SetFraming(initial, null);
     }
 
+    /// <summary>90° rotation (prompt_06 §5) for photos in the wrong orientation; framing and zoom stay valid.</summary>
     [RelayCommand]
+    private void RotateLeft() => TurnQuarter(-1);
+
+    [RelayCommand]
+    private void RotateRight() => TurnQuarter(1);
+
+    private void TurnQuarter(int turns)
+    {
+        if (Framing is null || InitialFraming(Framing.QuarterTurns) is not { } before) return;
+        // The same point stays in the centre of the frame, and the zoom relative to the start framing is kept.
+        var zoom = before.FrameWidthSource / Framing.FrameWidthSource;
+        var after = InitialFraming(Framing.QuarterTurns + turns)!;
+        SetFraming(Framing with { QuarterTurns = after.QuarterTurns, FrameWidthSource = after.FrameWidthSource / zoom }, null);
+    }
+
+    /// <summary>A new portrait: start framing, no adjustments, no history.</summary>
     private void ResetAll()
     {
-        if (_source is null) return;
-        _initial = IdFraming.Initial(_source.Width, _source.Height, SelectedSize.Size);
+        if (InitialFraming(0) is not { } initial) return;
         _undo.Clear();
+        _redo.Clear();
         _syncing = true;
         Tone.Load(new Core.Editing.EditRecipe());
         BackgroundBrightness = 0;
         _syncing = false;
-        Framing = _initial;
+        _committed = Adjustments;
+        Framing = initial;
         SyncSliders();
+        RaiseHistory();
+        Rerender();
+    }
+
+    /// <summary>Reset in the sidebar (prompt_06 §5, as in Photos): clears the image adjustments; the framing stays.</summary>
+    [RelayCommand]
+    private void ResetAdjustments()
+    {
+        if (Framing is null) return;
+        PushUndo(null);
+        _syncing = true;
+        Tone.Load(new Core.Editing.EditRecipe());
+        BackgroundBrightness = 0;
+        _syncing = false;
+        _committed = Adjustments;
         Rerender();
     }
 
     [RelayCommand]
     private void Undo()
     {
-        if (_undo.Count == 0) return;
+        if (_undo.Count == 0 || Framing is null) return;
+        _redo.Add((Framing, Adjustments));
         var (f, a) = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
+        Restore(f, a);
+    }
+
+    [RelayCommand]
+    private void Redo()
+    {
+        if (_redo.Count == 0 || Framing is null) return;
+        _undo.Add((Framing, Adjustments));
+        var (f, a) = _redo[^1];
+        _redo.RemoveAt(_redo.Count - 1);
+        Restore(f, a);
+    }
+
+    private void Restore(IdFraming f, IdAdjustments a)
+    {
+        _lastTag = null;
         _syncing = true;
         Tone.Load(a.Tone);
         BackgroundBrightness = a.BackgroundBrightness;
         _syncing = false;
+        _committed = Adjustments;
         Framing = f;
         SyncSliders();
+        RaiseHistory();
         Rerender();
+    }
+
+    private void RaiseHistory()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        Tone.CanUndo = CanUndo;
+        Tone.CanRedo = CanRedo;
     }
 
     [RelayCommand]
     private void ContinueToSheet()
     {
         if (_source is null) return;
+        StatusMessage = null;
+        ClearFaceChoices();
         IsSheetStep = true;
         _ = RenderSheetPreviewAsync();
     }
 
     [RelayCommand]
-    private void BackToFraming() => IsSheetStep = false;
+    private void BackToFraming()
+    {
+        if (IsSheetStep) StatusMessage = null;
+        IsSheetStep = false;
+    }
 
     [RelayCommand]
     private void SetCopies(int count) => Copies = Math.Clamp(count, 1, Math.Max(1, Capacity));
@@ -593,8 +694,13 @@ public sealed partial class IdViewModel : ViewModelBase
             case Key.Right: MoveBy(step, 0); return true;
             case Key.Up: MoveBy(0, -step); return true;
             case Key.Down: MoveBy(0, step); return true;
+            case Key.Z when ctrl && modifiers.HasFlag(KeyModifiers.Shift):
+            case Key.Y when ctrl:
+                Redo();
+                return true;
             case Key.Z when ctrl: Undo(); return true;
             case Key.Space: ShowBefore = true; return true;
+            case Key.Enter when modifiers == KeyModifiers.None: ContinueToSheet(); return true;
             case Key.OemPlus or Key.Add when !ctrl: Tone.ExposurePlus(); return true;
             case Key.OemMinus or Key.Subtract when !ctrl: Tone.ExposureMinus(); return true;
             default: return false;
@@ -617,7 +723,7 @@ public sealed partial class IdViewModel : ViewModelBase
     /// <summary>Double-click on the zoom slider: back to the initial zoom (prompt_04 §8).</summary>
     public void ResetZoom()
     {
-        if (Framing is not null && _initial is not null) SetFraming(Framing with { FrameWidthSource = _initial.FrameWidthSource }, null);
+        if (Framing is not null && InitialFraming(Framing.QuarterTurns) is { } initial) SetFraming(Framing with { FrameWidthSource = initial.FrameWidthSource }, null);
     }
 
     /// <summary>
@@ -635,6 +741,7 @@ public sealed partial class IdViewModel : ViewModelBase
         _syncing = true;
         Tone.Load(result with { Contrast = tone.Contrast, Saturation = tone.Saturation });
         _syncing = false;
+        _committed = Adjustments;
         Rerender();
     }
 
@@ -654,8 +761,10 @@ public sealed partial class IdViewModel : ViewModelBase
         if (tag is not null && tag == _lastTag && (DateTime.UtcNow - _lastTime).TotalMilliseconds < 800) return;
         _lastTag = tag;
         _lastTime = DateTime.UtcNow;
-        _undo.Add((Framing, Adjustments));
+        _undo.Add((Framing, _committed));
         if (_undo.Count > 100) _undo.RemoveAt(0);
+        _redo.Clear();
+        RaiseHistory();
     }
 
     private void SetFraming(IdFraming next, string? tag)
@@ -669,9 +778,9 @@ public sealed partial class IdViewModel : ViewModelBase
 
     private void SyncSliders()
     {
-        if (Framing is null || _initial is null) return;
+        if (Framing is null || InitialFraming(Framing.QuarterTurns) is not { } initial) return;
         _syncing = true;
-        Zoom = Math.Round(_initial.FrameWidthSource / Framing.FrameWidthSource * 100, 1);
+        Zoom = Math.Round(initial.FrameWidthSource / Framing.FrameWidthSource * 100, 1);
         Rotation = Framing.RotationDeg;
         _syncing = false;
     }
@@ -769,7 +878,7 @@ public sealed partial class IdViewModel : ViewModelBase
         _services.SaveSettings();
     }
 
-    /// <summary>Renders the full-resolution sheet and writes it with a timestamp name (FR-068, FR-075).</summary>
+    /// <summary>Save (prompt_06 §5, formerly Save sheet): renders the full-resolution sheet and writes it with a timestamp name (FR-068, FR-075).</summary>
     [RelayCommand]
     public async Task<string?> SaveSheetAsync()
     {

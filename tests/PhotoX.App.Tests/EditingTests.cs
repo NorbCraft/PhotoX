@@ -73,7 +73,7 @@ public class EditingTests
         using var dir = new TempDir();
         var (window, shell, _) = await OpenEditor(dir);
         Assert.NotNull(shell.Editor.Tone.Histogram);
-        await shell.Editor.AutoCorrectCommand.ExecuteAsync(null);
+        await shell.Editor.AutoAdjustCommand.ExecuteAsync(null);
         var r = shell.Editor.Recipe;
         Assert.InRange(r.Exposure, -1, 1);
         Assert.True(shell.Editor.CanUndo);

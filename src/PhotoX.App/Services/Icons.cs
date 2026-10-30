@@ -21,6 +21,34 @@ public static class Icons
     public static readonly Geometry Printer = Geometry.Parse(
         "M7 9V4h10v5 M6.5 17H4.5A1.5 1.5 0 0 1 3 15.5v-5A1.5 1.5 0 0 1 4.5 9h15a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-2 M7 13.5h10V20H7z");
 
+    /// <summary>Workspace Photos (prompt_06 §1): a picture with a mountain and the sun.</summary>
+    public static readonly Geometry Photos = Geometry.Parse(
+        "M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z M4 16.5l4.5-4.5 4 4 2.5-2.5 5 5 M15.5 7.5a1.6 1.6 0 1 1 0 3.2a1.6 1.6 0 1 1 0-3.2z");
+
+    /// <summary>Workspace ID Photos: a portrait card.</summary>
+    public static readonly Geometry IdPhoto = Geometry.Parse(
+        "M6.5 3.5h11A1.5 1.5 0 0 1 19 5v14a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5z M12 7.2a2.6 2.6 0 1 1 0 5.2a2.6 2.6 0 1 1 0-5.2z M7.8 17.6c.7-2 2.3-3 4.2-3s3.5 1 4.2 3");
+
+    /// <summary>Workspace Collages: four frames of different sizes.</summary>
+    public static readonly Geometry Collage = Geometry.Parse(
+        "M5 4h5.5a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M14.5 4H19a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M14.5 12.5H19a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1h-4.5a1 1 0 0 1-1-1v-5.5a1 1 0 0 1 1-1z M5 16.5h5.5a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1.5a1 1 0 0 1 1-1z");
+
+    /// <summary>Magnifier with a plus: zoom.</summary>
+    public static readonly Geometry Zoom = Geometry.Parse("M10.5 4a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13z M15.2 15.2 20 20 M10.5 8v5 M8 10.5h5");
+
+    /// <summary>A face in focus brackets: Auto Align.</summary>
+    public static readonly Geometry AutoAlign = Geometry.Parse(
+        "M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8 M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8 M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16 M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16 M12 7.5a3 3.6 0 1 1 0 7.2a3 3.6 0 1 1 0-7.2z M9.5 11h5");
+
+    /// <summary>A sun: background brightness.</summary>
+    public static readonly Geometry Brightness = Geometry.Parse(
+        "M12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7z M12 3v2 M12 19v2 M3 12h2 M19 12h2 M5.6 5.6l1.4 1.4 M17 17l1.4 1.4 M5.6 18.4 7 17 M17 7l1.4-1.4");
+
+    /// <summary>A small and a large picture: thumbnail size.</summary>
+    public static readonly Geometry ThumbSmall = Geometry.Parse("M8 8h8v8H8z");
+
+    public static readonly Geometry ThumbLarge = Geometry.Parse("M4.5 4.5h15v15h-15z");
+
     /// <summary>Gear (settings), drawn as one clean outline with a centre hole (prompt_04 §3).</summary>
     public static readonly Geometry Settings = Geometry.Parse(GearPath());
 

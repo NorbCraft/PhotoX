@@ -124,7 +124,7 @@ public sealed partial class ShellViewModel
         if (failed.Count > 0) await ShowMessageAsync(Localizer.Instance["RestoreOriginal"], Localizer.Instance.Format("RestoreFailed", string.Join("\n", failed)));
     }
 
-    /// <summary>Opens the print dialog for gallery photos: unsaved edits print as shown, untouched photos fill the paper.</summary>
+    /// <summary>Opens the Printing workspace for gallery photos: unsaved edits print as shown, untouched photos fill the paper.</summary>
     public void PrintPhotos(IReadOnlyList<PhotoItemViewModel> items)
     {
         Editor.KeepPending();
@@ -138,17 +138,19 @@ public sealed partial class ShellViewModel
         OpenPrint(printItems, size, sizeFixed: false);
     }
 
-    /// <summary>Opens the print dialog (prompt_05 §3).</summary>
+    /// <summary>Opens the Printing workspace with what to print (prompt_06 §7); nothing is sent before Print is pressed there.</summary>
     public void OpenPrint(IReadOnlyList<PrintItem> items, PrintFormat size, bool sizeFixed)
     {
-        if (items.Count == 0 || PrintDialog is not null) return;
-        var dialog = new PrintDialogViewModel(_services, items, size, sizeFixed);
-        dialog.Closed += sent =>
+        if (items.Count == 0) return;
+        _printOrigin = IsPhotosWorkspace ? Browse : CurrentPage is PrintViewModel ? _printOrigin : CurrentPage;
+        var origin = _printOrigin switch
         {
-            PrintDialog = null;
-            if (sent > 0) PrintQueue.IsOpen = true;
+            IdViewModel => Localizer.Instance["TabId"],
+            CollageViewModel => Localizer.Instance["TabCollages"],
+            _ => Localizer.Instance["TabPhotos"],
         };
-        PrintDialog = dialog;
+        ShowPrinting();
+        Print.Load(items, size, sizeFixed, origin);
     }
 
     private static string Names(IReadOnlyList<PhotoItemViewModel> items) =>

@@ -11,35 +11,40 @@
         Width="1440" Height="900" MinWidth="1100" MinHeight="680"
         WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="56,*">
-    <!-- Top bar (FR-008, FR-009): workspaces on the left; print queue, language, settings and the PhotoX name on the right (prompt_05 §1) -->
-    <Border Grid.Row="0" Background="{StaticResource BarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+    <!-- Top bar (FR-008, FR-009): workspaces with icons on the left; language, settings and the PhotoX name on the right (prompt_05 §1, prompt_06 §1) -->
+    <Border Grid.Row="0" Background="{DynamicResource BarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto" Margin="12,0,16,0">
-        <Border Background="{StaticResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
+        <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <ToggleButton Classes="seg ws" Focusable="False" MinWidth="124" IsChecked="{Binding IsPhotosWorkspace, Mode=OneWay}" Command="{Binding ShowPhotosCommand}" Content="{l:Tr TabPhotos}" />
-            <ToggleButton Classes="seg ws" Focusable="False" MinWidth="124" IsChecked="{Binding IsIdWorkspace, Mode=OneWay}" Command="{Binding ShowIdCommand}" Content="{l:Tr TabId}" />
-            <ToggleButton Classes="seg ws" Focusable="False" MinWidth="124" IsChecked="{Binding IsCollageWorkspace, Mode=OneWay}" Command="{Binding ShowCollagesCommand}" Content="{l:Tr TabCollages}" />
+            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPhotosWorkspace, Mode=OneWay}" Command="{Binding ShowPhotosCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.Photos}" /><TextBlock Text="{l:Tr TabPhotos}" VerticalAlignment="Center" /></StackPanel>
+            </ToggleButton>
+            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsIdWorkspace, Mode=OneWay}" Command="{Binding ShowIdCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.IdPhoto}" /><TextBlock Text="{l:Tr TabId}" VerticalAlignment="Center" /></StackPanel>
+            </ToggleButton>
+            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsCollageWorkspace, Mode=OneWay}" Command="{Binding ShowCollagesCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.Collage}" /><TextBlock Text="{l:Tr TabCollages}" VerticalAlignment="Center" /></StackPanel>
+            </ToggleButton>
+            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPrintWorkspace, Mode=OneWay}" Command="{Binding ShowPrintingCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Path Data="{x:Static s:Icons.Printer}" />
+                <TextBlock Text="{l:Tr TabPrinting}" VerticalAlignment="Center" />
+                <!-- Jobs in progress; amber when Windows reports a problem -->
+                <Border IsVisible="{Binding Print.Queue.HasActive}" Classes="wsbadge" Classes.attention="{Binding Print.Queue.NeedsAttention}" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding PrintBadge}" />
+                </Border>
+              </StackPanel>
+            </ToggleButton>
           </StackPanel>
         </Border>
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="12,0">
           <TextBlock Text="{Binding ContextText}" Classes="muted" FontSize="14" TextTrimming="CharacterEllipsis" MaxWidth="460" VerticalAlignment="Center" />
-          <Border IsVisible="{Binding ShowUnsaved}" Background="#3A2C10" BorderBrush="#7A5714" BorderThickness="1" CornerRadius="12" Padding="10,3">
-            <TextBlock Text="{l:Tr Unsaved}" Foreground="#F8D48A" FontSize="12.5" FontWeight="SemiBold" />
+          <Border IsVisible="{Binding ShowUnsaved}" Background="{DynamicResource WarnBgBrush}" BorderBrush="{DynamicResource WarnBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,3">
+            <TextBlock Text="{l:Tr Unsaved}" Foreground="{DynamicResource WarnTextBrush}" FontSize="12.5" FontWeight="SemiBold" />
           </Border>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Button Classes="list" Focusable="False" Padding="8,4" Command="{Binding PrintQueue.ToggleCommand}" ToolTip.Tip="{l:Tr PrintQueue}">
-            <Panel>
-              <Path Data="{x:Static s:Icons.Printer}" Stroke="{StaticResource TextBrush}" StrokeThickness="1.7" StrokeJoin="Round" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" />
-              <Border IsVisible="{Binding PrintQueue.HasActive}" Background="{StaticResource AccentBrush}" CornerRadius="8" MinWidth="16" Height="16" Padding="4,0"
-                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-8,0">
-                <TextBlock Text="{Binding PrintQueue.ActiveCount}" FontSize="10.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-              </Border>
-              <Border IsVisible="{Binding PrintQueue.NeedsAttention}" Background="{StaticResource WarnBrush}" CornerRadius="5" Width="10" Height="10"
-                      HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-4,0,0,-3" />
-            </Panel>
-          </Button>
-          <Border Background="{StaticResource Panel2Brush}" BorderBrush="{StaticResource Border2Brush}" BorderThickness="1" CornerRadius="15" Padding="2" VerticalAlignment="Center">
+          <Border Background="{DynamicResource Panel2Brush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="15" Padding="2" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal">
               <ToggleButton Classes="seg lang" Focusable="False" CornerRadius="13" Padding="12,3" MinHeight="26" FontWeight="Bold" Content="EN"
                             IsChecked="{Binding IsEnglish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="en" />
@@ -48,13 +53,13 @@
             </StackPanel>
           </Border>
           <Button Classes="list" Focusable="False" Padding="8,4" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="{l:Tr Settings}">
-            <Path Data="{x:Static s:Icons.Settings}" Stroke="{StaticResource TextBrush}" StrokeThickness="1.7" StrokeJoin="Round" Width="22" Height="22" Stretch="Uniform" />
+            <Path Data="{x:Static s:Icons.Settings}" Stroke="{DynamicResource TextBrush}" StrokeThickness="1.7" StrokeJoin="Round" Width="22" Height="22" Stretch="Uniform" />
           </Button>
-          <!-- PhotoX: the logo and the name, with the X in the lens colours -->
+          <!-- PhotoX: the icon and the name, the X in the primary blue of the icon -->
           <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="6,0,0,0">
             <Image Source="/Assets/photox-icon-64.png" Width="36" Height="36" VerticalAlignment="Center" RenderOptions.BitmapInterpolationMode="HighQuality" />
             <TextBlock FontSize="21" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,0,2">
-              <Run Text="Photo" Foreground="{StaticResource TextBrush}" /><Run Text="X" Foreground="{StaticResource LensBrush}" />
+              <Run Text="Photo" Foreground="{DynamicResource TextBrush}" /><Run Text="X" Foreground="{DynamicResource AccentBrush}" />
             </TextBlock>
           </StackPanel>
         </StackPanel>
@@ -67,12 +72,13 @@
       <Panel IsVisible="{Binding IsEditing}"><v:EditorView DataContext="{Binding Editor}" /></Panel>
       <Panel IsVisible="{Binding IsIdWorkspace}"><v:IdView DataContext="{Binding Id}" /></Panel>
       <Panel IsVisible="{Binding IsCollageWorkspace}"><v:CollageView DataContext="{Binding Collage}" /></Panel>
+      <Panel IsVisible="{Binding IsPrintWorkspace}"><v:PrintView DataContext="{Binding Print}" /></Panel>
     </Panel>
 
-    <!-- In-window dialogs (Finish Order, unsaved changes, messages) -->
-    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#99000000">
+    <!-- In-window dialogs (warnings, unsaved changes, messages) -->
+    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource OverlayBrush}">
       <Border DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel" Width="580" HorizontalAlignment="Center" VerticalAlignment="Center"
-              Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
+              Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
         <StackPanel Spacing="14">
           <TextBlock Text="{Binding Title}" FontSize="19" FontWeight="Bold" TextWrapping="Wrap" />
           <TextBlock Text="{Binding Message}" Classes="muted" FontSize="14" TextWrapping="Wrap" />
@@ -83,8 +89,8 @@
                         Command="{Binding $parent[Border].((vm:DialogViewModel)DataContext).ChooseCommand}" CommandParameter="{Binding}">
                   <Grid ColumnDefinitions="Auto,*">
                     <Panel Width="20" Height="20" VerticalAlignment="Top" Margin="0,2,14,0">
-                      <Ellipse Stroke="{StaticResource Text2Brush}" StrokeThickness="2" />
-                      <Ellipse Width="9" Height="9" Fill="{StaticResource AccentBrush}" IsVisible="{Binding IsSelected}" />
+                      <Ellipse Stroke="{DynamicResource Text2Brush}" StrokeThickness="2" />
+                      <Ellipse Width="9" Height="9" Fill="{DynamicResource AccentBrush}" IsVisible="{Binding IsSelected}" />
                     </Panel>
                     <StackPanel Grid.Column="1" Spacing="4">
                       <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
@@ -95,7 +101,7 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock IsVisible="{Binding HasNote}" Text="{Binding Note}" Foreground="{StaticResource Text3Brush}" FontSize="12" TextWrapping="Wrap" />
+          <TextBlock IsVisible="{Binding HasNote}" Text="{Binding Note}" Foreground="{DynamicResource Text3Brush}" FontSize="12" TextWrapping="Wrap" />
           <ItemsControl ItemsSource="{Binding Buttons}" HorizontalAlignment="Right">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate>
@@ -111,55 +117,25 @@
       </Border>
     </Panel>
 
-    <!-- Print queue (prompt_05 §4): a panel that stays open while working -->
-    <Border Grid.Row="1" IsVisible="{Binding PrintQueue.IsOpen}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,12,0" Width="460" MaxHeight="620"
-            Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="18,14" BoxShadow="0 8 24 0 #A0000000">
-      <Grid RowDefinitions="Auto,*,Auto" DataContext="{Binding PrintQueue}" x:DataType="vm:PrintQueueViewModel">
-        <Grid ColumnDefinitions="*,Auto,Auto">
-          <TextBlock Text="{l:Tr PrintQueue}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ClearFinished}" Command="{Binding ClearFinishedCommand}" IsVisible="{Binding HasJobs}" VerticalAlignment="Center" />
-          <Button Grid.Column="2" Classes="list" Focusable="False" Padding="8,2" Content="✕" Command="{Binding CloseCommand}" Margin="6,0,0,0" />
-        </Grid>
-        <Panel Grid.Row="1" Margin="0,10,0,0">
-          <TextBlock IsVisible="{Binding !HasJobs}" Text="{l:Tr QueueEmpty}" Classes="muted" Margin="0,10" />
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Jobs}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:PrintJobItem">
-                  <Border Background="{StaticResource Panel2Brush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <StackPanel Spacing="2">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding Details}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding StatusText}" FontSize="12.5" TextWrapping="Wrap" Foreground="{Binding Tone, Converter={x:Static s:IconConverter.ToneBrush}}" />
-                      </StackPanel>
-                      <Button Grid.Column="1" Focusable="False" Content="{l:Tr Cancel}" IsVisible="{Binding CanCancel}" VerticalAlignment="Center" Margin="8,0,0,0"
-                              Command="{Binding $parent[ItemsControl].((vm:PrintQueueViewModel)DataContext).CancelCommand}" CommandParameter="{Binding}" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
-        </Panel>
-        <TextBlock Grid.Row="2" Text="{l:Tr QueueNote}" Foreground="{StaticResource Text3Brush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,0" />
-      </Grid>
-    </Border>
-
-    <!-- Print dialog (prompt_05 §3) -->
-    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding PrintDialog, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#99000000">
-      <v:PrintDialogView DataContext="{Binding PrintDialog}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-    </Panel>
-
     <!-- Settings (FR-040) -->
-    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Settings, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#99000000">
+    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Settings, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource OverlayBrush}">
       <Border DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel" Width="560" HorizontalAlignment="Center" VerticalAlignment="Center"
-              Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
+              Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
         <StackPanel Spacing="16">
           <TextBlock Text="{l:Tr SettingsTitle}" FontSize="19" FontWeight="Bold" />
+          <!-- Light or dark mode (prompt_06 §3) -->
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{l:Tr Appearance}" VerticalAlignment="Center" FontWeight="SemiBold" />
+            <Border Grid.Column="1" Classes="segbox">
+              <StackPanel Orientation="Horizontal">
+                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeLight}" IsChecked="{Binding IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="light" />
+                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeDark}" IsChecked="{Binding !IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="dark" />
+              </StackPanel>
+            </Border>
+          </Grid>
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="{l:Tr JpegQuality}" VerticalAlignment="Center" FontWeight="SemiBold" />
-            <NumericUpDown Grid.Column="1" Width="130" Minimum="80" Maximum="100" Increment="1" FormatString="0" Value="{Binding JpegQuality}" />
+            <NumericUpDown Grid.Column="1" Width="130" Minimum="80" Maximum="100" Increment="1" FormatString="0" Value="{Binding JpegQuality}" ToolTip.Tip="{l:Tr JpegQualityTip}" />
           </Grid>
           <StackPanel Spacing="6">
             <Grid ColumnDefinitions="*,Auto">
@@ -177,7 +153,7 @@
             <TextBlock Text="{Binding CacheText}" Classes="muted" TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal" Spacing="12">
               <Button Content="{l:Tr ClearCache}" Command="{Binding ClearCacheCommand}" />
-              <TextBlock Text="{Binding CacheMessage}" Foreground="{StaticResource OkBrush}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding CacheMessage}" Classes="ok" VerticalAlignment="Center" />
             </StackPanel>
           </StackPanel>
           <StackPanel Spacing="6">
@@ -186,7 +162,8 @@
               <Image Source="/Assets/photox-icon-256.png" Width="40" Height="40" VerticalAlignment="Top" Margin="0,0,12,0" />
               <TextBlock Grid.Column="1" Text="{Binding AboutText}" Classes="muted" TextWrapping="Wrap" />
             </Grid>
-            <TextBlock Text="{Binding LogsText}" Foreground="{StaticResource Text3Brush}" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding InstallText}" Classes="faint" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding LogsText}" Classes="faint" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
           <Button Classes="primary" HorizontalAlignment="Right" MinWidth="120" Content="{l:Tr Close}" Command="{Binding CloseCommand}" />
         </StackPanel>

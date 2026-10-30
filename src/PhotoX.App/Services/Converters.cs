@@ -37,14 +37,4 @@ public static class IconConverter
 
     public static readonly IValueConverter CurrentBorder = new FuncValueConverter<bool, Avalonia.Thickness>(current => current ? new Avalonia.Thickness(3) : new Avalonia.Thickness(1));
 
-    public static readonly IValueConverter StateBrush = new FuncValueConverter<bool, Avalonia.Media.IBrush>(warn =>
-        warn ? new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F5A524")) : new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#34C759")));
-
-    /// <summary>Picker names: normal for photos that open, dimmed for unsupported files.</summary>
-    public static readonly IValueConverter OpenableBrush = new FuncValueConverter<bool, Avalonia.Media.IBrush>(ok =>
-        new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(ok ? "#EDEDED" : "#7A7A7A")));
-
-    /// <summary>Print job status colours: ok (green), warn (amber), error (red), otherwise grey.</summary>
-    public static readonly IValueConverter ToneBrush = new FuncValueConverter<string?, Avalonia.Media.IBrush>(tone =>
-        new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(tone switch { "ok" => "#34C759", "warn" => "#F5A524", "error" => "#FF5A52", _ => "#A8A8A8" })));
 }

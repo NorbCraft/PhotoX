@@ -6,35 +6,53 @@ using PhotoX.Core.Editing;
 namespace PhotoX.App.ViewModels;
 
 /// <summary>
-/// Histogram with levels, exposure, contrast, white balance, tint and saturation (FR-013, FR-014, FR-043, FR-044):
-/// one set of controls shared by the Photos editor and the ID Photo Creator (prompt_03 §7). The owner keeps the
-/// recipe and the undo history; this class only reports which value the operator changed.
+/// The editing sidebar shared by the Photos editor and the ID Photo Creator (prompt_03 §7, prompt_06 §1): Undo, Redo
+/// and Reset, then the histogram with levels, Auto Adjust, exposure, contrast, white balance, tint and saturation
+/// (FR-013, FR-014, FR-043, FR-044). The owner keeps the recipe and the undo history; this class only reports which
+/// value the operator changed and offers the owner's commands.
 /// </summary>
 public sealed partial class ToneAdjustmentsViewModel : ViewModelBase
 {
     public const double ExposureStep = 1.0 / 6.0;
 
-    private readonly string _autoKey;
+    private readonly string _resetTipKey;
     private bool _syncing;
 
-    /// <param name="autoCorrect">Auto Correct (Photos) or Auto Adjust (ID Photos).</param>
-    /// <param name="autoKey">Text key of that button.</param>
-    public ToneAdjustmentsViewModel(IAsyncRelayCommand? autoCorrect = null, string autoKey = "AutoCorrect")
+    /// <param name="autoAdjust">Auto Adjust of the owner (one name in both workspaces, prompt_06 §1).</param>
+    /// <param name="undo">The owner's Undo, Redo and Reset (image adjustments only).</param>
+    /// <param name="resetTipKey">Text key of the Reset tooltip: what stays when resetting.</param>
+    public ToneAdjustmentsViewModel(IAsyncRelayCommand? autoAdjust = null, IRelayCommand? undo = null, IRelayCommand? redo = null, IRelayCommand? reset = null,
+        string resetTipKey = "ResetAdjustmentsTip")
     {
-        AutoCorrectCommand = autoCorrect;
-        _autoKey = autoKey;
+        AutoAdjustCommand = autoAdjust;
+        UndoCommand = undo;
+        RedoCommand = redo;
+        ResetAdjustmentsCommand = reset;
+        _resetTipKey = resetTipKey;
         Localizer.Instance.LanguageChanged += (_, _) => RaiseTexts();
     }
 
     /// <summary>Raised when the operator changes a value. The tag lets quick successive changes share one undo step.</summary>
     public event Action<string?>? Changed;
 
-    /// <summary>Auto Correct of the Photos editor, Auto Adjust of the ID Photo Creator (prompt_04 §8).</summary>
-    public IAsyncRelayCommand? AutoCorrectCommand { get; }
+    public IAsyncRelayCommand? AutoAdjustCommand { get; }
 
-    public bool HasAutoCorrect => AutoCorrectCommand is not null;
+    public bool HasAutoAdjust => AutoAdjustCommand is not null;
 
-    public string AutoText => Localizer.Instance[_autoKey];
+    public IRelayCommand? UndoCommand { get; }
+
+    public IRelayCommand? RedoCommand { get; }
+
+    public IRelayCommand? ResetAdjustmentsCommand { get; }
+
+    /// <summary>Set by the owner whenever its history changes.</summary>
+    [ObservableProperty]
+    public partial bool CanUndo { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanRedo { get; set; }
+
+    public string ResetTip => Localizer.Instance[_resetTipKey];
 
     [ObservableProperty]
     public partial double Exposure { get; set; }
@@ -167,7 +185,7 @@ public sealed partial class ToneAdjustmentsViewModel : ViewModelBase
         OnPropertyChanged(nameof(TintText));
         OnPropertyChanged(nameof(SaturationText));
         OnPropertyChanged(nameof(LevelsText));
-        OnPropertyChanged(nameof(AutoText));
+        OnPropertyChanged(nameof(ResetTip));
     }
 
     private static string Signed(double v) => Math.Round(v) == 0 ? "0" : v.ToString("+0;−0", Localizer.Instance.Culture);

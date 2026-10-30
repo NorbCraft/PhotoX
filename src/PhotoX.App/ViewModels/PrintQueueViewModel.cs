@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PhotoX.App.Localization;
 using PhotoX.Printing;
@@ -14,7 +13,7 @@ public sealed partial class PrintJobItem(PrintJob job) : ViewModelBase
 
     public string Name => Job.Name;
 
-    public string Details => Localizer.Instance.Format("JobDetails", PrintDialogViewModel.SizeName(Job.Size), Job.Copies, Job.Printer);
+    public string Details => Localizer.Instance.Format("JobDetails", PrintViewModel.SizeName(Job.Size), Job.Copies, Job.Printer);
 
     public string StatusText => Job.State switch
     {
@@ -31,22 +30,25 @@ public sealed partial class PrintJobItem(PrintJob job) : ViewModelBase
         _ => Localizer.Instance.Format("JobFailed", Job.Detail ?? string.Empty),
     };
 
-    /// <summary>ok, warn, error or neutral: the colour of the status.</summary>
-    public string Tone => Job.State switch
-    {
-        PrintJobState.Finished => "ok",
-        PrintJobState.Attention => "warn",
-        PrintJobState.Failed => "error",
-        _ => "neutral",
-    };
+    public bool IsOk => Job.State == PrintJobState.Finished;
+
+    public bool IsWarn => Job.State == PrintJobState.Attention || Job.Detail == "cancel-failed";
+
+    public bool IsError => Job.State == PrintJobState.Failed;
 
     public bool CanCancel => Job.CanCancel;
+
+    /// <summary>The job is being prepared, sent or printed: shown with an indeterminate progress bar.</summary>
+    public bool IsBusy => Job.State is PrintJobState.Preparing or PrintJobState.Sending || Job is { State: PrintJobState.InQueue, Detail: not null and not "cancel-failed" };
 
     public void Refresh()
     {
         OnPropertyChanged(nameof(StatusText));
-        OnPropertyChanged(nameof(Tone));
+        OnPropertyChanged(nameof(IsOk));
+        OnPropertyChanged(nameof(IsWarn));
+        OnPropertyChanged(nameof(IsError));
         OnPropertyChanged(nameof(CanCancel));
+        OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(Details));
     }
 
@@ -61,8 +63,9 @@ public sealed partial class PrintJobItem(PrintJob job) : ViewModelBase
 }
 
 /// <summary>
-/// The print queue (prompt_05 §4): PhotoX's jobs of this session with their state in the Windows queue. "Done"
-/// means Windows finished the job, not that a photo came out of the printer. Failed jobs are not resubmitted.
+/// The print queue (prompt_05 §4, prompt_06 §7): PhotoX's jobs of this session that are still in progress, with their
+/// state in the Windows queue. Finished, cancelled and failed jobs move to the history. "Done" means Windows finished
+/// the job, not that a photo came out of the printer. Failed jobs are not resubmitted.
 /// </summary>
 public sealed partial class PrintQueueViewModel : ViewModelBase
 {
@@ -75,54 +78,51 @@ public sealed partial class PrintQueueViewModel : ViewModelBase
         service.JobChanged += job => ui.Post(() => Update(job));
         Localizer.Instance.LanguageChanged += (_, _) =>
         {
-            foreach (var j in Jobs) j.Refresh();
+            foreach (var j in Active) j.Refresh();
         };
     }
 
-    /// <summary>Newest first.</summary>
-    public ObservableCollection<PrintJobItem> Jobs { get; } = [];
+    /// <summary>Jobs in progress, newest first.</summary>
+    public ObservableCollection<PrintJobItem> Active { get; } = [];
 
-    [ObservableProperty]
-    public partial bool IsOpen { get; set; }
+    /// <summary>Raised on the UI thread when a job leaves the queue (it then shows in the history).</summary>
+    public event Action? JobEnded;
 
-    public int ActiveCount => Jobs.Count(j => j.Job.IsActive);
+    public int ActiveCount => Active.Count;
 
-    public bool HasActive => ActiveCount > 0;
+    public bool HasActive => Active.Count > 0;
 
-    public bool HasJobs => Jobs.Count > 0;
+    /// <summary>Jobs not yet accepted by Windows: they would be lost if PhotoX closed now.</summary>
+    public int UnsentCount => Active.Count(j => j.Job.State is PrintJobState.Waiting or PrintJobState.Preparing or PrintJobState.Sending);
 
-    public bool NeedsAttention => Jobs.Any(j => j.Job.State is PrintJobState.Attention or PrintJobState.Failed);
+    public bool NeedsAttention => Active.Any(j => j.Job.State == PrintJobState.Attention || j.Job.Detail == "cancel-failed");
 
-    [RelayCommand]
-    private void Toggle() => IsOpen = !IsOpen;
-
-    [RelayCommand]
-    private void Close() => IsOpen = false;
+    /// <summary>History ids of the jobs in progress, which the history leaves out while the queue shows them.</summary>
+    public IReadOnlySet<string> ActiveIds => Active.Select(j => j.Job.HistoryId).ToHashSet();
 
     [RelayCommand]
     private void Cancel(PrintJobItem item) => _ = Task.Run(() => _service.Cancel(item.Job));
 
-    [RelayCommand]
-    private void ClearFinished()
-    {
-        _service.ClearFinished();
-        foreach (var j in Jobs.Where(j => !j.Job.IsActive).ToList()) Jobs.Remove(j);
-        Raise();
-    }
-
     private void Update(PrintJob job)
     {
-        var item = Jobs.FirstOrDefault(j => j.Job == job);
-        if (item is null) Jobs.Insert(0, new PrintJobItem(job));
-        else item.Refresh();
-        Raise();
-    }
+        var item = Active.FirstOrDefault(j => j.Job == job);
+        if (job.IsActive)
+        {
+            if (item is null) Active.Insert(0, new PrintJobItem(job));
+            else item.Refresh();
+        }
+        else if (item is not null)
+        {
+            Active.Remove(item);
+            JobEnded?.Invoke();
+        }
+        else
+        {
+            JobEnded?.Invoke();
+        }
 
-    private void Raise()
-    {
         OnPropertyChanged(nameof(ActiveCount));
         OnPropertyChanged(nameof(HasActive));
-        OnPropertyChanged(nameof(HasJobs));
         OnPropertyChanged(nameof(NeedsAttention));
     }
 }

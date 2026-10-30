@@ -15,13 +15,18 @@ public sealed class AppServices
         Settings = SettingsStore.Load();
         foreach (var message in ConfigData.Load(paths)) Log.Information("{Message}", message);
         ThumbnailCache = new ThumbnailCache(paths.ThumbnailDir, (long)Settings.ThumbnailCacheMaxMb * 1048576, Settings.ThumbnailCacheDays);
+        paths.MigratePrintHistory();
         PrintHistory = new PrintHistory(paths.PrintHistoryFile);
+        PrintLog = new PrintLog(paths.PrintLogDir);
         printBackend ??= OperatingSystem.IsWindows() ? new WindowsPrintBackend() : new UnavailablePrintBackend();
-        Printing = new PrintService(printBackend, PrintHistory);
+        Printing = new PrintService(printBackend, PrintHistory, PrintLog);
     }
 
     /// <summary>Print counters per photo (prompt_05 §6).</summary>
     public PrintHistory PrintHistory { get; }
+
+    /// <summary>Every print job and its outcome, for the history and statistics (prompt_06 §7).</summary>
+    public PrintLog PrintLog { get; }
 
     /// <summary>The print queue (prompt_05 §§2–4).</summary>
     public PrintService Printing { get; }

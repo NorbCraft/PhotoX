@@ -11,23 +11,23 @@
     <Style Selector="Button.template">
       <Setter Property="Padding" Value="6" />
       <Setter Property="Margin" Value="0,0,6,6" />
-      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="2" />
     </Style>
     <Style Selector="Button.template.selected">
-      <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
   </UserControl.Styles>
   <!-- Collages (prompt_04 §5): Select photos → Choose template → Arrange → Save JPG -->
-  <Grid ColumnDefinitions="300,*,320">
+  <Grid x:Name="Root" ColumnDefinitions="300,Auto,*,Auto,320">
 
-    <!-- 1. Photos: the built-in explorer and the folder's thumbnails (prompt_04 §6) -->
-    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+    <!-- 1. Photos: the built-in explorer and the folder's thumbnails (prompt_04 §6); drag a photo into a frame (prompt_06 §6) -->
+    <Border Background="{DynamicResource PanelBrush}">
       <Grid RowDefinitions="1.25*,5,*">
         <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
-        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource BorderBrush}" />
+        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{DynamicResource BorderBrush}" />
         <DockPanel Grid.Row="2">
           <StackPanel DockPanel.Dock="Top" Margin="18,10,14,4" Spacing="2">
             <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
@@ -39,21 +39,40 @@
       </Grid>
     </Border>
 
-    <!-- 3. Arrange: the whole collage in true proportions -->
-    <Panel Grid.Column="1" Background="{StaticResource CanvasBrush}">
-      <c:CollageCanvas x:Name="Canvas" Scene="{Binding Scene}" Margin="8,8,8,30" />
-      <TextBlock Text="{l:Tr CollageHint}" Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" />
-      <Border IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#4A1715" BorderBrush="#FF5A52" BorderThickness="1" CornerRadius="8" Padding="14,10"
+    <GridSplitter Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
+
+    <!-- 3. Arrange: the whole collage in true proportions; right-click a photo for its menu (prompt_06 §6) -->
+    <Panel Grid.Column="2" Background="{DynamicResource CanvasBrush}">
+      <c:CollageCanvas x:Name="Canvas" Scene="{Binding Scene}" Margin="8,8,8,40">
+        <c:CollageCanvas.ContextMenu>
+          <ContextMenu Opening="OnSlotMenuOpening">
+            <MenuItem Header="{l:Tr RotateLeft90}" Command="{Binding RotateLeftCommand}">
+              <MenuItem.Icon><Path Data="{x:Static s:Icons.RotateLeft}" Stroke="{DynamicResource TextBrush}" StrokeThickness="1.6" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" RenderTransform="scale(0.75)" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{l:Tr RotateRight90}" Command="{Binding RotateRightCommand}">
+              <MenuItem.Icon><Path Data="{x:Static s:Icons.RotateRight}" Stroke="{DynamicResource TextBrush}" StrokeThickness="1.6" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" RenderTransform="scale(0.75)" /></MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="{l:Tr FitPhoto}" Command="{Binding FitPhotoCommand}" />
+            <MenuItem Header="{l:Tr RemovePhoto}" Command="{Binding RemovePhotoCommand}" />
+          </ContextMenu>
+        </c:CollageCanvas.ContextMenu>
+      </c:CollageCanvas>
+      <TextBlock Text="{l:Tr CollageHint}" Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,8"
+                 TextWrapping="Wrap" TextAlignment="Center" MaxWidth="720" />
+      <Border IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource ErrorBgBrush}" BorderBrush="{DynamicResource ErrorBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10"
               Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700">
-        <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFD0CC" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource ErrorTextBrush}" TextWrapping="Wrap" />
       </Border>
       <Border IsVisible="{Binding IsBusy}" Background="#A0000000" CornerRadius="8" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="{l:Tr Saving}" Foreground="White" FontSize="14" />
       </Border>
     </Panel>
 
-    <!-- 2. Sheet and template; then save -->
-    <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+    <GridSplitter Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnRightSplitterDragCompleted" />
+
+    <!-- 2. Sheet and template; then save or print -->
+    <Border Grid.Column="4" Background="{DynamicResource PanelBrush}">
       <Grid RowDefinitions="*,Auto">
         <ScrollViewer Padding="18,16,18,8">
           <StackPanel Spacing="8">
@@ -128,7 +147,7 @@
             </Grid>
             <TextBlock Text="{l:Tr FileName}" Classes="muted" FontSize="12" Margin="0,6,0,0" />
             <TextBlock Text="{Binding FileNamePreview}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource OkBrush}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="ok" TextWrapping="Wrap" />
           </StackPanel>
         </ScrollViewer>
         <!-- Save and Print use the same composition (prompt_05 §8) -->

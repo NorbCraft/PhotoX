@@ -6,17 +6,19 @@
              xmlns:v="using:PhotoX.App.Views"
              x:Class="PhotoX.App.Views.BrowseView"
              x:DataType="vm:BrowseViewModel">
-  <Grid ColumnDefinitions="290,*,Auto">
+  <Grid x:Name="Root" ColumnDefinitions="290,Auto,*,Auto,330">
 
-    <!-- Explorer (FR-001), the same control as in ID Photos and Collages (prompt_04 §6) -->
-    <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+    <!-- Explorer (FR-001), the same control as in ID Photos and Collages (prompt_04 §6); resizable (prompt_06 §1) -->
+    <Border Grid.Column="0" Background="{DynamicResource PanelBrush}">
       <v:ExplorerView DataContext="{Binding Explorer}" />
     </Border>
+    <GridSplitter Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
 
     <!-- Gallery (FR-002) -->
-    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+    <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
       <StackPanel Margin="24,16,24,8" Spacing="12">
         <TextBlock Text="{Binding CurrentFolder}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+        <Grid ColumnDefinitions="*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Button Classes="chip" Focusable="False" Classes.selected="{Binding Filter, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=All}"
                   Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:PhotoFilter.All}">
@@ -31,14 +33,22 @@
             <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{l:Tr FilterDone}" /><TextBlock Text="{Binding CountDone}" Opacity="0.7" /></StackPanel>
           </Button>
         </StackPanel>
+        <!-- Thumbnail size (prompt_06 §4): left smaller, right larger, double-click for the default -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" ToolTip.Tip="{l:Tr ThumbSizeTip}">
+          <Path Data="{x:Static s:Icons.ThumbSmall}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6" StrokeJoin="Round" Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
+          <Slider Width="120" Margin="0,-12" Minimum="{x:Static vm:BrowseViewModel.MinThumbScale}" Maximum="{x:Static vm:BrowseViewModel.MaxThumbScale}"
+                  Value="{Binding ThumbScale}" VerticalAlignment="Center" DoubleTapped="OnThumbSizeDoubleTapped" />
+          <Path Data="{x:Static s:Icons.ThumbLarge}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6" StrokeJoin="Round" Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
+        </StackPanel>
+        </Grid>
       </StackPanel>
-      <Border Grid.Row="1" IsVisible="{Binding IsRemovable}" Margin="24,0,24,8" Background="#3A2C10" BorderBrush="#7A5714" BorderThickness="1" CornerRadius="8" Padding="12,8">
-        <TextBlock Text="{l:Tr RemovableWarning}" Foreground="#F8D48A" TextWrapping="Wrap" />
+      <Border Grid.Row="1" IsVisible="{Binding IsRemovable}" Margin="24,0,24,8" Background="{DynamicResource WarnBgBrush}" BorderBrush="{DynamicResource WarnBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8">
+        <TextBlock Text="{l:Tr RemovableWarning}" Foreground="{DynamicResource WarnTextBrush}" TextWrapping="Wrap" />
       </Border>
       <TextBlock Grid.Row="2" IsVisible="{Binding !HasFolder}" Text="{l:Tr NoFolder}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Grid.Row="2" IsVisible="{Binding IsEmpty}" Text="{l:Tr NoPhotos}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Grid.Row="2" IsVisible="{Binding IsScanning}" Text="{l:Tr Loading}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-      <!-- Ctrl + click and Shift + click select several photos; Ctrl + A selects all (prompt_05 §5) -->
+      <!-- Ctrl + click and Shift + click select several photos; Ctrl + A selects all (prompt_05 §5; no permanent hint, prompt_06 §4) -->
       <ListBox Grid.Row="2" x:Name="Gallery" Margin="16,0,8,8" Background="Transparent" ItemsSource="{Binding VisiblePhotos}" SelectedItem="{Binding SelectedPhoto}"
                SelectionMode="Multiple" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListBox.ItemsPanel>
@@ -56,26 +66,27 @@
           <!-- Card look lives in styles (not local values), so the selected style can override it. -->
           <Style Selector="Border.card">
             <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="Background" Value="#11FFFFFF" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Background" Value="{DynamicResource CardBrush}" />
           </Style>
           <!-- The selected photo is clearly marked (prompt_03 §2) -->
           <Style Selector="ListBoxItem:selected Border.card">
-            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-            <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
             <Setter Property="BorderThickness" Value="3" />
             <Setter Property="BoxShadow" Value="0 0 0 3 #553B82F6" />
           </Style>
           <Style Selector="ListBoxItem:selected TextBlock.name">
-            <Setter Property="Foreground" Value="#D6E6FF" />
+            <Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}" />
           </Style>
           <Style Selector="ListBoxItem:pointerover Border.card">
-            <Setter Property="BorderBrush" Value="{StaticResource Border2Brush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
           </Style>
         </ListBox.Styles>
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PhotoItemViewModel">
-            <Border Classes="card" Width="176" Height="188" CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped">
+            <Border Classes="card" CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped"
+                    Width="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).CardWidth}" Height="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).CardHeight}">
               <Border.ContextMenu>
                 <!-- Right-click actions (prompt_04 §4) -->
                 <ContextMenu>
@@ -87,8 +98,8 @@
                   <MenuItem Header="{l:Tr RestoreOriginal}" IsEnabled="{Binding IsOpenable}" Click="OnRestoreClick" />
                 </ContextMenu>
               </Border.ContextMenu>
-              <Grid RowDefinitions="132,*" Margin="8">
-                <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+              <Grid RowDefinitions="Auto,*" Margin="8">
+                <Image Source="{Binding Thumbnail}" Stretch="Uniform" Height="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).ThumbHeight}" />
                 <TextBlock Text="…" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 <Border IsVisible="{Binding HasBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4" CornerRadius="10" Padding="7,1"
                         Background="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeBrush}}">
@@ -100,8 +111,8 @@
                 </Border>
                 <StackPanel Grid.Row="1" Margin="2,8,2,0" Spacing="2">
                   <TextBlock Classes="name" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding StateText}" FontSize="11.5" IsVisible="{Binding HasBadge}" Foreground="{Binding IsWarning, Converter={x:Static s:IconConverter.StateBrush}}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding Info}" FontSize="11.5" IsVisible="{Binding !HasBadge}" Foreground="{StaticResource Text3Brush}" />
+                  <TextBlock Text="{Binding StateText}" FontSize="11.5" IsVisible="{Binding HasBadge}" Classes.warn="{Binding IsWarning}" Classes.ok="{Binding !IsWarning}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Info}" FontSize="11.5" IsVisible="{Binding !HasBadge}" Foreground="{DynamicResource Text3Brush}" />
                 </StackPanel>
               </Grid>
             </Border>
@@ -110,19 +121,20 @@
       </ListBox>
     </Grid>
 
-    <!-- Details (collapsible, FR-039) -->
-    <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+    <!-- Details (collapsible, FR-039; resizable, prompt_06 §1) -->
+    <GridSplitter Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnRightSplitterDragCompleted" />
+    <Border Grid.Column="4" Background="{DynamicResource PanelBrush}">
       <!-- The actions always show; the photo preview and progress fold away (FR-039) -->
       <Panel>
-        <Grid Width="330" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20,16,20,20">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20,16,20,20">
           <Button Classes="list" Focusable="False" Padding="0,2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Command="{Binding ToggleDetailsCommand}" ToolTip.Tip="{l:Tr Details}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <TextBlock Classes="section" Text="{l:Tr SelectedPhoto}" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding DetailsCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{StaticResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DetailsCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{DynamicResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
           <StackPanel Grid.Row="1" Spacing="6" Margin="0,10,0,0" IsVisible="{Binding HasSelection}">
-            <Border Background="{StaticResource CanvasBrush}" CornerRadius="8" Height="190" Padding="6" IsVisible="{Binding !DetailsCollapsed}">
+            <Border Background="{DynamicResource CanvasBrush}" CornerRadius="8" Height="190" Padding="6" IsVisible="{Binding !DetailsCollapsed}">
               <Image Source="{Binding SelectedPhoto.Thumbnail}" Stretch="Uniform" />
             </Border>
             <TextBlock Text="{Binding SelectionText}" IsVisible="{Binding HasMultipleSelection}" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
@@ -130,14 +142,18 @@
               <TextBlock Text="{Binding SelectedPhoto.Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
               <TextBlock Text="{Binding SelectedPhoto.Info}" Classes="muted" />
               <TextBlock Classes="muted"><Run Text="{Binding SelectedPhoto.StateText}" /><Run Text="  ·  " /><Run Text="{Binding SelectedPhoto.PrintCountTip}" /></TextBlock>
-              <TextBlock Text="{Binding SelectedPhoto.ErrorText}" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" IsVisible="{Binding SelectedPhoto.ErrorText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <TextBlock Text="{Binding SelectedPhoto.ErrorText}" Foreground="{DynamicResource WarnBrush}" TextWrapping="Wrap" IsVisible="{Binding SelectedPhoto.ErrorText, Converter={x:Static ObjectConverters.IsNotNull}}" />
             </StackPanel>
           </StackPanel>
+          <!-- Edit progress and printed copies of the open folder (prompt_06 §4) -->
           <StackPanel Grid.Row="2" Spacing="8" Margin="0,20,0,0" IsVisible="{Binding !DetailsCollapsed}">
-            <TextBlock Classes="section" Text="{l:Tr OrderProgress}" />
-            <TextBlock Text="{Binding ProgressText}" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Classes="section" Text="{l:Tr EditProgress}" />
+            <TextBlock Text="{Binding ProgressText}" FontSize="17" FontWeight="SemiBold" />
             <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" />
-            <TextBlock Text="{Binding PhotosLeftText}" Classes="muted" FontSize="12.5" />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" ToolTip.Tip="{l:Tr PrintedCopiesTip}">
+              <Path Data="{x:Static s:Icons.Printer}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7" StrokeJoin="Round" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding PrintedText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
           </StackPanel>
           <!-- Actions (prompt_05 §5): print, edit or use one photo, save or restore the selection -->
           <StackPanel Grid.Row="4" Spacing="8">
@@ -158,7 +174,6 @@
               <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr SaveChanges}" ToolTip.Tip="{l:Tr SaveChangesTip}" />
               <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding RestoreOriginalCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr RestoreOriginal}" ToolTip.Tip="{l:Tr RestoreTip}" />
             </Grid>
-            <TextBlock Text="{l:Tr SelectionHint}" Foreground="{StaticResource Text3Brush}" FontSize="11.5" TextWrapping="Wrap" />
           </StackPanel>
         </Grid>
       </Panel>

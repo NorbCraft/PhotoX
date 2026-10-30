@@ -57,7 +57,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     {
         _services = services;
         Browse = browse;
-        Tone = new ToneAdjustmentsViewModel(AutoCorrectCommand);
+        Tone = new ToneAdjustmentsViewModel(AutoAdjustCommand, UndoCommand, RedoCommand, ResetAdjustmentsCommand);
         Tone.Changed += tag =>
         {
             if (_proxy is not null) SetRecipe(Tone.ApplyTo(_recipe), tag);
@@ -564,9 +564,9 @@ public sealed partial class EditorViewModel : ViewModelBase
         SetRecipe(next with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(valid, next.CropRatio), bw, bh) }, null);
     }
 
-    /// <summary>Auto Correct (FR-045): conservative values, one undo step, fully adjustable afterwards.</summary>
+    /// <summary>Auto Adjust (FR-045; named as in ID Photos, prompt_06 §1): conservative values, one undo step, fully adjustable afterwards.</summary>
     [RelayCommand]
-    public async Task AutoCorrectAsync()
+    public async Task AutoAdjustAsync()
     {
         if (_proxy is null || IsBusy) return;
         var recipe = _recipe;
@@ -929,6 +929,8 @@ public sealed partial class EditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsPortrait));
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
+        Tone.CanUndo = CanUndo;
+        Tone.CanRedo = CanRedo;
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(PreviewWidth));
         OnPropertyChanged(nameof(PreviewHeight));

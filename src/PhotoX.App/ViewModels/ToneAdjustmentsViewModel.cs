@@ -14,21 +14,27 @@ public sealed partial class ToneAdjustmentsViewModel : ViewModelBase
 {
     public const double ExposureStep = 1.0 / 6.0;
 
+    private readonly string _autoKey;
     private bool _syncing;
 
-    public ToneAdjustmentsViewModel(IAsyncRelayCommand? autoCorrect = null)
+    /// <param name="autoCorrect">Auto Correct (Photos) or Auto Adjust (ID Photos).</param>
+    /// <param name="autoKey">Text key of that button.</param>
+    public ToneAdjustmentsViewModel(IAsyncRelayCommand? autoCorrect = null, string autoKey = "AutoCorrect")
     {
         AutoCorrectCommand = autoCorrect;
+        _autoKey = autoKey;
         Localizer.Instance.LanguageChanged += (_, _) => RaiseTexts();
     }
 
     /// <summary>Raised when the operator changes a value. The tag lets quick successive changes share one undo step.</summary>
     public event Action<string?>? Changed;
 
-    /// <summary>Auto Correct of the Photos editor; the ID Photo Creator has none.</summary>
+    /// <summary>Auto Correct of the Photos editor, Auto Adjust of the ID Photo Creator (prompt_04 §8).</summary>
     public IAsyncRelayCommand? AutoCorrectCommand { get; }
 
     public bool HasAutoCorrect => AutoCorrectCommand is not null;
+
+    public string AutoText => Localizer.Instance[_autoKey];
 
     [ObservableProperty]
     public partial double Exposure { get; set; }
@@ -86,17 +92,17 @@ public sealed partial class ToneAdjustmentsViewModel : ViewModelBase
 
     partial void OnLevelsWhiteChanged(double value) => Report(nameof(LevelsText), "levels-white");
 
+    /// <summary>Keyboard − (prompt_04 §7): 1/6 EV darker.</summary>
     [RelayCommand]
     public void ExposureMinus() => Exposure = Math.Clamp(Math.Round((Exposure - ExposureStep) * 6) / 6, -2, 2);
 
+    /// <summary>Keyboard + (prompt_04 §7): 1/6 EV brighter.</summary>
     [RelayCommand]
     public void ExposurePlus() => Exposure = Math.Clamp(Math.Round((Exposure + ExposureStep) * 6) / 6, -2, 2);
 
+    /// <summary>Clears every tone adjustment (levels, exposure, contrast, white balance, tint, saturation) as one change.</summary>
     [RelayCommand]
-    public void ResetLevels() => Batch(() => (LevelsBlack, LevelsMid, LevelsWhite) = (0, 1, 1));
-
-    [RelayCommand]
-    public void ResetColor() => Batch(() => (Contrast, Temperature, Tint, Saturation) = (0, 0, 0, 0));
+    public void Reset() => Batch(() => (Exposure, Contrast, Temperature, Tint, Saturation, LevelsBlack, LevelsMid, LevelsWhite) = (0, 0, 0, 0, 0, 0, 1, 1));
 
     /// <summary>The recipe with these tone values (rounded as stored).</summary>
     public EditRecipe ApplyTo(EditRecipe recipe) => recipe with
@@ -161,6 +167,7 @@ public sealed partial class ToneAdjustmentsViewModel : ViewModelBase
         OnPropertyChanged(nameof(TintText));
         OnPropertyChanged(nameof(SaturationText));
         OnPropertyChanged(nameof(LevelsText));
+        OnPropertyChanged(nameof(AutoText));
     }
 
     private static string Signed(double v) => Math.Round(v) == 0 ? "0" : v.ToString("+0;−0", Localizer.Instance.Culture);

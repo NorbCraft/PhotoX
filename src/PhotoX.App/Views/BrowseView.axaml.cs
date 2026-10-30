@@ -1,35 +1,13 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using PhotoX.App.ViewModels;
 
 namespace PhotoX.App.Views;
 
 public sealed partial class BrowseView : UserControl
 {
-    private bool _selectedByThisPress;
-
-    public BrowseView()
-    {
-        InitializeComponent();
-        // A click on a folder selects and expands it (view model); a further click on the selected folder folds it.
-        Folders.AddHandler(PointerPressedEvent, (_, _) => _selectedByThisPress = false, RoutingStrategies.Tunnel);
-        Folders.SelectionChanged += (_, _) => _selectedByThisPress = true;
-        Folders.Tapped += OnFolderTapped;
-    }
-
-    private void OnFolderTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Source is not Visual source || source.FindAncestorOfType<ToggleButton>(includeSelf: true) is not null) return; // the arrow toggles itself
-        if (source.FindAncestorOfType<TreeViewItem>(includeSelf: true)?.DataContext is not FolderNodeViewModel node) return;
-        if (!_selectedByThisPress && DataContext is BrowseViewModel { SelectedFolderNode: { } selected } && selected == node && node.Children.Count > 0)
-        {
-            node.IsExpanded = !node.IsExpanded;
-        }
-    }
+    public BrowseView() => InitializeComponent();
 
     private void OnPhotoDoubleTapped(object? sender, TappedEventArgs e)
     {
@@ -37,5 +15,17 @@ public sealed partial class BrowseView : UserControl
         {
             vm.EditPhotoCommand.Execute(item);
         }
+    }
+
+    // Context menu items live in a popup, so they reach the view model through this view.
+    private void OnEditClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.EditPhotoCommand.Execute(item));
+
+    private void OnUseForIdClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.UseForIdCommand.Execute(item));
+
+    private void OnDuplicateClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.DuplicateCommand.Execute(item));
+
+    private void Run(object? sender, Action<BrowseViewModel, PhotoItemViewModel> action)
+    {
+        if (sender is Control { DataContext: PhotoItemViewModel item } && DataContext is BrowseViewModel vm) action(vm, item);
     }
 }

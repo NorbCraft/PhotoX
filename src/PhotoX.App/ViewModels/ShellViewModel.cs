@@ -5,7 +5,7 @@ using PhotoX.App.Services;
 
 namespace PhotoX.App.ViewModels;
 
-/// <summary>Main window: workspaces, language switch and page navigation (FR-008, FR-009).</summary>
+/// <summary>Main window: workspaces (Photos, ID Photos, Collages), language switch and page navigation (FR-008, FR-009).</summary>
 public sealed partial class ShellViewModel : ViewModelBase
 {
     private readonly AppServices _services;
@@ -15,10 +15,17 @@ public sealed partial class ShellViewModel : ViewModelBase
         _services = services;
         Browse = new BrowseViewModel(services);
         Editor = new EditorViewModel(services, Browse);
-        Id = new IdViewModel(services);
+        Id = new IdViewModel(services) { StartFolder = () => Browse.CurrentFolder };
+        Collage = new CollageViewModel(services) { StartFolder = () => Browse.CurrentFolder };
         Browse.EditRequested += item => _ = OpenEditorAsync(item);
         Browse.FinishRequested += () => _ = FinishOrderAsync();
         Browse.UseForIdRequested += item => _ = UseForIdAsync(item);
+        Browse.DuplicateFailed += message =>
+        {
+            var d = new DialogViewModel(Localizer.Instance["DuplicateFailedTitle"], Localizer.Instance.Format("DuplicateFailed", message));
+            d.Buttons.Add(new DialogButton("ok", Localizer.Instance["Ok"], true));
+            _ = ShowDialogAsync(d);
+        };
         Editor.BackRequested += () => CurrentPage = Browse;
         Editor.PropertyChanged += (_, e) =>
         {
@@ -43,13 +50,17 @@ public sealed partial class ShellViewModel : ViewModelBase
 
     public IdViewModel Id { get; }
 
+    public CollageViewModel Collage { get; }
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsEditing), nameof(IsBrowsing))]
+    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsCollageWorkspace), nameof(IsEditing), nameof(IsBrowsing))]
     public partial ViewModelBase CurrentPage { get; set; }
 
     public bool IsPhotosWorkspace => CurrentPage is BrowseViewModel or EditorViewModel;
 
     public bool IsIdWorkspace => CurrentPage is IdViewModel;
+
+    public bool IsCollageWorkspace => CurrentPage is CollageViewModel;
 
     public bool IsEditing => CurrentPage is EditorViewModel;
 
@@ -70,6 +81,9 @@ public sealed partial class ShellViewModel : ViewModelBase
 
     public string Version => typeof(ShellViewModel).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "0.0.0";
 
+    /// <summary>The native title bar shows the version (prompt_04 §1).</summary>
+    public string WindowTitle => $"PhotoX {Version}";
+
     public void Initialize()
     {
         Localizer.Instance.SetLanguage(_services.Settings.Language);
@@ -86,14 +100,35 @@ public sealed partial class ShellViewModel : ViewModelBase
         RaiseLanguage();
     }
 
+    /// <summary>Back to Photos: the editor if it was open when the operator left, otherwise the gallery.</summary>
     [RelayCommand]
-    private void ShowPhotos() => CurrentPage = Editor.Current is not null && CurrentPage is IdViewModel && _lastPhotosPage is EditorViewModel ? Editor : Browse;
+    private void ShowPhotos()
+    {
+        if (IsPhotosWorkspace) return;
+        CurrentPage = Editor.Current is not null && _lastPhotosPage is EditorViewModel ? Editor : Browse;
+    }
 
     [RelayCommand]
     private void ShowId()
     {
-        _lastPhotosPage = CurrentPage;
+        RememberPhotosPage();
         CurrentPage = Id;
+        Id.Activate();
+    }
+
+    [RelayCommand]
+    private void ShowCollages()
+    {
+        RememberPhotosPage();
+        CurrentPage = Collage;
+        Collage.Activate();
+    }
+
+    private void RememberPhotosPage()
+    {
+        if (!IsPhotosWorkspace) return;
+        if (CurrentPage is EditorViewModel editor) editor.KeepPending();
+        _lastPhotosPage = CurrentPage;
     }
 
     private ViewModelBase? _lastPhotosPage;

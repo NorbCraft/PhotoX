@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:l="using:PhotoX.App.Localization"
+             xmlns:c="using:PhotoX.App.Controls"
+             xmlns:v="using:PhotoX.App.Views"
+             xmlns:s="using:PhotoX.App.Services"
+             x:Class="PhotoX.App.Views.CollageView"
+             x:DataType="vm:CollageViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.template">
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="Background" Value="{StaticResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.template.selected">
+      <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+  </UserControl.Styles>
+  <!-- Collages (prompt_04 §5): Select photos → Choose template → Arrange → Save JPG -->
+  <Grid ColumnDefinitions="300,*,320">
+
+    <!-- 1. Photos: the built-in explorer and the folder's thumbnails (prompt_04 §6) -->
+    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="*,5,1.3*">
+        <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
+        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource BorderBrush}" />
+        <DockPanel Grid.Row="2">
+          <StackPanel DockPanel.Dock="Top" Margin="18,10,14,4" Spacing="2">
+            <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
+            <TextBlock Text="{l:Tr CollagePickHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+          <Button DockPanel.Dock="Bottom" Margin="12,4,12,12" HorizontalAlignment="Stretch" Focusable="False" Content="{l:Tr AddToFrame}" Command="{Binding Picker.PickCommand}" />
+          <v:PickerGrid Margin="8,0" DataContext="{Binding Picker}" />
+        </DockPanel>
+      </Grid>
+    </Border>
+
+    <!-- 3. Arrange: the whole collage in true proportions -->
+    <Panel Grid.Column="1" Background="{StaticResource CanvasBrush}">
+      <c:CollageCanvas x:Name="Canvas" Scene="{Binding Scene}" Margin="8,8,8,30" />
+      <TextBlock Text="{l:Tr CollageHint}" Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" />
+      <Border IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#4A1715" BorderBrush="#FF5A52" BorderThickness="1" CornerRadius="8" Padding="14,10"
+              Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700">
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFD0CC" TextWrapping="Wrap" />
+      </Border>
+      <Border IsVisible="{Binding IsBusy}" Background="#A0000000" CornerRadius="8" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="{l:Tr Saving}" Foreground="White" FontSize="14" />
+      </Border>
+    </Panel>
+
+    <!-- 2. Sheet and template; then save -->
+    <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+      <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Padding="18,16,18,8">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="section" Text="{l:Tr Sheet}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Classes="chip compact" Focusable="False" Content="10 × 15" Command="{Binding SetSheetCommand}" CommandParameter="10x15"
+                      Classes.selected="{Binding Sheet.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
+              <Button Classes="chip compact" Focusable="False" Content="15 × 20" Command="{Binding SetSheetCommand}" CommandParameter="15x20"
+                      Classes.selected="{Binding Sheet.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
+              <Button Classes="chip compact" Focusable="False" Content="20 × 30" Command="{Binding SetSheetCommand}" CommandParameter="20x30"
+                      Classes.selected="{Binding Sheet.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=20x30}" />
+            </StackPanel>
+            <Border Classes="segbox" HorizontalAlignment="Left">
+              <StackPanel Orientation="Horizontal">
+                <ToggleButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding !IsLandscape, Mode=OneWay}" ToolTip.Tip="{l:Tr Portrait}"
+                              Command="{Binding SetLandscapeCommand}" CommandParameter="{x:False}">
+                  <Rectangle Width="14" Height="21" StrokeThickness="2" RadiusX="2" RadiusY="2" />
+                </ToggleButton>
+                <ToggleButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding IsLandscape, Mode=OneWay}" ToolTip.Tip="{l:Tr Landscape}"
+                              Command="{Binding SetLandscapeCommand}" CommandParameter="{x:True}">
+                  <Rectangle Width="21" Height="14" StrokeThickness="2" RadiusX="2" RadiusY="2" />
+                </ToggleButton>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{Binding PageText}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+
+            <TextBlock Classes="section" Text="{l:Tr Template}" Margin="0,10,0,0" />
+            <ItemsControl ItemsSource="{Binding Templates}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CollageTemplateItem">
+                  <Button Classes="template" Classes.selected="{Binding IsSelected}" Focusable="False"
+                          Command="{Binding $parent[UserControl].((vm:CollageViewModel)DataContext).SetTemplateCommand}" CommandParameter="{Binding}">
+                    <Border Background="White" CornerRadius="2"
+                            Width="{Binding $parent[UserControl].((vm:CollageViewModel)DataContext).TemplateIconWidth}"
+                            Height="{Binding $parent[UserControl].((vm:CollageViewModel)DataContext).TemplateIconHeight}">
+                      <Path Data="{Binding Drawing}" Fill="#8E9AAF" />
+                    </Border>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid ColumnDefinitions="*,120" Margin="0,4,0,0">
+              <TextBlock Text="{l:Tr CollageSpacing}" VerticalAlignment="Center" />
+              <NumericUpDown Grid.Column="1" Value="{Binding SpacingMm}" Minimum="0" Maximum="10" Increment="0.5" FormatString="0.#" />
+            </Grid>
+
+            <TextBlock Classes="section" Text="{l:Tr CollageFrames}" Margin="0,10,0,0" />
+            <TextBlock Text="{Binding FilledText}" Classes="muted" />
+            <Grid ColumnDefinitions="*,8,*">
+              <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr RemovePhoto}" Command="{Binding RemovePhotoCommand}" IsEnabled="{Binding SelectedHasPhoto}" />
+              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr ClearAll}" Command="{Binding ClearAllCommand}" IsEnabled="{Binding HasPhotos}" />
+            </Grid>
+
+            <TextBlock Classes="section" Text="{l:Tr Output}" Margin="0,10,0,0" />
+            <TextBlock Text="{l:Tr OutputFolder}" Classes="muted" FontSize="12" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding OutputFolderText}" ToolTip.Tip="{Binding OutputFolder}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="SemiBold" />
+              <Button Grid.Column="1" Focusable="False" Content="{l:Tr Change}" Command="{Binding ChangeOutputFolderCommand}" Margin="8,0,0,0" />
+            </Grid>
+            <TextBlock Text="{l:Tr FileName}" Classes="muted" FontSize="12" Margin="0,6,0,0" />
+            <TextBlock Text="{Binding FileNamePreview}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource OkBrush}" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+        <Button Grid.Row="1" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Margin="18,8,18,16"
+                Content="{l:Tr SaveJpg}" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

@@ -17,13 +17,17 @@ namespace PhotoX.App.ViewModels;
 
 public sealed record FaceChoice(int Number, string Text, DetectedFace Face);
 
+/// <summary>An ID size in the size list, labelled in centimetres (no pixel sizes, prompt_04 §8).</summary>
 public sealed partial class IdSizeItem(IdSize size) : ViewModelBase
 {
     public IdSize Size { get; } = size;
 
     public string Label => Localizer.Instance.Language == "ro" ? Size.Label.Replace('.', ',') : Size.Label;
 
-    public string PixelText => $"{Size.WidthPx} × {Size.HeightPx} px" + (Size.Approximation is { } a ? "  ·  " + (Localizer.Instance.Language == "ro" ? a.Replace('.', ',') : a) : string.Empty);
+    /// <summary>The centimetre equivalent of inch sizes (2 × 2 in ≈ 5,1 × 5,1 cm).</summary>
+    public string? Detail => Size.Approximation is { } a ? (Localizer.Instance.Language == "ro" ? a.Replace('.', ',') : a) : null;
+
+    public bool HasDetail => Detail is not null;
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
@@ -31,7 +35,7 @@ public sealed partial class IdSizeItem(IdSize size) : ViewModelBase
     public void RefreshTexts()
     {
         OnPropertyChanged(nameof(Label));
-        OnPropertyChanged(nameof(PixelText));
+        OnPropertyChanged(nameof(Detail));
     }
 }
 
@@ -58,33 +62,69 @@ public sealed partial class IdViewModel : ViewModelBase
     public IdViewModel(AppServices services)
     {
         _services = services;
+        Tone = new ToneAdjustmentsViewModel(AutoAdjustCommand, "AutoAdjust");
         Tone.Changed += tag =>
         {
             if (_syncing || Framing is null) return;
             PushUndo(tag ?? "adjust");
             Rerender();
         };
+        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 168, ThumbHeight = 168 };
+        Picker.Picked += photo => _ = LoadSourceAsync(photo.Path);
         foreach (var s in IdSizes.BuiltIn) Sizes.Add(new IdSizeItem(s));
-        SelectedSize = Sizes[1];
-        Sizes[1].IsSelected = true;
+        foreach (var c in services.Settings.CustomIdSizes.Where(c => IdSizes.IsValidCustom(c.WidthMm, c.HeightMm)))
+        {
+            CustomSizes.Add(new IdSizeItem(IdSizes.Custom(c.WidthMm, c.HeightMm)));
+        }
+
+        var start = Sizes.FirstOrDefault(s => s.Size.Id == IdSizes.S35x45.Id) ?? Sizes[0];
+        SelectedSize = start;
+        start.IsSelected = true;
+        PreviousRatio = start.Size.Ratio;
         OutputFolder = services.Settings.IdOutputFolder;
         Localizer.Instance.LanguageChanged += (_, _) =>
         {
-            foreach (var s in Sizes) s.RefreshTexts();
+            foreach (var s in Sizes.Concat(CustomSizes)) s.RefreshTexts();
             OnPropertyChanged(nameof(OutputFolderText));
             RaiseSheet();
         };
     }
 
     /// <summary>Histogram, levels and tone sliders, the same controls as in the Photos editor (prompt_03 §7).</summary>
-    public ToneAdjustmentsViewModel Tone { get; } = new();
+    public ToneAdjustmentsViewModel Tone { get; }
 
-    /// <summary>Set by the view: file and folder pickers (not available in headless tests).</summary>
-    public Func<Task<string?>>? PickPhoto { get; set; }
+    /// <summary>The built-in explorer for choosing the portrait (prompt_04 §6).</summary>
+    public PhotoPickerViewModel Picker { get; }
 
+    /// <summary>The picker fills the centre: no portrait yet, or the operator chose another photo.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowFraming), nameof(ShowSheet))]
+    public partial bool IsPicking { get; set; } = true;
+
+    /// <summary>Set by the shell: the folder open in Photos, where the picker starts.</summary>
+    public Func<string?>? StartFolder { get; set; }
+
+    /// <summary>Set by the view: the folder picker for the output folder (not available in headless tests).</summary>
     public Func<Task<string?>>? PickFolder { get; set; }
 
+    /// <summary>Built-in sizes from the data file.</summary>
     public ObservableCollection<IdSizeItem> Sizes { get; } = [];
+
+    /// <summary>Sizes added with + New size; kept apart from the built-in ones and removable (prompt_04 §8).</summary>
+    public ObservableCollection<IdSizeItem> CustomSizes { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsAddingSize { get; set; }
+
+    /// <summary>New size in centimetres.</summary>
+    [ObservableProperty]
+    public partial decimal NewSizeWidth { get; set; } = 3;
+
+    [ObservableProperty]
+    public partial decimal NewSizeHeight { get; set; } = 4;
+
+    [ObservableProperty]
+    public partial string? NewSizeError { get; set; }
 
     /// <summary>Faces to choose from when Auto Align finds more than one (FR-063).</summary>
     public ObservableCollection<FaceChoice> FaceChoices { get; } = [];
@@ -108,7 +148,7 @@ public sealed partial class IdViewModel : ViewModelBase
     [RelayCommand]
     public async Task AutoAlignAsync()
     {
-        if (_proxy is null || IsBusy) return;
+        if (_proxy is null || IsBusy || !HasGuides) return;
         IsBusy = true;
         ErrorMessage = null;
         StatusMessage = null;
@@ -193,11 +233,11 @@ public sealed partial class IdViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FrameRatio), nameof(Capacity), nameof(FamiliarCounts), nameof(HasStripOption))]
+    [NotifyPropertyChangedFor(nameof(FrameRatio), nameof(PreviewFrameWidth), nameof(Capacity), nameof(FamiliarCounts), nameof(HasStripOption), nameof(HasGuides), nameof(CanAutoAlign))]
     public partial IdSizeItem SelectedSize { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSource))]
+    [NotifyPropertyChangedFor(nameof(HasSource), nameof(ShowFraming), nameof(ShowSheet))]
     public partial string? SourcePath { get; set; }
 
     [ObservableProperty]
@@ -210,10 +250,11 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial Bitmap? SheetPreview { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFraming))]
+    [NotifyPropertyChangedFor(nameof(IsFraming), nameof(ShowFraming), nameof(ShowSheet))]
     public partial bool IsSheetStep { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanAutoAlign))]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
@@ -234,12 +275,6 @@ public sealed partial class IdViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool ShowBefore { get; set; }
 
-    [ObservableProperty]
-    public partial decimal CustomWidth { get; set; } = 30;
-
-    [ObservableProperty]
-    public partial decimal CustomHeight { get; set; } = 40;
-
     // Sheet options
     [ObservableProperty]
     public partial int Copies { get; set; } = 6;
@@ -255,15 +290,22 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial bool IncludeStrip { get; set; } = true;
 
     [ObservableProperty]
-    public partial bool SaveAsPng { get; set; }
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasOutputFolder), nameof(OutputFolderText))]
     public partial string? OutputFolder { get; set; }
 
     public bool HasSource => SourcePath is not null;
 
     public bool IsFraming => !IsSheetStep;
+
+    /// <summary>The framing canvas is shown (a portrait is loaded and the picker is closed).</summary>
+    public bool ShowFraming => HasSource && !IsPicking && !IsSheetStep;
+
+    public bool ShowSheet => HasSource && !IsPicking && IsSheetStep;
+
+    /// <summary>Face guides and Auto Align; the 9×12 police photo is framed by hand (prompt_04 §8).</summary>
+    public bool HasGuides => SelectedSize.Size.Guides;
+
+    public bool CanAutoAlign => HasGuides && !IsBusy;
 
     public bool HasOutputFolder => !string.IsNullOrEmpty(OutputFolder);
 
@@ -285,7 +327,11 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public string CopiesText => Localizer.Instance.Format("OfPlaces", Capacity);
 
-    public string FileNamePreview => IdFileNames.Base(DateTime.Now) + (SaveAsPng ? ".png" : ".jpg");
+    /// <summary>ID sheets are saved as JPG only (prompt_04 §8).</summary>
+    public string FileNamePreview => IdFileNames.Base(DateTime.Now) + ".jpg";
+
+    /// <summary>Without page margins the outer photos reach the paper edge (2 × 2 in: four fit only this way).</summary>
+    public bool IsEdgeToEdge => MarginMm == 0;
 
     public string PhotoInfo => Localizer.Instance.Format("IdPhotoInfo", SelectedSize.Label, SelectedSize.Size.WidthPx, SelectedSize.Size.HeightPx)
         + (HasStripOption && IncludeStrip ? "  ·  " + Localizer.Instance["StripNote"] : string.Empty);
@@ -296,12 +342,24 @@ public sealed partial class IdViewModel : ViewModelBase
 
     // ------------------------------------------------------------------ source
 
+    /// <summary>Opens the built-in explorer to choose a portrait (prompt_04 §6).</summary>
     [RelayCommand]
-    private async Task OpenPhotoAsync()
+    public void ChoosePhoto()
     {
-        if (PickPhoto is null) return;
-        var path = await PickPhoto();
-        if (path is not null) await LoadSourceAsync(path);
+        Picker.EnsureStarted(SourcePath is { } p ? Path.GetDirectoryName(p) : StartFolder?.Invoke());
+        IsPicking = true;
+    }
+
+    [RelayCommand]
+    private void CancelPick()
+    {
+        if (HasSource) IsPicking = false;
+    }
+
+    /// <summary>Called when the workspace is shown: without a portrait, the picker is ready.</summary>
+    public void Activate()
+    {
+        if (!HasSource) ChoosePhoto();
     }
 
     /// <summary>Loads a portrait (read-only). Used by Open photo and by "Use for ID photo" in the Photos workspace.</summary>
@@ -345,6 +403,7 @@ public sealed partial class IdViewModel : ViewModelBase
             SourcePath = path;
             OnPropertyChanged(nameof(SourceName));
             IsSheetStep = false;
+            IsPicking = false;
             ResetAll();
             Log.Information("ID: loaded portrait {Path}", path);
         }
@@ -363,8 +422,11 @@ public sealed partial class IdViewModel : ViewModelBase
     [RelayCommand]
     private void SelectSize(IdSizeItem item)
     {
-        foreach (var s in Sizes) s.IsSelected = s == item;
+        foreach (var s in Sizes.Concat(CustomSizes)) s.IsSelected = s == item;
         SelectedSize = item;
+        // Sizes may bring their own sheet margins (2 × 2 in: none, so four fit, prompt_04 §8).
+        MarginMm = (decimal)(item.Size.SheetMarginMm ?? 3);
+        SpacingMm = (decimal)(item.Size.SheetSpacingMm ?? 2);
         Copies = item.Size.FamiliarCounts.Where(c => c <= Capacity).DefaultIfEmpty(1).Max();
         if (_source is not null && Framing is not null)
         {
@@ -380,17 +442,49 @@ public sealed partial class IdViewModel : ViewModelBase
         RaiseSheet();
     }
 
-    private double PreviousRatio { get; set; } = IdSizes.S35x45.Ratio;
+    private double PreviousRatio { get; set; }
 
     [RelayCommand]
-    private void ApplyCustomSize()
+    private void ToggleNewSize()
     {
-        if (CustomWidth <= 0 || CustomHeight <= 0) return;
-        var custom = new IdSizeItem(IdSizes.Custom((double)CustomWidth, (double)CustomHeight));
-        var existing = Sizes.FirstOrDefault(s => s.Size.Id == "custom");
-        if (existing is not null) Sizes.Remove(existing);
-        Sizes.Add(custom);
-        SelectSize(custom);
+        IsAddingSize = !IsAddingSize;
+        NewSizeError = null;
+    }
+
+    /// <summary>+ New size (prompt_04 §8): adds a removable size in centimetres, remembered in the settings.</summary>
+    [RelayCommand]
+    public void AddCustomSize()
+    {
+        var w = (double)NewSizeWidth * 10;
+        var h = (double)NewSizeHeight * 10;
+        if (!IdSizes.IsValidCustom(w, h))
+        {
+            NewSizeError = Localizer.Instance["NewSizeInvalid"];
+            return;
+        }
+
+        var size = IdSizes.Custom(w, h);
+        var item = CustomSizes.FirstOrDefault(c => c.Size.Id == size.Id);
+        if (item is null)
+        {
+            item = new IdSizeItem(size);
+            CustomSizes.Add(item);
+            _services.Settings.CustomIdSizes.Add(new CustomIdSize(size.WidthMm, size.HeightMm));
+            _services.SaveSettings();
+        }
+
+        IsAddingSize = false;
+        NewSizeError = null;
+        SelectSize(item);
+    }
+
+    [RelayCommand]
+    public void RemoveCustomSize(IdSizeItem item)
+    {
+        if (!CustomSizes.Remove(item)) return;
+        _services.Settings.CustomIdSizes.RemoveAll(c => IdSizes.Custom(c.WidthMm, c.HeightMm).Id == item.Size.Id);
+        _services.SaveSettings();
+        if (item.IsSelected) SelectSize(Sizes.FirstOrDefault(s => s.Size.Id == IdSizes.S35x45.Id) ?? Sizes[0]);
     }
 
     public void MoveBy(double dxPreview, double dyPreview)
@@ -441,13 +535,15 @@ public sealed partial class IdViewModel : ViewModelBase
 
     partial void OnCopiesChanged(int value) => RaiseSheet();
 
-    partial void OnMarginMmChanged(decimal value) => RaiseSheet();
+    partial void OnMarginMmChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(IsEdgeToEdge));
+        RaiseSheet();
+    }
 
     partial void OnSpacingMmChanged(decimal value) => RaiseSheet();
 
     partial void OnIncludeStripChanged(bool value) => RaiseSheet();
-
-    partial void OnSaveAsPngChanged(bool value) => OnPropertyChanged(nameof(FileNamePreview));
 
     [RelayCommand]
     private void ResetFraming()
@@ -505,19 +601,61 @@ public sealed partial class IdViewModel : ViewModelBase
     [RelayCommand]
     private void CopiesPlus() => Copies = Math.Min(Math.Max(1, Capacity), Copies + 1);
 
+    /// <summary>Framing keys; Space (held) shows the photo without adjustments, the only before/after control here (prompt_04 §8).</summary>
     public bool HandleKey(Key key, KeyModifiers modifiers)
     {
-        if (IsSheetStep || Framing is null) return false;
+        if (!ShowFraming || Framing is null) return false;
         var step = modifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
+        var ctrl = modifiers.HasFlag(KeyModifiers.Control);
         switch (key)
         {
             case Key.Left: MoveBy(-step, 0); return true;
             case Key.Right: MoveBy(step, 0); return true;
             case Key.Up: MoveBy(0, -step); return true;
             case Key.Down: MoveBy(0, step); return true;
-            case Key.Z when modifiers.HasFlag(KeyModifiers.Control): Undo(); return true;
+            case Key.Z when ctrl: Undo(); return true;
+            case Key.Space: ShowBefore = true; return true;
+            case Key.OemPlus or Key.Add when !ctrl: Tone.ExposurePlus(); return true;
+            case Key.OemMinus or Key.Subtract when !ctrl: Tone.ExposureMinus(); return true;
             default: return false;
         }
+    }
+
+    public bool HandleKeyUp(Key key)
+    {
+        if (key != Key.Space || !ShowBefore) return false;
+        ShowBefore = false;
+        return true;
+    }
+
+    /// <summary>Double-click on the rotation slider (prompt_04 §8).</summary>
+    public void ResetRotation()
+    {
+        if (Framing is not null) SetFraming(Framing with { RotationDeg = 0 }, null);
+    }
+
+    /// <summary>Double-click on the zoom slider: back to the initial zoom (prompt_04 §8).</summary>
+    public void ResetZoom()
+    {
+        if (Framing is not null && _initial is not null) SetFraming(Framing with { FrameWidthSource = _initial.FrameWidthSource }, null);
+    }
+
+    /// <summary>
+    /// Auto Adjust (prompt_04 §8): the Auto Correct estimation of the Photos editor, applied to the framed photo.
+    /// The result is ordinary slider values: one undo step, adjustable afterwards.
+    /// </summary>
+    [RelayCommand]
+    public async Task AutoAdjustAsync()
+    {
+        if (_lastFrame is not { } frame || Framing is null || IsBusy) return;
+        var tone = Tone.ApplyTo(new Core.Editing.EditRecipe());
+        var result = await Task.Run(() =>
+            Core.Editing.AutoCorrect.Apply(tone, ImageStatistics.Histogram(frame.Pixels, frame.Region), ImageStatistics.NeutralMeans(frame.Pixels, frame.Region)));
+        PushUndo(null);
+        _syncing = true;
+        Tone.Load(result with { Contrast = tone.Contrast, Saturation = tone.Saturation });
+        _syncing = false;
+        Rerender();
     }
 
     public double PreviewFrameWidth => PreviewFrameHeight * FrameRatio;
@@ -528,6 +666,7 @@ public sealed partial class IdViewModel : ViewModelBase
 
     private string? _lastTag;
     private DateTime _lastTime;
+    private (PixelData Pixels, Core.Geometry.PixelRect Region)? _lastFrame;
 
     private void PushUndo(string? tag)
     {
@@ -574,12 +713,16 @@ public sealed partial class IdViewModel : ViewModelBase
             var (proxy, factor) = IdRenderer.PreviewLevel(_levels, fw / (framing.FrameWidthSource * _proxyScale));
             var k = _proxyScale * factor;
             var frame = new Core.Geometry.PixelRect((vw - fw) / 2, (int)Math.Round((vh - PreviewFrameHeight) / 2), fw, (int)PreviewFrameHeight);
-            var (data, histogram) = await Task.Run(() =>
+            var (data, unadjusted, histogram) = await Task.Run(() =>
             {
-                using var img = IdRenderer.RenderPreview(proxy, k, framing, size, adj, fw, vw, vh);
-                var pixels = PixelData.From(img);
-                return (pixels, ImageStatistics.Histogram(pixels, frame));
+                // The unadjusted frame feeds Auto Adjust and the levels histogram (tones entering levels, prompt_04 §7).
+                using var img = IdRenderer.FramePreview(proxy, k, framing, fw, vw, vh);
+                var before = PixelData.From(img);
+                var levelsInput = ImageStatistics.LevelsInput(before, frame, adj.Tone);
+                IdRenderer.AdjustPreview(img, size, adj, fw);
+                return (PixelData.From(img), before, levelsInput);
             });
+            _lastFrame = (unadjusted, frame);
             var old = Preview;
             Preview = BitmapFactory.Create(data);
             (old as IDisposable)?.Dispose();
@@ -609,6 +752,7 @@ public sealed partial class IdViewModel : ViewModelBase
         OnPropertyChanged(nameof(FileNamePreview));
         OnPropertyChanged(nameof(PageText));
         OnPropertyChanged(nameof(HasStripOption));
+        OnPropertyChanged(nameof(ViewportWidth));
         if (Copies > Capacity && Capacity > 0) Copies = Capacity;
         if (IsSheetStep) _ = RenderSheetPreviewAsync();
     }
@@ -666,7 +810,6 @@ public sealed partial class IdViewModel : ViewModelBase
             var size = SelectedSize.Size;
             var adj = Adjustments;
             var layout = CurrentLayout();
-            var kind = SaveAsPng ? ImageKind.Png : ImageKind.Jpeg;
             var folder = OutputFolder!;
             var quality = _services.Settings.JpegQuality;
             var scale = _services.Settings.IdScale;
@@ -675,8 +818,8 @@ public sealed partial class IdViewModel : ViewModelBase
             {
                 using var photo = IdRenderer.Render(source, framing, size, adj, pw, ph);
                 using var sheet = SheetRenderer.Render(photo, layout, scale);
-                var bytes = IdOutput.Encode(sheet, kind, quality);
-                return IdExporter.Write(folder, bytes, kind == ImageKind.Png ? ".png" : ".jpg", DateTime.Now);
+                var bytes = IdOutput.Encode(sheet, ImageKind.Jpeg, quality);
+                return IdExporter.Write(folder, bytes, ".jpg", DateTime.Now);
             });
             StatusMessage = Localizer.Instance.Format("IdSaved", Path.GetFileName(path));
             Log.Information("ID sheet saved: {Path} ({Size}, {Copies} copies)", path, size.Id, layout.Photos.Count);

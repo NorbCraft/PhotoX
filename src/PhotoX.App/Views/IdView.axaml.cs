@@ -27,21 +27,12 @@ public sealed partial class IdView : UserControl
     {
         base.OnDataContextChanged(e);
         if (Vm is not { } vm) return;
-        vm.PickPhoto = PickPhotoAsync;
         vm.PickFolder = PickFolderAsync;
     }
 
-    private async Task<string?> PickPhotoAsync()
-    {
-        var storage = TopLevel.GetTopLevel(this)?.StorageProvider;
-        if (storage is null) return null;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("JPEG / PNG") { Patterns = ["*.jpg", "*.jpeg", "*.JPG", "*.JPEG", "*.png", "*.PNG"] }],
-        });
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
-    }
+    private void OnZoomDoubleTapped(object? sender, TappedEventArgs e) => Vm?.ResetZoom();
+
+    private void OnRotationDoubleTapped(object? sender, TappedEventArgs e) => Vm?.ResetRotation();
 
     private async Task<string?> PickFolderAsync()
     {

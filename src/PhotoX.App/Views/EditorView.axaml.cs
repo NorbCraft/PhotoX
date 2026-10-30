@@ -14,6 +14,11 @@ public sealed partial class EditorView : UserControl
         Canvas.CropCommitted += (_, rect) => (DataContext as EditorViewModel)?.CommitCrop(rect);
         Canvas.CropToggleRequested += (_, _) => (DataContext as EditorViewModel)?.ToggleCrop();
         PanelWidth.Apply(Root.ColumnDefinitions[2], AppServices.Current?.Settings.EditorPanelWidth ?? 340);
+        // Before / after shows the original only while the button is held, like Space (prompt_04 §7).
+        BeforeButton.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Button.IsPressedProperty && DataContext is EditorViewModel vm) vm.ShowBefore = BeforeButton.IsPressed;
+        };
     }
 
     protected override void OnDataContextChanged(EventArgs e)

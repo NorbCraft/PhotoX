@@ -126,18 +126,25 @@ public class EditingTests
         window.Close();
     }
 
+    /// <summary>prompt_04 §7: a 9×13 cm custom photo keeps its size and is centred on a white 10×15 sheet.</summary>
     [AvaloniaFact]
-    public async Task Custom_ratio_is_applied_and_saved()
+    public async Task Custom_size_is_centred_on_the_smallest_sheet()
     {
         using var dir = new TempDir();
         var (window, shell, order) = await OpenEditor(dir, 1);
         shell.Editor.CustomWidth = 9;
         shell.Editor.CustomHeight = 13;
-        shell.Editor.ApplyCustomRatioCommand.Execute(null);
+        shell.Editor.ApplyCustomSizeCommand.Execute(null);
         Assert.Equal("custom", shell.Editor.FormatId);
+        Assert.Equal(13.0 / 9.0, shell.Editor.CropRatio, 6); // the photo is landscape, so the crop is 13:9
         Assert.True(await shell.Editor.SaveCurrentAsync());
         using var img = new MagickImage(Path.Combine(order, "P1.jpg"));
-        Assert.Equal(13.0 / 9.0, img.Width / (double)img.Height, 2);
+        Assert.Equal(152.4 / 101.6, img.Width / (double)img.Height, 2); // the 10×15 sheet, landscape
+        var plan = Core.Editing.RenderPlan.Create(800, 600, shell.Editor.Recipe);
+        Assert.Equal(130.0 / 152.4, plan.Crop.Width / (double)plan.CanvasWidth, 2); // 13 cm of 15.24 cm: not enlarged
+        Assert.Equal(90.0 / 101.6, plan.Crop.Height / (double)plan.CanvasHeight, 2);
+        using var pixels = img.GetPixels();
+        Assert.True(pixels.GetPixel(2, 2).ToColor()!.R > 250 * 257); // white around the photo
         window.Close();
     }
 

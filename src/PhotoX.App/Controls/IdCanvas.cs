@@ -8,8 +8,8 @@ using PhotoX.Core.Id;
 namespace PhotoX.App.Controls;
 
 /// <summary>
-/// ID framing view (FR-062): the preview viewport with the fixed frame in its centre, dimmed surroundings and the
-/// face guides (oval, crown, eye, chin and centre lines). Dragging moves the photo; the wheel zooms; Shift+wheel rotates.
+/// ID framing view (FR-062): the preview viewport with the fixed frame (of the size's ratio) in its centre, dimmed
+/// surroundings and, for sizes with guides, the face guides (oval, crown, eye, chin and centre lines). Dragging moves the photo; the wheel zooms; Shift+wheel rotates.
 /// </summary>
 public sealed class IdCanvas : Control
 {
@@ -60,6 +60,7 @@ public sealed class IdCanvas : Control
         shade.Children.Add(new RectangleGeometry(f));
         context.DrawGeometry(Shade, null, shade);
         context.DrawRectangle(null, FramePen, f);
+        if (!Size.Guides) return; // framed by hand (9×12, prompt_04 §8)
 
         double Y(double fraction) => f.Y + fh * fraction;
         context.DrawLine(GuidePen, new Point(f.X, Y(Size.CrownFraction)), new Point(f.Right, Y(Size.CrownFraction)));

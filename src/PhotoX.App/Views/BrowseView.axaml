@@ -3,84 +3,17 @@
              xmlns:vm="using:PhotoX.App.ViewModels"
              xmlns:l="using:PhotoX.App.Localization"
              xmlns:s="using:PhotoX.App.Services"
+             xmlns:v="using:PhotoX.App.Views"
              x:Class="PhotoX.App.Views.BrowseView"
              x:DataType="vm:BrowseViewModel">
   <Grid ColumnDefinitions="290,*,Auto">
 
-    <!-- Explorer (FR-001) -->
+    <!-- Explorer (FR-001), the same control as in ID Photos and Collages (prompt_04 §6) -->
     <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,Auto,*,Auto">
-        <StackPanel Margin="10,16,10,0" Spacing="2">
-          <TextBlock Classes="section" Text="{l:Tr Locations}" Margin="8,0,0,6" />
-          <ItemsControl ItemsSource="{Binding Locations}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:LocationItem">
-                <Button Classes="list" Focusable="False"
-                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).SelectLocationCommand}" CommandParameter="{Binding}">
-                  <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Path Data="{Binding IsRemovable, Converter={x:Static s:IconConverter.Drive}}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.8" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-        <StackPanel Grid.Row="1" Margin="10,14,10,0" Spacing="2" IsVisible="{Binding RecentFolders.Count}">
-          <!-- Four most recent orders, collapsible (prompt_03 §2) -->
-          <Button Classes="list" Focusable="False" Padding="8,2" Command="{Binding ToggleRecentCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Classes="section" Text="{l:Tr RecentFolders}" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding RecentCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{StaticResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
-            </StackPanel>
-          </Button>
-          <ItemsControl ItemsSource="{Binding RecentFolders}" IsVisible="{Binding !RecentCollapsed}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="x:String">
-                <Button Classes="list" Focusable="False" ToolTip.Tip="{Binding}"
-                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).OpenRecentCommand}" CommandParameter="{Binding}">
-                  <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Path Data="{x:Static s:IconConverter.ClockGeometry}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.8" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding Converter={x:Static s:IconConverter.FolderName}}" FontSize="14" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-        <DockPanel Grid.Row="2" Margin="10,18,10,8">
-          <TextBlock DockPanel.Dock="Top" Classes="section" Text="{l:Tr Folders}" Margin="8,0,0,6" />
-          <TreeView x:Name="Folders" ItemsSource="{Binding FolderRoots}" SelectedItem="{Binding SelectedFolderNode}" Background="Transparent">
-            <TreeView.Styles>
-              <Style Selector="TreeViewItem" x:DataType="vm:FolderNodeViewModel">
-                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                <Setter Property="MinHeight" Value="30" />
-              </Style>
-              <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
-                <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
-                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                <Setter Property="BorderThickness" Value="2,0,0,0" />
-              </Style>
-              <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot">
-                <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
-              </Style>
-              <Style Selector="TreeViewItem:selected TextBlock.folder">
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="Foreground" Value="#D6E6FF" />
-              </Style>
-            </TreeView.Styles>
-            <TreeView.ItemTemplate>
-              <TreeDataTemplate x:DataType="vm:FolderNodeViewModel" ItemsSource="{Binding Children}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Path Data="{x:Static s:IconConverter.FolderGeometry}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.6" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" />
-                  <TextBlock Classes="folder" Text="{Binding Name}" FontSize="13.5" />
-                </StackPanel>
-              </TreeDataTemplate>
-            </TreeView.ItemTemplate>
-          </TreeView>
-        </DockPanel>
-        <TextBlock Grid.Row="3" Margin="18,6,18,14" Text="{l:Tr OriginalsNote}" FontSize="12" Foreground="{StaticResource Text3Brush}" TextWrapping="Wrap" />
-      </Grid>
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Bottom" Margin="18,6,18,14" Text="{l:Tr OriginalsNote}" FontSize="12" Foreground="{StaticResource Text3Brush}" TextWrapping="Wrap" />
+        <v:ExplorerView DataContext="{Binding Explorer}" />
+      </DockPanel>
     </Border>
 
     <!-- Gallery (FR-002) -->
@@ -145,6 +78,15 @@
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PhotoItemViewModel">
             <Border Classes="card" Width="176" Height="188" CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped">
+              <Border.ContextMenu>
+                <!-- Right-click actions (prompt_04 §4) -->
+                <ContextMenu>
+                  <MenuItem Header="{l:Tr EditSelected}" IsEnabled="{Binding IsOpenable}" Click="OnEditClick" />
+                  <MenuItem Header="{l:Tr UseForId}" IsEnabled="{Binding IsOpenable}" Click="OnUseForIdClick" />
+                  <Separator />
+                  <MenuItem Header="{l:Tr DuplicateImage}" Click="OnDuplicateClick" />
+                </ContextMenu>
+              </Border.ContextMenu>
               <Grid RowDefinitions="132,*" Margin="8">
                 <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                 <TextBlock Text="…" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -190,22 +132,16 @@
             <TextBlock Text="{Binding PhotosLeftText}" Classes="muted" FontSize="12.5" />
           </StackPanel>
           <StackPanel Grid.Row="4" Spacing="10">
-            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="62" Command="{Binding PrimaryActionCommand}" IsEnabled="{Binding HasFolder}">
+            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="54" Command="{Binding PrimaryActionCommand}" IsEnabled="{Binding HasFolder}">
               <Grid ColumnDefinitions="*,Auto">
-                <StackPanel HorizontalAlignment="Center" IsVisible="{Binding !IsOrderDone}">
-                  <TextBlock Text="{l:Tr StartEditing}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
-                  <TextBlock Text="{l:Tr StartEditingHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
-                </StackPanel>
-                <StackPanel HorizontalAlignment="Center" IsVisible="{Binding IsOrderDone}">
-                  <TextBlock Text="{l:Tr FinishButton}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
-                  <TextBlock Text="{l:Tr FinishHint}" FontSize="11.5" Foreground="White" Opacity="0.8" HorizontalAlignment="Center" />
-                </StackPanel>
+                <TextBlock IsVisible="{Binding !IsOrderDone}" Text="{l:Tr StartEditing}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock IsVisible="{Binding IsOrderDone}" Text="{l:Tr Finish}" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
               </Grid>
             </Button>
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding EditPhotoCommand}" CommandParameter="{Binding SelectedPhoto}" IsEnabled="{Binding HasSelection}" Content="{l:Tr EditSelected}" />
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding UseForIdCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr UseForId}" />
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding FinishOrderCommand}" IsEnabled="{Binding HasFolder}" IsVisible="{Binding !IsOrderDone}" Content="{l:Tr FinishOrder}" />
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding FinishOrderCommand}" IsEnabled="{Binding HasFolder}" IsVisible="{Binding !IsOrderDone}" Content="{l:Tr Finish}" />
           </StackPanel>
         </Grid>
       </Panel>

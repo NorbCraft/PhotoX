@@ -8,8 +8,10 @@ namespace PhotoX.App.Controls;
 
 /// <summary>
 /// Compact luminance histogram with one levels bar and three draggable triangles for the black point, midtones and
-/// white point (FR-043, FR-044, prompt_03 §3). The midtone triangle sits where input maps to mid-grey:
-/// black + (white − black) · 0.5^gamma, so it keeps its relative place when the end points move.
+/// white point (FR-043, FR-044, prompt_03 §3). The histogram shows the tones entering levels (after exposure and
+/// white balance, <see cref="Imaging.ImageStatistics.LevelsInput"/>), so each triangle sits on the tones it acts on
+/// (prompt_04 §7). The midtone triangle sits where input maps to mid-grey: black + (white − black) · 0.5^gamma,
+/// so it keeps its relative place when the end points move.
 /// </summary>
 public sealed class LevelsHistogram : Control
 {
@@ -64,15 +66,15 @@ public sealed class LevelsHistogram : Control
         context.DrawRectangle(Background, Frame, new Rect(Bounds.Size), 6, 6);
         if (Histogram is { Count: > 0 } h)
         {
-            // Square-root scale keeps small populations visible; the extreme bins are ignored for the scale.
+            // Linear scale, as in other photo software (a square-root scale exaggerated small populations). Pure black
+            // and white do not set the scale, so a clipped background cannot flatten the rest; their bars are capped.
             double max = 1;
             for (var i = 1; i < 255; i++) max = Math.Max(max, h.Luma[i]);
-            var scale = Math.Sqrt(max);
             var luma = new StreamGeometry();
             using (var g = luma.Open())
             {
                 g.BeginFigure(new Point(plot.X, plot.Bottom), true);
-                for (var i = 0; i < 256; i++) g.LineTo(new Point(X(i / 255.0), plot.Bottom - plot.Height * Math.Min(1, Math.Sqrt(h.Luma[i]) / scale)));
+                for (var i = 0; i < 256; i++) g.LineTo(new Point(X(i / 255.0), plot.Bottom - plot.Height * Math.Min(1, h.Luma[i] / max)));
                 g.LineTo(new Point(plot.Right, plot.Bottom));
                 g.EndFigure(true);
             }

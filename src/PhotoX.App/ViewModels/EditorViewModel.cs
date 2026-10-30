@@ -41,7 +41,6 @@ public sealed partial class EditorViewModel : ViewModelBase
     private string? _lastUndoTag;
     private DateTime _lastUndoTime;
     private bool _syncing;
-    private PixelData? _lastPixels;
     private (string Path, Task<Loaded> Task)? _preload;
     private (string Path, Loaded Data)? _shown;
     private (string Path, Loaded Data)? _previous;
@@ -202,7 +201,7 @@ public sealed partial class EditorViewModel : ViewModelBase
         {
             if (_sourceSize.W == 0) return string.Empty;
             var plan = RenderPlan.Create(_sourceSize.W, _sourceSize.H, _recipe);
-            var format = PrintFormats.Find(_recipe.FormatId);
+            var format = _recipe.Format;
             return plan.EffectivePpi is double ppi && format is not null
                 ? Localizer.Instance.Format("CropInfo", format.Name, plan.CanvasWidth, plan.CanvasHeight, Math.Round(ppi))
                 : Localizer.Instance.Format("CropInfoNoPpi", plan.CanvasWidth, plan.CanvasHeight);
@@ -517,12 +516,14 @@ public sealed partial class EditorViewModel : ViewModelBase
         SetRecipe(next with { Crop = RefitCrop(next) }, null);
     }
 
+    /// <summary>Switching orientation gives the largest valid crop of the new orientation, never a leftover smaller one (prompt_04 §7).</summary>
     [RelayCommand]
     public void SetOrientation(CropOrientation orientation)
     {
         if (_proxy is null || orientation == _recipe.Orientation) return;
         var next = _recipe with { Orientation = orientation };
-        SetRecipe(next with { Crop = RefitCrop(next) }, null);
+        var (w, h) = RotatedFullSize(next);
+        SetRecipe(next with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(ValidArea(next), next.CropRatio), w, h) }, null);
     }
 
     [RelayCommand]
@@ -532,14 +533,17 @@ public sealed partial class EditorViewModel : ViewModelBase
         SetRecipe(_recipe with { Composition = composition }, null);
     }
 
-    /// <summary>Applies a custom ratio from width × height (FR-010).</summary>
+    /// <summary>
+    /// Applies a custom print size of width × height cm (FR-010, prompt_04 §7): the crop gets its ratio, and saving
+    /// centres the photo at exactly that size on the smallest print sheet it fits, with white around it.
+    /// </summary>
     [RelayCommand]
-    public void ApplyCustomRatio()
+    public void ApplyCustomSize()
     {
         if (_proxy is null || CustomWidth <= 0 || CustomHeight <= 0) return;
-        var w = (double)Math.Min(CustomWidth, CustomHeight);
-        var h = (double)Math.Max(CustomWidth, CustomHeight);
-        var next = _recipe with { FormatId = PrintFormats.CustomId, CustomRatio = w / h };
+        var w = (double)Math.Min(CustomWidth, CustomHeight) * 10;
+        var h = (double)Math.Max(CustomWidth, CustomHeight) * 10;
+        var next = _recipe with { FormatId = PrintFormats.CustomId, CustomRatio = w / h, CustomWidthMm = w, CustomHeightMm = h };
         SetRecipe(next with { Crop = RefitCrop(next) }, null);
     }
 
@@ -602,10 +606,11 @@ public sealed partial class EditorViewModel : ViewModelBase
         SetRecipe(_recipe with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(ValidArea(_recipe), _recipe.CropRatio), w, h) }, null);
     }
 
+    /// <summary>Reset (prompt_04 §7): clears all tone adjustments as one undo step; the crop and rotation stay.</summary>
     [RelayCommand]
-    public void ResetPhoto()
+    public void ResetAdjustments()
     {
-        if (_proxy is not null) SetRecipe(DefaultRecipe(), null);
+        if (_proxy is not null) SetRecipe(_recipe.WithoutToneAdjustments(), null);
     }
 
     [RelayCommand]
@@ -671,7 +676,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     private static EditRecipe RenderKey(EditRecipe r) => r with
     {
         Crop = NormalizedRect.Full, FormatId = PrintFormats.DefaultId, Orientation = CropOrientation.Landscape,
-        Composition = Composition.Fill, CustomRatio = 0, Straighten = 0,
+        Composition = Composition.Fill, CustomRatio = 0, CustomWidthMm = 0, CustomHeightMm = 0, Straighten = 0,
     };
 
     private static EditRecipe GeometryKey(EditRecipe r) => r.WithoutToneAdjustments();
@@ -694,8 +699,9 @@ public sealed partial class EditorViewModel : ViewModelBase
             CropRatio = _recipe.CropRatio;
             if (_recipe.FormatId == PrintFormats.CustomId)
             {
-                CustomWidth = Math.Round((decimal)(_recipe.CustomRatio * 15), 1);
-                CustomHeight = 15;
+                (CustomWidth, CustomHeight) = _recipe.HasCustomSize
+                    ? (Math.Round((decimal)_recipe.CustomWidthMm / 10, 1), Math.Round((decimal)_recipe.CustomHeightMm / 10, 1))
+                    : (Math.Round((decimal)(_recipe.CustomRatio * 15), 1), 15m);
             }
 
             var (bw, bh) = RotatedFullSize(_recipe);
@@ -760,13 +766,15 @@ public sealed partial class EditorViewModel : ViewModelBase
         return new PixelRect((int)Math.Round(cx - w / 2), (int)Math.Round(cy - h / 2), (int)Math.Round(w), (int)Math.Round(h));
     }
 
-    /// <summary>Recomputes the histogram of the shown pixels for the current crop, off the UI thread.</summary>
+    /// <summary>Recomputes the histogram of the crop (tones entering levels, prompt_04 §7) off the UI thread.</summary>
     private void UpdateHistogram()
     {
-        if (_lastPixels is not { } data) return;
+        if (_base is not { } b || b.Turns != _recipe.QuarterTurns) return;
+        var data = b.Pixels;
+        var recipe = ShowBefore ? new EditRecipe() : _recipe;
         var version = Interlocked.Increment(ref _histogramVersion);
         var region = BaseRegion(_recipe, data.Width, data.Height);
-        _ = Task.Run(() => ImageStatistics.Histogram(data, region)).ContinueWith(
+        _ = Task.Run(() => ImageStatistics.LevelsInput(data, region, recipe)).ContinueWith(
             t =>
             {
                 if (version == _histogramVersion && t.IsCompletedSuccessfully) Tone.Histogram = t.Result;
@@ -824,13 +832,12 @@ public sealed partial class EditorViewModel : ViewModelBase
             var (data, histogram) = await Task.Run(() =>
             {
                 var tone = before ? new EditRecipe() : recipe;
-                if (!tone.HasToneAdjustments) return (source, ImageStatistics.Histogram(source, region));
+                var levelsInput = ImageStatistics.LevelsInput(source, region, tone);
+                if (!tone.HasToneAdjustments) return (source, levelsInput);
                 ToneProcessor.ApplyToPreview(source.Bgra, target, ToneCurve.For(tone, exact: false), tone.Saturation);
-                var shown = source with { Bgra = target };
-                return (shown, ImageStatistics.Histogram(shown, region));
+                return (source with { Bgra = target }, levelsInput);
             });
 
-            _lastPixels = data;
             var old = Preview;
             Preview = BitmapFactory.Create(data);
             (old as IDisposable)?.Dispose();
@@ -882,6 +889,12 @@ public sealed partial class EditorViewModel : ViewModelBase
                 return true;
             case Key.Space:
                 ShowBefore = true;
+                return true;
+            case Key.OemPlus or Key.Add when !ctrl:
+                Tone.ExposurePlus();
+                return true;
+            case Key.OemMinus or Key.Subtract when !ctrl:
+                Tone.ExposureMinus();
                 return true;
             default:
                 return false;

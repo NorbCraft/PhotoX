@@ -39,4 +39,8 @@ public static class IconConverter
 
     public static readonly IValueConverter StateBrush = new FuncValueConverter<bool, Avalonia.Media.IBrush>(warn =>
         warn ? new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F5A524")) : new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#34C759")));
+
+    /// <summary>Picker names: normal for photos that open, dimmed for unsupported files.</summary>
+    public static readonly IValueConverter OpenableBrush = new FuncValueConverter<bool, Avalonia.Media.IBrush>(ok =>
+        new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(ok ? "#EDEDED" : "#7A7A7A")));
 }

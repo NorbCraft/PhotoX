@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:l="using:PhotoX.App.Localization"
+             xmlns:s="using:PhotoX.App.Services"
+             x:Class="PhotoX.App.Views.ExplorerView"
+             x:DataType="vm:ExplorerViewModel">
+  <!-- The built-in explorer (FR-001), shared by Photos, ID Photos and Collages (prompt_04 §6) -->
+  <Grid RowDefinitions="Auto,Auto,*">
+    <StackPanel Margin="10,16,10,0" Spacing="2">
+      <TextBlock Classes="section" Text="{l:Tr Locations}" Margin="8,0,0,6" />
+      <ItemsControl ItemsSource="{Binding Locations}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:LocationItem">
+            <Button Classes="list" Focusable="False"
+                    Command="{Binding $parent[UserControl].((vm:ExplorerViewModel)DataContext).SelectLocationCommand}" CommandParameter="{Binding}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Path Data="{Binding IsRemovable, Converter={x:Static s:IconConverter.Drive}}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.8" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+    <StackPanel Grid.Row="1" Margin="10,14,10,0" Spacing="2" IsVisible="{Binding RecentFolders.Count}">
+      <!-- Four most recent orders, collapsible (prompt_03 §2) -->
+      <Button Classes="list" Focusable="False" Padding="8,2" Command="{Binding ToggleRecentCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="section" Text="{l:Tr RecentFolders}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding RecentCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{StaticResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <ItemsControl ItemsSource="{Binding RecentFolders}" IsVisible="{Binding !RecentCollapsed}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Button Classes="list" Focusable="False" ToolTip.Tip="{Binding}"
+                    Command="{Binding $parent[UserControl].((vm:ExplorerViewModel)DataContext).OpenRecentCommand}" CommandParameter="{Binding}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Path Data="{x:Static s:IconConverter.ClockGeometry}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.8" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Converter={x:Static s:IconConverter.FolderName}}" FontSize="14" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+    <DockPanel Grid.Row="2" Margin="10,18,10,8">
+      <TextBlock DockPanel.Dock="Top" Classes="section" Text="{l:Tr Folders}" Margin="8,0,0,6" />
+      <TreeView x:Name="Folders" ItemsSource="{Binding FolderRoots}" SelectedItem="{Binding SelectedFolderNode}" Background="Transparent">
+        <TreeView.Styles>
+          <Style Selector="TreeViewItem" x:DataType="vm:FolderNodeViewModel">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+            <Setter Property="MinHeight" Value="30" />
+          </Style>
+          <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+          </Style>
+          <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+          </Style>
+          <Style Selector="TreeViewItem:selected TextBlock.folder">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#D6E6FF" />
+          </Style>
+        </TreeView.Styles>
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate x:DataType="vm:FolderNodeViewModel" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Path Data="{x:Static s:IconConverter.FolderGeometry}" Stroke="{StaticResource Text2Brush}" StrokeThickness="1.6" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" />
+              <TextBlock Classes="folder" Text="{Binding Name}" FontSize="13.5" />
+            </StackPanel>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </DockPanel>
+  </Grid>
+</UserControl>

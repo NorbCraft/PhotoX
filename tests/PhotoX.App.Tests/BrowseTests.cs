@@ -23,9 +23,9 @@ public class BrowseTests
             await shell.Browse.OpenFolderAsync(order);
         }
 
-        Assert.Equal(["Order 6", "Order 5", "Order 4", "Order 3"], shell.Browse.RecentFolders.Select(Path.GetFileName));
-        shell.Browse.ToggleRecentCommand.Execute(null);
-        Assert.True(shell.Browse.RecentCollapsed);
+        Assert.Equal(["Order 6", "Order 5", "Order 4", "Order 3"], shell.Browse.Explorer.RecentFolders.Select(Path.GetFileName));
+        shell.Browse.Explorer.ToggleRecentCommand.Execute(null);
+        Assert.True(shell.Browse.Explorer.RecentCollapsed);
         Assert.True(AppServices.Current.Settings.RecentCollapsed); // remembered
         window.Close();
     }
@@ -47,10 +47,10 @@ public class BrowseTests
         Assert.Single(popescu.Children);   // placeholder: an arrow is shown
         Assert.Empty(ionescu.Children);    // only "Original" inside: no arrow
 
-        shell.Browse.FolderRoots.Clear();
-        shell.Browse.FolderRoots.Add(node);
+        shell.Browse.Explorer.FolderRoots.Clear();
+        shell.Browse.Explorer.FolderRoots.Add(node);
         node.IsExpanded = true;
-        shell.Browse.SelectedFolderNode = popescu;
+        shell.Browse.Explorer.SelectedFolderNode = popescu;
         Assert.True(popescu.IsExpanded);
         Assert.Equal("Prints", Assert.Single(popescu.Children).Name);
         await UiHelpers.WaitUntil(() => shell.Browse.AllPhotos.Count == 1);

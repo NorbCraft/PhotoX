@@ -50,7 +50,7 @@ public sealed partial class MainWindow : Window
         if (shell.Dialog is not null || shell.Settings is not null) return;
         if (repeat)
         {
-            if (shell.CurrentPage is EditorViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.PageDown or Key.PageUp or Key.Space)
+            if (shell.CurrentPage is EditorViewModel or IdViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.PageDown or Key.PageUp or Key.Space)
             {
                 e.Handled = true;
             }
@@ -66,6 +66,9 @@ public sealed partial class MainWindow : Window
             case IdViewModel id:
                 e.Handled = id.HandleKey(e.Key, e.KeyModifiers);
                 break;
+            case CollageViewModel collage:
+                e.Handled = collage.HandleKey(e.Key);
+                break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:
                 browse.PrimaryActionCommand.Execute(null);
                 e.Handled = true;
@@ -76,10 +79,13 @@ public sealed partial class MainWindow : Window
     private void OnKeyUpTunnel(object? sender, KeyEventArgs e)
     {
         _held.Remove(e.Key);
-        if (DataContext is ShellViewModel { CurrentPage: EditorViewModel editor } && !IsInputFocused())
+        if (DataContext is not ShellViewModel shell || IsInputFocused()) return;
+        e.Handled = shell.CurrentPage switch
         {
-            e.Handled = editor.HandleKeyUp(e.Key);
-        }
+            EditorViewModel editor => editor.HandleKeyUp(e.Key),
+            IdViewModel id => id.HandleKeyUp(e.Key),
+            _ => false,
+        };
     }
 
     private bool IsInputFocused() =>

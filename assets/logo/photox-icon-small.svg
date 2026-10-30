@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>PhotoX icon (16–24 px)</title>
+  <!-- Small-size variant of photox-icon.svg: thicker lines and no letters, which cannot be read below 32 px. -->
+  <rect width="256" height="256" rx="48" fill="#0E1A33"/>
+  <path d="M56 78H88L100 52H156L168 78H200A28 28 0 0 1 228 106V182A28 28 0 0 1 200 210H56A28 28 0 0 1 28 182V106A28 28 0 0 1 56 78Z"
+        fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linejoin="round"/>
+  <path d="M95.5 176.5A46 46 0 0 1 95.5 111.5A46 46 0 0 1 160.5 111.5" fill="none" stroke="#3B82F6" stroke-width="26"/>
+  <path d="M160.5 111.5A46 46 0 0 1 160.5 176.5A46 46 0 0 1 95.5 176.5" fill="none" stroke="#6D5EF6" stroke-width="26"/>
+  <circle cx="128" cy="144" r="14" fill="#FFFFFF"/>
+</svg>

@@ -1,14 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <title>PhotoX icon</title>
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3B82F6"/>
-      <stop offset="1" stop-color="#8B5CF6"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="url(#g)"/>
-  <path d="M14 24V14h10M40 14h10v10M50 40v10H40M24 50H14V40" fill="none" stroke="#FFFFFF"
-        stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-  <circle cx="32" cy="32" r="10.5" fill="none" stroke="#FFFFFF" stroke-width="5"/>
-  <circle cx="32" cy="32" r="3.2" fill="#FFFFFF"/>
+  <!-- Flat master (prompt_04 §2): navy rounded square, white camera outline, dual-tone lens ring, bold PX. -->
+  <rect width="256" height="256" rx="56" fill="#0E1A33"/>
+  <path d="M62 80H94L104 58H152L162 80H194A26 26 0 0 1 220 106V178A26 26 0 0 1 194 204H62A26 26 0 0 1 36 178V106A26 26 0 0 1 62 80Z"
+        fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M98.3 171.7A42 42 0 0 1 98.3 112.3A42 42 0 0 1 157.7 112.3" fill="none" stroke="#3B82F6" stroke-width="14"/>
+  <path d="M157.7 112.3A42 42 0 0 1 157.7 171.7A42 42 0 0 1 98.3 171.7" fill="none" stroke="#6D5EF6" stroke-width="14"/>
+  <path d="M107 156V128H116A7 7 0 0 1 116 142H107M135 128L149 156M149 128L135 156"
+        fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

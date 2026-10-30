@@ -420,6 +420,7 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Run 41050159676 passed on `windows-latest` (126 core and 43 UI tests, including the virtual-printer job) and on `ubuntu-latest` (124 and 43).
   - It built `PhotoX-0.8.1-win-Setup.exe` and `PhotoX-0.8.1-win-Portable.zip` (artifact `PhotoX-0.8.1-windows`).
   - Not installed or run on a Windows PC; nothing printed on the Citizen CY-02.
+  - **Correction (recorded 2026-10-30 with 0.9.0):** the run of the tag `v0.8.1` (41050951200) **failed** on `windows-latest`. `Saved_crop_is_shown_as_the_result_and_matches_the_file` measured 3.8 % against 5.5 % for the 6 % shift, above the 0.6 ratio. That run was not looked at when the result above was written. The check is made robust in 0.9.0 (see below).
 
 ### 2026-10-30: Version 0.9.0, prompt_06 (consistent UI, light and dark mode, Printing workspace)
 - **Prompt:** [docs/prompts/prompt_06.md](prompts/prompt_06.md), archived unchanged.
@@ -470,3 +471,9 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Windows display scaling.
 
   The Windows CI result is recorded below once the run has finished.
+- **CI result for 0.9.0:**
+  - **Run 41066925692 (main, commit 02474cd) passed:**
+    - `ubuntu-latest`: 132 core and 49 UI tests;
+    - `windows-latest`: 134 core and 49 UI tests, including the virtual-printer job (`Windows_virtual_printer_accepts_a_photo_at_true_size` ran and passed);
+    - `windows-package` built the artifact `PhotoX-0.9.0-windows`: `PhotoX-0.9.0-win-Setup.exe` (with the version splash) and the portable zip.
+  - **Run 41066928190 (tag v0.9.0, same commit) failed** on `ubuntu-latest`: the same crop-preview test measured 3.3 % against 4.6 % for the 6 % shift. The difference between screen and file varies between runs (1.3 % to 3.8 %), and a 6 % shift of the smooth test image is only 4.6 % to 5.5 %, so the margin was too small. The comparison now uses a 12 % shift: a misplaced crop is still detected, and normal rendering differences pass. This is a test-only change (no version change, DEC-034). Its CI result is recorded below.

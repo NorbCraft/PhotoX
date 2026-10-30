@@ -15,10 +15,22 @@ public class CropPreviewTests
     {
         var order = Path.Combine(dir.Path, "order");
         Directory.CreateDirectory(order);
-        for (var i = 1; i <= count; i++)
+        // The same textured photos on every run and platform: a random plasma made the preview comparison flaky
+        // (one Windows CI run measured 4.5 %). A light blur keeps the structure but drops pixel-level noise, which
+        // the screen-sized preview cannot show either way.
+        MagickNET.SetRandomSeed(20261030);
+        try
         {
-            using var image = new MagickImage("plasma:", new MagickReadSettings { Width = 900, Height = 600 });
-            image.Write(Path.Combine(order, $"P{i}.jpg"), MagickFormat.Jpeg);
+            for (var i = 1; i <= count; i++)
+            {
+                using var image = new MagickImage("plasma:", new MagickReadSettings { Width = 900, Height = 600 });
+                image.Blur(0, 1.5);
+                image.Write(Path.Combine(order, $"P{i}.jpg"), MagickFormat.Jpeg);
+            }
+        }
+        finally
+        {
+            MagickNET.ResetRandomSeed();
         }
 
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1366, 768);

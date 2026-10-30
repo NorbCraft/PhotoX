@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\src\PhotoX.Core\PhotoX.Core.csproj" />
     <ProjectReference Include="..\..\src\PhotoX.Imaging\PhotoX.Imaging.csproj" />
     <ProjectReference Include="..\..\src\PhotoX.Storage\PhotoX.Storage.csproj" />
+    <ProjectReference Include="..\..\src\PhotoX.Printing\PhotoX.Printing.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

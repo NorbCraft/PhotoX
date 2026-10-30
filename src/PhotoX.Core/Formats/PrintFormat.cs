@@ -51,7 +51,12 @@ public static class PrintFormats
     /// <summary>The crop presets of the Photos editor.</summary>
     public static IReadOnlyList<PrintFormat> BuiltIn => [P10x15, P15x20, P13x18];
 
-    /// <summary>Print sheets, smallest first.</summary>
+    /// <summary>The sizes PhotoX prints and lays out collages on (prompt_05: 10×15 and 15×20).</summary>
+    public static IReadOnlyList<PrintFormat> PrintSizes => [P10x15, P15x20];
+
+    public static PrintFormat? FindPrintSize(string id) => PrintSizes.FirstOrDefault(f => f.Id == id);
+
+    /// <summary>Print sheets for custom sizes in the editor, smallest first.</summary>
     public static IReadOnlyList<PrintFormat> Sheets => [P10x15, P15x20, P20x30];
 
     public static PrintFormat? Find(string id) => BuiltIn.FirstOrDefault(f => f.Id == id);

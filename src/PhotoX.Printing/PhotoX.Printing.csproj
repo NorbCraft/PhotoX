@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PhotoX.Printing</RootNamespace>
+    <!-- LibraryImport (Windows printing API) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoX.Core\PhotoX.Core.csproj" />
+    <ProjectReference Include="..\PhotoX.Imaging\PhotoX.Imaging.csproj" />
+    <ProjectReference Include="..\PhotoX.Storage\PhotoX.Storage.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PhotoX.Tests" />
+  </ItemGroup>
+</Project>

@@ -38,5 +38,8 @@ public sealed class AppPaths
 
     public string ThumbnailDir => Path.Combine(CacheDir, "thumbs");
 
+    /// <summary>Print counters (prompt_05 §6), outside the customer's folders.</summary>
+    public string PrintHistoryFile => Path.Combine(DataDir, "print-history.json");
+
     private static string? Env(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } v ? v : null;
 }

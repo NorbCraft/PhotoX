@@ -19,6 +19,12 @@ public sealed class Settings
     /// <summary>Remembered output folder of the Collages workspace.</summary>
     public string? CollageOutputFolder { get; set; }
 
+    /// <summary>The printer used last (prompt_05).</summary>
+    public string? LastPrinter { get; set; }
+
+    /// <summary>Driver settings chosen in each printer's own dialog (Windows DEVMODE, base64), by printer name.</summary>
+    public Dictionary<string, string> PrinterSettings { get; set; } = [];
+
     public int JpegQuality { get; set; } = 95;
 
     public int ThumbnailCacheMaxMb { get; set; } = 1024;

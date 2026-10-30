@@ -5,8 +5,9 @@ using PhotoX.Core.Id;
 namespace PhotoX.Imaging.Id;
 
 /// <summary>
-/// Printable test sheets (FR-071): mm rulers on all edges plus reference rectangles. Print through the Citizen
-/// software and measure to verify ID sizes, the 7 mm strip, the centred 13×18 on 15×20, and any driver scaling.
+/// Printable test sheets (FR-071): mm rulers on all edges plus reference rectangles. Print them from PhotoX's Printing
+/// workspace (the same path as photos, prompt_06) and measure to verify ID sizes, the 7 mm strip, the centred 13×18
+/// on 15×20, and any driver scaling.
 /// </summary>
 public static class CalibrationSheet
 {

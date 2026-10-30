@@ -240,6 +240,17 @@ public sealed partial class PrintViewModel : ViewModelBase
         StatusMessage = Localizer.Instance.Plural("JobsSent", requests.Count);
     }
 
+    /// <summary>
+    /// The calibration sheet (FR-071, prompt_06): printed through the same path as photos, so measuring it checks
+    /// PhotoX's direct printing. The sheet follows the chosen size (10×15 or 15×20).
+    /// </summary>
+    [RelayCommand]
+    private void LoadCalibration() => Load(
+        [new SizedPrintItem(Localizer.Instance["CalibrationJob"], (_, size) => size.Id == PrintFormats.P15x20.Id
+            ? Imaging.Id.CalibrationSheet.FifteenByTwenty()
+            : Imaging.Id.CalibrationSheet.TenByFifteen(), 1)],
+        SelectedSize, sizeFixed: false, OriginName);
+
     /// <summary>Removes what waits to be printed; nothing was sent.</summary>
     [RelayCommand]
     private void Clear()
@@ -339,7 +350,7 @@ public sealed partial class PrintViewModel : ViewModelBase
             {
                 var data = await Task.Run(() =>
                 {
-                    var (content, fill) = PrintContent.Load(item, preview: true);
+                    var (content, fill) = PrintContent.Load(item, preview: true, size);
                     using (content)
                     {
                         var w = single ? 760 : 340;

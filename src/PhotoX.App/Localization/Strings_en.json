@@ -133,7 +133,7 @@
   "FileName": "File name",
   "IdSaved": "Saved as {0}",
   "Calibration": "Save calibration sheets",
-  "CalibrationSaved": "Calibration sheets saved (10×15 and 15×20). Print them through the Citizen software and measure.",
+  "CalibrationSaved": "Calibration sheets saved (10×15 and 15×20). They can also be printed directly from the Printing workspace.",
   "IdPhotoInfo": "Each photo {0}  ·  {1} × {2} px",
   "StripNote": "7 mm white strip below",
   "UseForId": "Use for ID photo",
@@ -321,5 +321,8 @@
   "RotateLeft90": "Rotate left 90°",
   "RotateRight90": "Rotate right 90°",
   "FitPhoto": "Fit photo in frame",
-  "UndoTip2": "Undo (Ctrl+Z)"
+  "UndoTip2": "Undo (Ctrl+Z)",
+  "CalibrationJob": "Calibration sheet",
+  "PrintCalibration": "Calibration sheet…",
+  "PrintCalibrationTip": "Shows the calibration sheet (rulers, ID sizes, 7 mm strip, 13 × 18 frame) for the chosen size, to print and measure"
 }

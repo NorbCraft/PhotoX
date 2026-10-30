@@ -195,6 +195,7 @@
               <TextBlock Text="{Binding LoadedPaperText}" TextWrapping="Wrap" FontWeight="SemiBold" />
             </Border>
             <TextBlock Text="{l:Tr QueueNote}" Classes="faint" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <Button Classes="link" Focusable="False" Content="{l:Tr PrintCalibration}" Command="{Binding LoadCalibrationCommand}" ToolTip.Tip="{l:Tr PrintCalibrationTip}" Margin="0,6,0,0" />
           </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="1" Spacing="8" Margin="18,8,18,16">

@@ -62,6 +62,24 @@ public class Prompt06Tests
     }
 
     [AvaloniaFact]
+    public async Task The_calibration_sheet_prints_through_the_same_path_at_the_chosen_size()
+    {
+        using var dir = new TempDir();
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1440, 900);
+        shell.ShowPrintingCommand.Execute(null);
+        shell.Print.LoadCalibrationCommand.Execute(null);
+        Assert.True(shell.Print.HasItems);
+        Assert.False(shell.Print.IsSizeFixed);
+        shell.Print.SetSizeCommand.Execute(PrintFormats.P15x20);
+        Assert.Equal("(6x8)", shell.Print.SelectedPaper!.Paper.Name);
+        shell.Print.PrintCommand.Execute(null);
+        await UiHelpers.WaitUntil(() => UiHelpers.Printer.Submitted.Count == 1);
+        var page = UiHelpers.Printer.Submitted[0].Page;
+        Assert.Equal((1800, 2400), (page.Width, page.Height));                   // the 15×20 sheet, 1:1 at 300 dpi
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task Id_photos_default_to_3x4_with_eight_and_turn_by_90_degrees()
     {
         using var dir = new TempDir();

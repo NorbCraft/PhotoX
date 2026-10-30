@@ -133,7 +133,7 @@
   "FileName": "Nume fișier",
   "IdSaved": "Salvată ca {0}",
   "Calibration": "Salvează colile de calibrare",
-  "CalibrationSaved": "Colile de calibrare au fost salvate (10×15 și 15×20). Imprimați-le prin programul Citizen și măsurați.",
+  "CalibrationSaved": "Colile de calibrare au fost salvate (10×15 și 15×20). Pot fi imprimate și direct din spațiul Imprimare.",
   "IdPhotoInfo": "Fiecare fotografie {0}  ·  {1} × {2} px",
   "StripNote": "bandă albă de 7 mm dedesubt",
   "UseForId": "Folosește pentru foto acte",
@@ -321,5 +321,8 @@
   "RotateLeft90": "Rotire la stânga 90°",
   "RotateRight90": "Rotire la dreapta 90°",
   "FitPhoto": "Potrivire fotografie în cadru",
-  "UndoTip2": "Anulare (Ctrl+Z)"
+  "UndoTip2": "Anulare (Ctrl+Z)",
+  "CalibrationJob": "Coală de calibrare",
+  "PrintCalibration": "Coală de calibrare…",
+  "PrintCalibrationTip": "Afișează coala de calibrare (rigle, dimensiuni de act, banda de 7 mm, cadrul 13 × 18) pentru dimensiunea aleasă, de imprimat și măsurat"
 }

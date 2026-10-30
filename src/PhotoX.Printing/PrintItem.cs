@@ -1,5 +1,6 @@
 using ImageMagick;
 using PhotoX.Core.Editing;
+using PhotoX.Core.Formats;
 using PhotoX.Imaging;
 using PhotoX.Storage;
 
@@ -24,6 +25,9 @@ public sealed record PhotoPrintItem(string Name, string Path, EditRecipe? Pendin
 /// <summary>A finished page (ID sheet, collage), rendered on demand: <c>true</c> asks for a quick preview rendering.</summary>
 public sealed record ImagePrintItem(string Name, Func<bool, MagickImage> Render, int Copies) : PrintItem(Name, Copies);
 
+/// <summary>A page made for the chosen print size, such as the calibration sheet of 10×15 or 15×20 (FR-071).</summary>
+public sealed record SizedPrintItem(string Name, Func<bool, PrintFormat, MagickImage> Render, int Copies) : PrintItem(Name, Copies);
+
 /// <summary>Produces the image to print for an item. Read-only: printing never writes to the photo or its folder.</summary>
 public static class PrintContent
 {
@@ -31,7 +35,8 @@ public static class PrintContent
     public const int PreviewEdge = 1000;
 
     /// <summary>Returns the content and whether it is an untouched original (cropped to fill the paper).</summary>
-    public static (MagickImage Image, bool CropToFill) Load(PrintItem item, bool preview)
+    /// <param name="size">The print size, for items made for it (<see cref="SizedPrintItem"/>).</param>
+    public static (MagickImage Image, bool CropToFill) Load(PrintItem item, bool preview, PrintFormat? size = null)
     {
         switch (item)
         {
@@ -46,6 +51,8 @@ public static class PrintContent
                 return (ImageLoader.Load(photo.Path, maxEdge), !photo.IsEdited);
             case ImagePrintItem image:
                 return (image.Render(preview), false);
+            case SizedPrintItem sized:
+                return (sized.Render(preview, size ?? PrintFormats.P10x15), false);
             default:
                 throw new ArgumentException("Unknown print item.", nameof(item));
         }

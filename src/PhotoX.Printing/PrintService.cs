@@ -244,7 +244,7 @@ public sealed class PrintService : IDisposable
         {
             var g = Backend.GetGeometry(r.Printer, r.Paper, r.Settings);
             var (pageW, pageH, x, y, pageWmm, pageHmm) = PageFor(g, r);
-            var (content, cropToFill) = PrintContent.Load(r.Item, preview: false);
+            var (content, cropToFill) = PrintContent.Load(r.Item, preview: false, r.Size);
             PageBitmap bitmap;
             using (content)
             {

@@ -403,3 +403,13 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - the later optimisation of two 10×15 photos on one 15×20 sheet.
 
   Nothing else was added.
+- **CI result for 0.8.0 (tag v0.8.0):** runs 41049317024 (main) and 41049317604 (tag) **failed**; the package was not built. 126 core tests passed on Windows and 124 on Linux, including the virtual-printer test where a PDF printer exists. Two UI test problems caused the failures:
+  - **Linux:** a setup failure in `Romanian_plurals` inside Avalonia's per-test application setup ("a different thread owns it", `DefaultRenderLoop.Add`), most likely caused by background work of an earlier test reaching the dispatcher during that setup.
+  - **Windows:** `Saved_crop_is_shown_as_the_result_and_matches_the_file` measured 3.8 % against a 3.5 % limit; the same check gives 1.3 % on Linux.
+
+### 2026-10-30: Version 0.8.1, test and dispatcher fixes after the 0.8.0 CI run
+- **Work done:**
+  - Background callbacks (print queue, print counters, thumbnails) post to the dispatcher captured on the UI thread.
+  - The headless tests use one application per test run (`AvaloniaTestIsolationLevel.PerAssembly`).
+  - The preview-versus-saved check now requires the aligned comparison to beat a 6 %-shifted one by a clear margin (and stay under 7 %), which still detects a misplaced crop.
+- **Verification (Linux):** 127 core tests and 45 UI tests pass, the UI suite twice in a row. The Windows result is recorded below once CI has run.

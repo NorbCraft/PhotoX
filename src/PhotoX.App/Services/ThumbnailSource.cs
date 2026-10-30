@@ -45,6 +45,8 @@ public static class ThumbnailSource
         Action<T, Bitmap?, string, string?> apply,
         CancellationToken ct)
     {
+        // Captured here, on the UI thread: worker threads never resolve the dispatcher themselves.
+        var ui = Dispatcher.UIThread;
         using var gate = new SemaphoreSlim(Math.Clamp(Environment.ProcessorCount - 1, 1, 4));
         var tasks = items.Select(async item =>
         {
@@ -53,7 +55,7 @@ public static class ThumbnailSource
             {
                 if (ct.IsCancellationRequested || entryOf(item) is not { } entry) return;
                 var (bitmap, info, error) = await Task.Run(() => Load(cache, entry), ct).ConfigureAwait(false);
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                await ui.InvokeAsync(() =>
                 {
                     if (!ct.IsCancellationRequested) apply(item, bitmap, info, error);
                 });

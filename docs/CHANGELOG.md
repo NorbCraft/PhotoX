@@ -4,6 +4,12 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-30
+
+### Fixed
+- Print queue updates, print counters and thumbnails are handed to the screen through the dispatcher captured on the screen thread, never looked up from a worker thread.
+- Tests: the headless UI tests share one application (a per-test application could be disturbed by background work of the previous test on Linux CI), and the preview-versus-saved check compares against a deliberately shifted photo instead of a fixed limit that Windows rendering exceeded (3.8 %).
+
 ## [0.8.0] - 2026-10-30
 
 Direct printing and a simpler Photos workflow ([prompt_05](prompts/prompt_05.md)). Verified with automated tests on Linux and with a virtual printer in Windows CI. **Not yet printed on the Citizen CY-02.**

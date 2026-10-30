@@ -71,7 +71,8 @@ public sealed partial class PrintQueueViewModel : ViewModelBase
     public PrintQueueViewModel(PrintService service)
     {
         _service = service;
-        service.JobChanged += job => Dispatcher.UIThread.Post(() => Update(job));
+        var ui = Dispatcher.UIThread; // jobs change on the print worker; updates are posted to this (UI) thread
+        service.JobChanged += job => ui.Post(() => Update(job));
         Localizer.Instance.LanguageChanged += (_, _) =>
         {
             foreach (var j in Jobs) j.Refresh();

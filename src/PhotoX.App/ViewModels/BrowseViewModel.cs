@@ -33,7 +33,8 @@ public sealed partial class BrowseViewModel : ViewModelBase
         Explorer.FolderOpened += OpenFolder;
         Localizer.Instance.LanguageChanged += (_, _) => RefreshTexts();
         // Counters change on the print worker once Windows accepts (or loses) a job.
-        services.PrintHistory.Changed += path => Dispatcher.UIThread.Post(() =>
+        var ui = Dispatcher.UIThread;
+        services.PrintHistory.Changed += path => ui.Post(() =>
         {
             foreach (var p in AllPhotos.Where(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase))) p.PrintCount = services.PrintHistory.CountFor(p.Path);
         });

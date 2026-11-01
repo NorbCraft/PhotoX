@@ -634,5 +634,10 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - any GitHub Release: none is published, and the first draft is created by the v0.11.0 tag;
   - folder navigation with real mouse double-clicks on Windows;
   - the Citizen CY-02 and any physical print.
-
-  The Windows CI result is recorded below once the run has finished.
+- **CI result for 0.11.0:** runs 41352399770 (main) and 41352401865 (tag v0.11.0), both on commit 60aaf11, passed.
+  - **Tests:** `windows-latest` 175 core and 75 UI tests, `ubuntu-latest` 173 and 75.
+  - **Packaging:** `windows-package` built `PhotoX-0.11.0-windows`.
+  - **Release job:** skipped on main as intended. On the tag it created the **draft** release *PhotoX 0.11.0* with `PhotoX-0.11.0-win-Setup.exe` (78.7 MB), its `.sha256` and the portable zip.
+  - **Checksum:** downloaded and checked; it matches the installer and GitHub's own asset digest.
+  - **Not yet visible to Check for updates:** the draft is not published, so the public "latest release" still answers 404.
+  - **Not tried:** the installer was not installed or run on a Windows PC.

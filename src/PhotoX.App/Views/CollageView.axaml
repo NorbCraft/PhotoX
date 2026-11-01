@@ -33,7 +33,9 @@
             <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
             <TextBlock Text="{l:Tr CollagePickHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
-          <Button DockPanel.Dock="Bottom" Margin="12,4,12,12" HorizontalAlignment="Stretch" Focusable="False" Content="{l:Tr AddToFrame}" Command="{Binding Picker.PickCommand}" />
+          <Button DockPanel.Dock="Bottom" Margin="12,4,12,12" HorizontalAlignment="Stretch" Focusable="False" Command="{Binding Picker.PickCommand}">
+            <c:IconLabel Icon="{x:Static s:Icons.FrameAdd}" Text="{l:Tr AddToFrame}" />
+          </Button>
           <v:PickerGrid Margin="8,0" DataContext="{Binding Picker}" />
         </DockPanel>
       </Grid>
@@ -53,8 +55,12 @@
               <MenuItem.Icon><Path Data="{x:Static s:Icons.RotateRight}" Stroke="{DynamicResource TextBrush}" StrokeThickness="1.6" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" RenderTransform="scale(0.75)" /></MenuItem.Icon>
             </MenuItem>
             <Separator />
-            <MenuItem Header="{l:Tr FitPhoto}" Command="{Binding FitPhotoCommand}" />
-            <MenuItem Header="{l:Tr RemovePhoto}" Command="{Binding RemovePhotoCommand}" />
+            <MenuItem Header="{l:Tr FitPhoto}" Command="{Binding FitPhotoCommand}">
+              <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.ResetCrop}" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{l:Tr RemovePhoto}" Command="{Binding RemovePhotoCommand}">
+              <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.FrameRemove}" /></MenuItem.Icon>
+            </MenuItem>
           </ContextMenu>
         </c:CollageCanvas.ContextMenu>
       </c:CollageCanvas>
@@ -135,15 +141,21 @@
               <Button Grid.Column="1" Classes="link" Focusable="False" Content="{l:Tr ResetLayout}" Command="{Binding ResetLayoutCommand}" VerticalAlignment="Center" />
             </Grid>
             <Grid ColumnDefinitions="*,8,*">
-              <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr RemovePhoto}" Command="{Binding RemovePhotoCommand}" IsEnabled="{Binding SelectedHasPhoto}" />
-              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr ClearAll}" Command="{Binding ClearAllCommand}" IsEnabled="{Binding HasPhotos}" />
+              <Button Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding RemovePhotoCommand}" IsEnabled="{Binding SelectedHasPhoto}">
+                <c:IconLabel Icon="{x:Static s:Icons.FrameRemove}" Text="{l:Tr RemovePhoto}" />
+              </Button>
+              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding ClearAllCommand}" IsEnabled="{Binding HasPhotos}">
+                <c:IconLabel Icon="{x:Static s:Icons.Close}" Text="{l:Tr ClearAll}" />
+              </Button>
             </Grid>
 
             <TextBlock Classes="section" Text="{l:Tr Output}" Margin="0,10,0,0" />
             <TextBlock Text="{l:Tr OutputFolder}" Classes="muted" FontSize="12" />
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Text="{Binding OutputFolderText}" ToolTip.Tip="{Binding OutputFolder}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="SemiBold" />
-              <Button Grid.Column="1" Focusable="False" Content="{l:Tr Change}" Command="{Binding ChangeOutputFolderCommand}" Margin="8,0,0,0" />
+              <Button Grid.Column="1" Focusable="False" Command="{Binding ChangeOutputFolderCommand}" Margin="8,0,0,0" Padding="10,6,14,6">
+                <c:IconLabel Icon="{x:Static s:Icons.Folder}" Text="{l:Tr Change}" />
+              </Button>
             </Grid>
             <TextBlock Text="{l:Tr FileName}" Classes="muted" FontSize="12" Margin="0,6,0,0" />
             <TextBlock Text="{Binding FileNamePreview}" FontWeight="SemiBold" />
@@ -153,10 +165,10 @@
         <!-- Save and Print use the same composition (prompt_05 §8) -->
         <Grid Grid.Row="1" ColumnDefinitions="*,8,*" Margin="18,8,18,16">
           <Button Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}">
-            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Save}" /><TextBlock Text="{l:Tr SaveJpg}" FontSize="15" /></StackPanel>
+            <c:IconLabel Icon="{x:Static s:Icons.Save}" Text="{l:Tr SaveJpg}" TextElement.FontSize="15" />
           </Button>
           <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" Command="{Binding PrintCommand}" IsEnabled="{Binding HasPhotos}">
-            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{l:Tr Print}" FontSize="15" FontWeight="SemiBold" Foreground="White" /></StackPanel>
+            <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr Print}" TextElement.FontSize="15" TextElement.FontWeight="SemiBold" />
           </Button>
         </Grid>
       </Grid>

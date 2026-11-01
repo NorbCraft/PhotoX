@@ -3,6 +3,7 @@
              xmlns:vm="using:PhotoX.App.ViewModels"
              xmlns:l="using:PhotoX.App.Localization"
              xmlns:c="using:PhotoX.App.Controls"
+             xmlns:s="using:PhotoX.App.Services"
              x:Class="PhotoX.App.Views.ToneAdjustmentsView"
              x:DataType="vm:ToneAdjustmentsViewModel">
   <UserControl.Styles>
@@ -25,8 +26,10 @@
     <c:LevelsHistogram Height="112" Histogram="{Binding Histogram}" Black="{Binding LevelsBlack}" Mid="{Binding LevelsMid}" White="{Binding LevelsWhite}"
                        ToolTip.Tip="{l:Tr LevelsHint}" />
     <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{l:Tr Levels}" /><TextBlock Grid.Column="1" Classes="value" Text="{Binding LevelsText}" /></Grid>
-    <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr AutoAdjust}" Command="{Binding AutoAdjustCommand}"
-            IsVisible="{Binding HasAutoAdjust}" Margin="0,4,0,2" />
+    <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding AutoAdjustCommand}"
+            IsVisible="{Binding HasAutoAdjust}" Margin="0,4,0,2">
+      <c:IconLabel Icon="{x:Static s:Icons.AutoAdjust}" Text="{l:Tr AutoAdjust}" />
+    </Button>
 
     <TextBlock Classes="section" Text="{l:Tr Adjustments}" Margin="0,8,0,0" />
 

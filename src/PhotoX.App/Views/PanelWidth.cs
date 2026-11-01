@@ -15,11 +15,11 @@ internal static class PanelWidth
     /// <summary>The narrowest explorer panel that still shows folder names and two thumbnails per row.</summary>
     public const double MinLeft = 230;
 
-    public static void Apply(ColumnDefinition column, double width)
+    public static void Apply(ColumnDefinition column, double width, double min = Min)
     {
-        column.MinWidth = Min;
+        column.MinWidth = min;
         column.MaxWidth = Max;
-        column.Width = new GridLength(Math.Clamp(width, Min, Max));
+        column.Width = new GridLength(Math.Clamp(width, min, Max));
     }
 
     public static void Save(Action<PhotoX.Storage.Settings> store)

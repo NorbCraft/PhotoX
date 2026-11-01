@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:PhotoX.App.Controls"
              xmlns:vm="using:PhotoX.App.ViewModels"
              xmlns:l="using:PhotoX.App.Localization"
              xmlns:s="using:PhotoX.App.Services"
@@ -90,12 +91,22 @@
               <Border.ContextMenu>
                 <!-- Right-click actions (prompt_04 §4) -->
                 <ContextMenu>
-                  <MenuItem Header="{l:Tr EditSelected}" IsEnabled="{Binding IsOpenable}" Click="OnEditClick" />
-                  <MenuItem Header="{l:Tr UseForId}" IsEnabled="{Binding IsOpenable}" Click="OnUseForIdClick" />
-                  <MenuItem Header="{l:Tr PrintMenu}" IsEnabled="{Binding IsOpenable}" Click="OnPrintClick" />
+                  <MenuItem Header="{l:Tr EditSelected}" IsEnabled="{Binding IsOpenable}" Click="OnEditClick">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Edit}" /></MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="{l:Tr UseForId}" IsEnabled="{Binding IsOpenable}" Click="OnUseForIdClick">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.IdPhoto}" /></MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="{l:Tr PrintMenu}" IsEnabled="{Binding IsOpenable}" Click="OnPrintClick">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /></MenuItem.Icon>
+                  </MenuItem>
                   <Separator />
-                  <MenuItem Header="{l:Tr DuplicateImage}" Click="OnDuplicateClick" />
-                  <MenuItem Header="{l:Tr RestoreOriginal}" IsEnabled="{Binding IsOpenable}" Click="OnRestoreClick" />
+                  <MenuItem Header="{l:Tr DuplicateImage}" Click="OnDuplicateClick">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Duplicate}" /></MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="{l:Tr RestoreOriginal}" IsEnabled="{Binding IsOpenable}" Click="OnRestoreClick">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Restore}" /></MenuItem.Icon>
+                  </MenuItem>
                 </ContextMenu>
               </Border.ContextMenu>
               <Grid RowDefinitions="Auto,*" Margin="8">
@@ -158,21 +169,29 @@
           <!-- Actions (prompt_05 §5): print, edit or use one photo, save or restore the selection -->
           <StackPanel Grid.Row="4" Spacing="8">
             <Grid ColumnDefinitions="*,8,*">
-              <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Command="{Binding PrintSelectedCommand}" IsEnabled="{Binding HasSelection}">
-                <TextBlock Text="{l:Tr PrintSelected}" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+              <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Padding="8,6" Command="{Binding PrintSelectedCommand}" IsEnabled="{Binding HasSelection}">
+                <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr PrintSelected}" TextElement.FontWeight="SemiBold" />
               </Button>
-              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Command="{Binding PrintAllCommand}" IsEnabled="{Binding HasFolder}" Content="{l:Tr PrintAll}" />
+              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Padding="8,6" Command="{Binding PrintAllCommand}" IsEnabled="{Binding HasFolder}">
+                <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr PrintAll}" />
+              </Button>
             </Grid>
             <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding EditPhotoCommand}" IsEnabled="{Binding HasSingleSelection}">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{l:Tr EditSelected}" HorizontalAlignment="Center" />
+                <c:IconLabel Icon="{x:Static s:Icons.Edit}" Text="{l:Tr EditSelected}" />
                 <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" /></Border>
               </Grid>
             </Button>
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding UseForIdCommand}" IsEnabled="{Binding HasSingleSelection}" Content="{l:Tr UseForId}" />
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding UseForIdCommand}" IsEnabled="{Binding HasSingleSelection}">
+              <c:IconLabel Icon="{x:Static s:Icons.IdPhoto}" Text="{l:Tr UseForId}" />
+            </Button>
             <Grid ColumnDefinitions="*,8,*">
-              <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr SaveChanges}" ToolTip.Tip="{l:Tr SaveChangesTip}" />
-              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding RestoreOriginalCommand}" IsEnabled="{Binding HasSelection}" Content="{l:Tr RestoreOriginal}" ToolTip.Tip="{l:Tr RestoreTip}" />
+              <Button Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding HasSelection}" ToolTip.Tip="{l:Tr SaveChangesTip}">
+                <c:IconLabel Icon="{x:Static s:Icons.Delete}" Text="{l:Tr SaveChanges}" />
+              </Button>
+              <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding RestoreOriginalCommand}" IsEnabled="{Binding HasSelection}" ToolTip.Tip="{l:Tr RestoreTip}">
+                <c:IconLabel Icon="{x:Static s:Icons.Restore}" Text="{l:Tr RestoreOriginal}" />
+              </Button>
             </Grid>
           </StackPanel>
         </Grid>

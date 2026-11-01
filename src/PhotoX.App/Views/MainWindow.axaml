@@ -4,6 +4,7 @@
         xmlns:l="using:PhotoX.App.Localization"
         xmlns:v="using:PhotoX.App.Views"
         xmlns:s="using:PhotoX.App.Services"
+        xmlns:c="using:PhotoX.App.Controls"
         x:Class="PhotoX.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Icon="/Assets/photox.ico"
@@ -155,7 +156,9 @@
             <TextBlock Text="{l:Tr ThumbnailCache}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding CacheText}" Classes="muted" TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <Button Content="{l:Tr ClearCache}" Command="{Binding ClearCacheCommand}" />
+              <Button Command="{Binding ClearCacheCommand}" Padding="10,6,14,6">
+                <c:IconLabel Icon="{x:Static s:Icons.Delete}" Text="{l:Tr ClearCache}" />
+              </Button>
               <TextBlock Text="{Binding CacheMessage}" Classes="ok" VerticalAlignment="Center" />
             </StackPanel>
           </StackPanel>

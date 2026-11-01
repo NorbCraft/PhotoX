@@ -551,3 +551,26 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - No button moved. The mockup README records the choice.
 - **Verification (Linux):** 148 core and 60 UI tests pass. A new UI test checks the editor's action buttons for an icon beside their label. Headless screenshots of the editor, ID framing and sheet steps, Printing and Collages in light and dark mode were inspected.
 - **CI result for 0.10.1:** runs 41328523416 (main) and 41328525438 (tag v0.10.1), both on commit 6eac4a8, passed: `windows-latest` 146 core and 58 UI tests, `ubuntu-latest` 144 and 58; `windows-package` built the artifact `PhotoX-0.10.1-windows`. Not installed or run on a Windows PC.
+
+### 2026-11-01: Version 0.10.2, icons on the remaining action buttons
+- **Instruction (owner, in the conversation):** add icons where still useful, for example the buttons of the Photos gallery; raise only the last version number.
+- **Work done (DEC-076):**
+  - **Five icons added:** edit, bin, restore, wand, duplicate, plus two frame icons and a folder.
+  - **Where:**
+    - the gallery actions and the thumbnails' right-click menu;
+    - Auto Adjust;
+    - the Collages actions and photo menu;
+    - Change… in ID Photos and Collages;
+    - Cancel in the print queue;
+    - Clear cache.
+  - **New `IconLabel` control:** puts the icon beside a label that wraps between words when the button is narrow; most icon buttons from 0.10.1 now use it.
+  - **Not changed:** dialog buttons, small form buttons and links stay text.
+- **Found and fixed:** in Romanian, 0.10.1 cut off *Imprimare* and *Salvează* in the editor's three-button row (96 px each at the default panel width). The fix:
+  - the Print button says *Imprimă*;
+  - those buttons have tighter side padding;
+  - the editor and ID side panels are at least 350 px wide;
+  - the gallery's paired buttons wrap long labels.
+- **Verification (Linux):**
+  - 148 core and 64 UI tests pass (Release).
+  - A new UI test, `ButtonFitTests`, checks every icon-and-label button in all five workspaces, in English and Romanian, at the default and the narrowest panel widths. No label may be wider than its button, take more than two lines or break inside a word, and rows with a key chip must fit.
+  - Screenshots of the narrow Romanian panels and the English defaults were inspected.

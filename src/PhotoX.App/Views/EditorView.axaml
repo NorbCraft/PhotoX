@@ -173,14 +173,14 @@
         <!-- Actions (prompt_07 §1.5): Close, Print and Save, then Save & Next; shortcuts in the tooltips -->
         <StackPanel Grid.Row="2" Spacing="8" Margin="18,8,18,16">
           <Grid ColumnDefinitions="*,8,*,8,*">
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr CloseEditorTip}">
-              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Close}" /><TextBlock Text="{l:Tr Close}" /></StackPanel>
+            <Button Focusable="False" HorizontalAlignment="Stretch" Padding="4,6" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr CloseEditorTip}">
+              <c:IconLabel Icon="{x:Static s:Icons.Close}" Text="{l:Tr Close}" />
             </Button>
-            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding PrintCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr PrintEditedTip}">
-              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{l:Tr Print}" /></StackPanel>
+            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Padding="4,6" Command="{Binding PrintCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr PrintEditedTip}">
+              <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr Print}" />
             </Button>
-            <Button Grid.Column="4" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr SaveTip}">
-              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Save}" /><TextBlock Text="{l:Tr Save}" /></StackPanel>
+            <Button Grid.Column="4" Focusable="False" HorizontalAlignment="Stretch" Padding="4,6" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr SaveTip}">
+              <c:IconLabel Icon="{x:Static s:Icons.Save}" Text="{l:Tr Save}" />
             </Button>
           </Grid>
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">

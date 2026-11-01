@@ -163,7 +163,7 @@
         <!-- Clear (prompt_07 §2.3): removes the photo from the workspace; the file is not touched -->
         <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Right" Padding="10,4,14,4" Command="{Binding ClearPhotoCommand}" IsVisible="{Binding HasSource}"
                 ToolTip.Tip="{l:Tr ClearPhotoTip}">
-          <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Close}" /><TextBlock Text="{l:Tr ClearPhoto}" /></StackPanel>
+          <c:IconLabel Icon="{x:Static s:Icons.Close}" Text="{l:Tr ClearPhoto}" />
         </Button>
       </Grid>
     </Border>
@@ -317,7 +317,9 @@
               <TextBlock Text="{l:Tr OutputFolder}" Classes="muted" FontSize="12" />
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="{Binding OutputFolderText}" ToolTip.Tip="{Binding OutputFolder}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="SemiBold" />
-                <Button Grid.Column="1" Focusable="False" Content="{l:Tr Change}" Command="{Binding ChangeOutputFolderCommand}" Margin="8,0,0,0" />
+                <Button Grid.Column="1" Focusable="False" Command="{Binding ChangeOutputFolderCommand}" Margin="8,0,0,0" Padding="10,6,14,6">
+                  <c:IconLabel Icon="{x:Static s:Icons.Folder}" Text="{l:Tr Change}" />
+                </Button>
               </Grid>
               <TextBlock Text="{l:Tr FileName}" Classes="muted" FontSize="12" Margin="0,6,0,0" />
               <TextBlock Text="{Binding FileNamePreview}" FontWeight="SemiBold" />
@@ -326,14 +328,14 @@
             </StackPanel>
           </ScrollViewer>
           <Grid Grid.Row="1" ColumnDefinitions="Auto,8,*,8,*" Margin="18,8,18,16">
-            <Button Focusable="False" MinHeight="56" Command="{Binding BackToFramingCommand}">
-              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.FolderBack}" /><TextBlock Text="{l:Tr Back}" /></StackPanel>
+            <Button Focusable="False" MinHeight="56" Padding="8,6" Command="{Binding BackToFramingCommand}">
+              <c:IconLabel Icon="{x:Static s:Icons.FolderBack}" Text="{l:Tr Back}" />
             </Button>
-            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding SaveSheetCommand}" IsEnabled="{Binding !IsBusy}">
-              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Save}" /><TextBlock Text="{l:Tr Save}" FontSize="15" /></StackPanel>
+            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Padding="6,6" Command="{Binding SaveSheetCommand}" IsEnabled="{Binding !IsBusy}">
+              <c:IconLabel Icon="{x:Static s:Icons.Save}" Text="{l:Tr Save}" TextElement.FontSize="15" />
             </Button>
-            <Button Grid.Column="4" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding PrintSheetCommand}" IsEnabled="{Binding !IsBusy}">
-              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{l:Tr Print}" FontSize="15" FontWeight="SemiBold" Foreground="White" /></StackPanel>
+            <Button Grid.Column="4" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Padding="6,6" Command="{Binding PrintSheetCommand}" IsEnabled="{Binding !IsBusy}">
+              <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr Print}" TextElement.FontSize="15" TextElement.FontWeight="SemiBold" />
             </Button>
           </Grid>
         </Grid>

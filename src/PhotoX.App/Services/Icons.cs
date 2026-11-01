@@ -72,6 +72,29 @@ public static class Icons
     /// <summary>A circular arrow: Reset.</summary>
     public static readonly Geometry Reset = Geometry.Parse("M5 12a7 7 0 1 0 2.1-5 M4.5 4.5v4h4");
 
+    /// <summary>A pencil: Edit this photo.</summary>
+    public static readonly Geometry Edit = Geometry.Parse("M4.5 19.5h4l10-10a2.1 2.1 0 0 0-3-3l-10 10v3z M14 8l3 3");
+
+    /// <summary>A bin: Discard originals, Clear cache (things that are deleted).</summary>
+    public static readonly Geometry Delete = Geometry.Parse("M4.5 7h15 M9.5 7V4.5h5V7 M6.5 7l.9 12a1.5 1.5 0 0 0 1.5 1.5h6.2a1.5 1.5 0 0 0 1.5-1.5l.9-12 M10 11v5.5 M14 11v5.5");
+
+    /// <summary>A clock turning back: Restore original.</summary>
+    public static readonly Geometry Restore = Geometry.Parse("M4.6 13a7.5 7.5 0 1 0 1.7-6.4 M4.5 3.8v4h4 M12 8.5v4l2.6 1.6");
+
+    /// <summary>A wand with sparkles: Auto Adjust.</summary>
+    public static readonly Geometry AutoAdjust = Geometry.Parse("M4.5 19.5 14 10 M12.5 8.5l3 3 M17.5 3.5v3 M16 5h3 M8.5 3.5v2 M7.5 4.5h2 M19.5 12v2 M18.5 13h2");
+
+    /// <summary>Two sheets: Duplicate image.</summary>
+    public static readonly Geometry Duplicate = Geometry.Parse("M9 8.5h9.5A1.5 1.5 0 0 1 20 10v8.5a1.5 1.5 0 0 1-1.5 1.5H9A1.5 1.5 0 0 1 7.5 18.5V10A1.5 1.5 0 0 1 9 8.5z M16 8.5V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16h2");
+
+    /// <summary>A frame with a plus or a minus: place a photo in a collage frame, remove it.</summary>
+    public static readonly Geometry FrameAdd = Geometry.Parse("M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z M12 8v8 M8 12h8");
+
+    public static readonly Geometry FrameRemove = Geometry.Parse("M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z M8 12h8");
+
+    /// <summary>A folder: choose the output folder.</summary>
+    public static readonly Geometry Folder = Geometry.Parse("M4.5 6h4.5l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-10A1.5 1.5 0 0 1 4.5 6z");
+
     public static readonly Geometry Undo = Geometry.Parse("M9 6.5 4.5 11 9 15.5 M5 11h9.5a4.5 4.5 0 0 1 0 9H12");
 
     public static readonly Geometry Redo = Geometry.Parse("M15 6.5 19.5 11 15 15.5 M19 11H9.5a4.5 4.5 0 0 0 0 9H12");

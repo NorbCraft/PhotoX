@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:PhotoX.App.Controls"
              xmlns:vm="using:PhotoX.App.ViewModels"
              xmlns:l="using:PhotoX.App.Localization"
              xmlns:f="using:PhotoX.Core.Formats"
@@ -79,8 +80,10 @@
                       <TextBlock Grid.Row="1" Text="{Binding Details}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
                       <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="12.5" TextWrapping="Wrap" Classes="muted" Classes.warn="{Binding IsWarn}" Classes.error="{Binding IsError}" />
                       <ProgressBar Grid.Row="3" IsIndeterminate="True" IsVisible="{Binding IsBusy}" Margin="0,5,0,1" Foreground="{DynamicResource AccentBrush}" />
-                      <Button Grid.Column="1" Grid.RowSpan="4" Focusable="False" Content="{l:Tr Cancel}" IsVisible="{Binding CanCancel}" VerticalAlignment="Center" Margin="8,0,0,0"
-                              Command="{Binding $parent[ItemsControl].((vm:PrintQueueViewModel)DataContext).CancelCommand}" CommandParameter="{Binding}" />
+                      <Button Grid.Column="1" Grid.RowSpan="4" Focusable="False" IsVisible="{Binding CanCancel}" VerticalAlignment="Center" Margin="8,0,0,0" Padding="8,4,12,4"
+                              Command="{Binding $parent[ItemsControl].((vm:PrintQueueViewModel)DataContext).CancelCommand}" CommandParameter="{Binding}">
+                        <c:IconLabel Icon="{x:Static s:Icons.Close}" Text="{l:Tr Cancel}" />
+                      </Button>
                     </Grid>
                   </Border>
                 </DataTemplate>
@@ -217,10 +220,10 @@
         </ScrollViewer>
         <StackPanel Grid.Row="1" Spacing="8" Margin="18,8,18,16">
           <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}">
-            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Close}" /><TextBlock Text="{Binding ClearText}" /></StackPanel>
+            <c:IconLabel Icon="{x:Static s:Icons.Close}" Text="{Binding ClearText}" />
           </Button>
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding PrintCommand}" IsEnabled="{Binding CanPrint}">
-            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{Binding PrintButtonText}" FontSize="17" FontWeight="SemiBold" Foreground="White" /></StackPanel>
+            <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{Binding PrintButtonText}" TextElement.FontSize="17" TextElement.FontWeight="SemiBold" />
           </Button>
         </StackPanel>
       </Grid>

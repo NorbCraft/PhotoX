@@ -4,6 +4,21 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-11-01
+
+### Changed
+- **More icons beside button labels**, the buttons where they were:
+  - **Photos gallery:** Print selected, Print all, Edit this photo, Use for ID photo, Discard originals (bin) and Restore original; icons in the thumbnails' right-click menu too.
+  - **Photos editor and ID Photos:** Auto Adjust (wand).
+  - **Collages:** Place in selected frame, Remove photo, Clear all, Change… for the output folder, and Fit photo and Remove photo in the photo menu.
+  - **ID Photos:** Change… for the output folder.
+  - **Printing:** Cancel on jobs in the queue.
+  - **Settings:** Clear cache.
+- Romanian: the Print buttons say **Imprimă**, a verb like Salvează and Închide beside them.
+
+### Fixed
+- Romanian labels beside icons no longer get cut off in narrow buttons (the editor's Imprimare/Salvează in 0.10.1, the gallery's paired buttons). A long label now wraps between words. The editor's side panel is at least 350 px wide, as is the ID panel, so their three buttons always fit.
+
 ## [0.10.1] - 2026-11-01
 
 ### Changed

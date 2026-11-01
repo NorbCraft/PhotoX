@@ -13,7 +13,8 @@ public sealed partial class EditorView : UserControl
         InitializeComponent();
         Canvas.CropCommitted += (_, rect) => (DataContext as EditorViewModel)?.CommitCrop(rect);
         Canvas.CropToggleRequested += (_, _) => (DataContext as EditorViewModel)?.ToggleCrop();
-        PanelWidth.Apply(Root.ColumnDefinitions[2], AppServices.Current?.Settings.EditorPanelWidth ?? 340);
+        // At least 350 px: Close, Print and Save keep their icon and whole label side by side (DEC-076).
+        PanelWidth.Apply(Root.ColumnDefinitions[2], AppServices.Current?.Settings.EditorPanelWidth ?? 350, min: 350);
         // Before / after shows the original only while the button is held, like Space (prompt_04 §7).
         BeforeButton.PropertyChanged += (_, e) =>
         {

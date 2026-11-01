@@ -186,6 +186,16 @@
     <Style Selector="Button:disabled Path.bi">
       <Setter Property="Opacity" Value="0.45" />
     </Style>
+    <!-- The icon of an IconLabel, sized to sit beside the label text -->
+    <Style Selector="Viewbox.bic">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- Icons in menus: the menu draws them at its own icon size -->
+    <Style Selector="MenuItem Path.bi">
+      <Setter Property="RenderTransform" Value="none" />
+    </Style>
     <Style Selector="StackPanel.bs">
       <Setter Property="Orientation" Value="Horizontal" />
       <Setter Property="Spacing" Value="8" />

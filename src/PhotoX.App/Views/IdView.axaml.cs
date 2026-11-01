@@ -16,7 +16,8 @@ public sealed partial class IdView : UserControl
         Canvas.Zoomed += f => Vm?.ZoomBy(f);
         Canvas.Rotated += d => Vm?.RotateBy(d);
         PanelWidth.Apply(Root.ColumnDefinitions[0], "id-left", 290, PanelWidth.MinLeft);
-        PanelWidth.Apply(Root.ColumnDefinitions[4], AppServices.Current?.Settings.IdPanelWidth ?? 360);
+        // At least 350 px: Back, Save and Print of the sheet keep their icon and whole label (DEC-076).
+        PanelWidth.Apply(Root.ColumnDefinitions[4], AppServices.Current?.Settings.IdPanelWidth ?? 360, min: 350);
         // Before / after shows the photo without adjustments only while the button is held, like Space.
         BeforeButton.PropertyChanged += (_, e) =>
         {

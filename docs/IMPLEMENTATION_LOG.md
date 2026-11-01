@@ -555,7 +555,7 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
 ### 2026-11-01: Version 0.10.2, icons on the remaining action buttons
 - **Instruction (owner, in the conversation):** add icons where still useful, for example the buttons of the Photos gallery; raise only the last version number.
 - **Work done (DEC-076):**
-  - **Five icons added:** edit, bin, restore, wand, duplicate, plus two frame icons and a folder.
+  - **Eight icons added:** edit, bin, restore, wand, duplicate, frame with plus, frame with minus, and folder.
   - **Where:**
     - the gallery actions and the thumbnails' right-click menu;
     - Auto Adjust;
@@ -574,3 +574,4 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - 148 core and 64 UI tests pass (Release).
   - A new UI test, `ButtonFitTests`, checks every icon-and-label button in all five workspaces, in English and Romanian, at the default and the narrowest panel widths. No label may be wider than its button, take more than two lines or break inside a word, and rows with a key chip must fit.
   - Screenshots of the narrow Romanian panels and the English defaults were inspected.
+- **CI result for 0.10.2:** runs 41333664436 (main) and 41333666544 (tag v0.10.2), both on commit 6d6f2ab, passed: `windows-latest` 146 core and 62 UI tests (including the button-fit test in both languages), `ubuntu-latest` 144 and 62; `windows-package` built the artifact `PhotoX-0.10.2-windows`. Not installed or run on a Windows PC.

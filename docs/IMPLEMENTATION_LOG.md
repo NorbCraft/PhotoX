@@ -471,6 +471,13 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - Windows display scaling.
 
   The Windows CI result is recorded below once the run has finished.
+- **CI result for 0.10.0:**
+  - **Runs:** 41325195821 (main) and 41325198240 (tag v0.10.0), both on commit f3ea362, **passed**.
+  - **windows-latest:** 146 core and 57 UI tests. That includes the 22 MP save-integrity tests (six variants, concurrently), the pixel-identity tests of the faster geometry, the full-size tone test and the virtual-printer job, so the black-image fix is also checked with the Windows Magick library.
+  - **ubuntu-latest:** 144 core and 57 UI tests.
+  - **Skipped on CI:** the owner's samples and examples, Auto Align samples, benchmarks and the mockup generator.
+  - **Package:** `windows-package` built the artifact `PhotoX-0.10.0-windows` (`PhotoX-0.10.0-win-Setup.exe` and the portable zip).
+  - **Not done:** installed or run on a Windows PC; nothing printed on the Citizen CY-02.
 - **CI result for 0.9.0:**
   - **Run 41066925692 (main, commit 02474cd) passed:**
     - `ubuntu-latest`: 132 core and 49 UI tests;

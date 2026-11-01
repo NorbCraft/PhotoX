@@ -4,6 +4,15 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-01
+
+### Changed
+- **Icons beside button labels** (the owner's choice B of the [button mockups](mockups/buttons/README.md)), with the buttons where they were:
+  - **Photos editor:** Close, Print, Save, Save & Next and Reset; Undo and Redo as icon buttons.
+  - **ID Photos:** Clear, Continue, and Back, Save and Print on the sheet step; the same Undo, Redo and Reset.
+  - **Collages:** Save and Print.
+  - **Printing:** Clear and Print.
+
 ## [0.10.0] - 2026-11-01
 
 Fixes and refinements from [prompt_07](prompts/prompt_07.md). Verified with automated tests on Linux (including the owner's example photos, on copies); Windows CI runs on push. **Not yet printed on the Citizen CY-02 and not yet tried on the studio PC.**

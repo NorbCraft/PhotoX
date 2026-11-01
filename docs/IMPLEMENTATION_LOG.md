@@ -539,3 +539,14 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
 - **Plan review (§8):** every Must requirement is Implemented. What remains needs the owner: Citizen prints and calibration (OQ-031, FR-071), studio use on Windows and scaling, the Romanian review, samples for background whitening (FR-065), the later two-up 15×20 printing, and the choice among the button mockups. Nothing else was added.
 
   The Windows CI result is recorded below once the run has finished.
+
+### 2026-11-01: Version 0.10.1, icons beside button labels (owner's choice B)
+- **Instruction (owner, in the conversation after 0.10.0):** implement proposal B (icon and text) of the button mockups, without moving any button, only where useful as in the examples, and raise only the last version number.
+- **Work done (DEC-075):**
+  - Six icons (Close, Save, Save & Next, Reset, Undo, Redo) were added on the 24-unit grid, with one style for icons in labels (text colour, white on blue, dimmed when disabled). The printer and back icons are the existing ones.
+  - **Photos editor:** Close, Print, Save, Save & Next and Reset gained icons; Undo and Redo became icon buttons.
+  - **ID Photos:** Clear, Continue, and the sheet step's Back, Save and Print gained icons.
+  - **Collages:** Save and Print gained icons.
+  - **Printing:** Clear and Print gained icons.
+  - No button moved. The mockup README records the choice.
+- **Verification (Linux):** 148 core and 60 UI tests pass. A new UI test checks the editor's action buttons for an icon beside their label. Headless screenshots of the editor, ID framing and sheet steps, Printing and Collages in light and dark mode were inspected.

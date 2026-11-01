@@ -1,4 +1,6 @@
-# Button mockups (prompt_07 §6, for review, not implemented)
+# Button mockups (prompt_07 §6)
+
+> **Chosen: B · Icon and text**, implemented in 0.10.1 without moving any button (DEC-075). The images below are kept as the record of the proposals.
 
 Proposals for the action buttons of the Photos editor, and for the same buttons in ID Photos and Printing. They are
 drawn with PhotoX's own styles (light mode) by [ButtonMockups.cs](../../../tests/PhotoX.App.Tests/ButtonMockups.cs).

@@ -19,6 +19,7 @@ public sealed class OrderStore(string folder)
             if (s is null) return new OrderSidecar();
             // Re-create the dictionary with case-insensitive keys (deserialisation uses the default comparer).
             s.Photos = new Dictionary<string, PhotoRecord>(s.Photos, StringComparer.OrdinalIgnoreCase);
+            s.Deleted = new Dictionary<string, DeletedRecord>(s.Deleted ?? [], StringComparer.OrdinalIgnoreCase);
             return s;
         }
         catch (System.Text.Json.JsonException)
@@ -30,6 +31,7 @@ public sealed class OrderStore(string folder)
     public void Save(OrderSidecar sidecar)
     {
         Directory.CreateDirectory(OriginalDir);
+        sidecar.Version = OrderSidecar.CurrentVersion;
         JsonFile.WriteAtomic(SidecarPath, sidecar);
     }
 
@@ -75,20 +77,32 @@ public sealed class OrderStore(string folder)
 
     /// <summary>
     /// Backup name for a first save: the file's own name, unless a file of that name (case-insensitive) already
-    /// exists in <c>Original/</c>; then "name (2).ext", "name (3).ext" … (FR-021). Never an existing name.
+    /// exists in <c>Original/</c> or a record refers to it; then "name (2).ext", "name (3).ext" … (FR-021). Never an
+    /// existing name.
     /// </summary>
-    public string ChooseBackupName(string fileName)
+    public string ChooseBackupName(string fileName, IEnumerable<string>? recorded = null)
     {
-        var existing = Directory.Exists(OriginalDir)
-            ? new HashSet<string>(Directory.EnumerateFiles(OriginalDir).Select(Path.GetFileName)!, StringComparer.OrdinalIgnoreCase)
+        var taken = NamesIn(OriginalDir);
+        taken.UnionWith(recorded ?? []);
+        return FreeName(fileName, taken, n => $" ({n})");
+    }
+
+    /// <summary>File names in <paramref name="dir"/>, case-insensitive (empty when it does not exist).</summary>
+    internal static HashSet<string> NamesIn(string dir) =>
+        Directory.Exists(dir)
+            ? new HashSet<string>(Directory.EnumerateFileSystemEntries(dir).Select(Path.GetFileName)!, StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (!existing.Contains(fileName)) return fileName;
+
+    /// <summary>
+    /// <paramref name="fileName"/> if it is not taken, otherwise the stem with the first free <paramref name="suffix"/>
+    /// (numbered from 2) and the extension.
+    /// </summary>
+    internal static string FreeName(string fileName, IReadOnlySet<string> taken, Func<int, string> suffix, string? first = null)
+    {
         var stem = Path.GetFileNameWithoutExtension(fileName);
         var ext = Path.GetExtension(fileName);
-        for (var n = 2; ; n++)
-        {
-            var candidate = $"{stem} ({n}){ext}";
-            if (!existing.Contains(candidate)) return candidate;
-        }
+        var candidate = first is null ? fileName : stem + first + ext;
+        for (var n = 2; taken.Contains(candidate); n++) candidate = stem + suffix(n) + ext;
+        return candidate;
     }
 }

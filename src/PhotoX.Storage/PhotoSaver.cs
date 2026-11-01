@@ -90,7 +90,7 @@ public sealed class PhotoSaver
             if (backupName is null)
             {
                 Directory.CreateDirectory(store.OriginalDir);
-                backupName = store.ChooseBackupName(name);
+                backupName = store.ChooseBackupName(name, sidecar.RecordedOriginalNames());
                 var backupTemp = Path.Combine(store.OriginalDir, "." + backupName + SaveNames.TempSuffix);
                 File.Copy(photoPath, backupTemp, overwrite: true);
                 File.SetLastWriteTimeUtc(backupTemp, now.Value.LastWriteUtc);

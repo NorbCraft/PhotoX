@@ -25,6 +25,9 @@ public sealed record KeptBackup(string Photo, string Backup, KeepReason Reason);
 public sealed record RemoveBackupsResult(IReadOnlyList<string> Finalized, IReadOnlyList<KeptBackup> Kept, bool OriginalFolderRemoved)
 {
     public bool Complete => Kept.Count == 0;
+
+    /// <summary>Deleted photos removed for good by <see cref="OrderBackups.DiscardFolder"/> (their names in the folder).</summary>
+    public IReadOnlyList<string> RemovedDeleted { get; init; } = [];
 }
 
 public enum RestoreError
@@ -57,6 +60,50 @@ public static class OrderBackups
     {
         var store = new OrderStore(folder);
         var sidecar = store.Load();
+        var (finalized, kept) = RemoveBackups(store, sidecar, photoNames);
+        SaveOrDeleteSidecar(store, sidecar);
+        return new RemoveBackupsResult(finalized, kept, RemoveOriginalFolderIfEmpty(store));
+    }
+
+    /// <summary>
+    /// Discard Originals for the whole order (prompt_08 §5): every photo recorded in the sidecar is finalized as by
+    /// <see cref="RemoveBackups(string, IEnumerable{string})"/>, and every deleted photo is removed for good together with
+    /// its kept original. Still one recorded file at a time and only when verified; files the sidecar does not name
+    /// (the customer's own, other folders) are never touched and nothing is deleted recursively.
+    /// </summary>
+    public static RemoveBackupsResult DiscardFolder(string folder)
+    {
+        var store = new OrderStore(folder);
+        var sidecar = store.Load();
+        var (finalized, kept) = RemoveBackups(store, sidecar, sidecar.Photos.Keys.ToList());
+        var removedDeleted = new List<string>();
+        foreach (var (stored, record) in sidecar.Deleted.ToList())
+        {
+            var photo = OrderStore.IsPlainFileName(stored) ? Path.Combine(store.OriginalDir, stored) : null;
+            var backup = record.Record?.Backup is { } b ? (OrderStore.IsPlainFileName(b) ? Path.Combine(store.OriginalDir, b) : null) : string.Empty;
+            // Both files must be PhotoX's before either goes (an empty backup path: the photo had no kept original).
+            KeepReason? reason = photo is null || backup is null ? KeepReason.NotOwnBackup
+                : File.Exists(photo) && !PhotoTrash.IsOwn(photo, record) ? KeepReason.NotOwnBackup
+                : backup.Length > 0 && File.Exists(backup) && !IsOwnBackup(backup, record.Record!) ? KeepReason.NotOwnBackup
+                : null;
+            if (reason is null && TryDelete(photo!) && (backup!.Length == 0 || TryDelete(backup)))
+            {
+                sidecar.Deleted.Remove(stored);
+                removedDeleted.Add(record.Name);
+            }
+            else
+            {
+                kept.Add(new KeptBackup(record.Name, photo ?? stored, reason ?? KeepReason.DeleteFailed));
+            }
+        }
+
+        SaveOrDeleteSidecar(store, sidecar);
+        return new RemoveBackupsResult(finalized, kept, RemoveOriginalFolderIfEmpty(store)) { RemovedDeleted = removedDeleted };
+    }
+
+    private static (List<string> Finalized, List<KeptBackup> Kept) RemoveBackups(OrderStore store, OrderSidecar sidecar, IEnumerable<string> photoNames)
+    {
+        var folder = store.Folder;
         var finalized = new List<string>();
         var kept = new List<KeptBackup>();
         foreach (var name in photoNames.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -97,8 +144,7 @@ public static class OrderBackups
             }
         }
 
-        SaveOrDeleteSidecar(store, sidecar);
-        return new RemoveBackupsResult(finalized, kept, RemoveOriginalFolderIfEmpty(store));
+        return (finalized, kept);
     }
 
     /// <summary>
@@ -192,7 +238,8 @@ public static class OrderBackups
     {
         try
         {
-            if (sidecar.Photos.Count > 0) store.Save(sidecar);
+            // Deleted photos keep the sidecar too: it is how they are found and restored (prompt_08 §5).
+            if (!sidecar.IsEmpty) store.Save(sidecar);
             else if (File.Exists(store.SidecarPath)) TryDelete(store.SidecarPath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -201,7 +248,7 @@ public static class OrderBackups
     }
 
     /// <summary>Removes <c>Original/</c> only when it is completely empty (never recursively).</summary>
-    private static bool RemoveOriginalFolderIfEmpty(OrderStore store)
+    internal static bool RemoveOriginalFolderIfEmpty(OrderStore store)
     {
         try
         {

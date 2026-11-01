@@ -49,6 +49,17 @@ public sealed class Settings
 
     public bool BrowseDetailsCollapsed { get; set; }
 
+    /// <summary>Workspaces whose folder tree is hidden (prompt_08 §4): "photos", "id", "collage".</summary>
+    public List<string> TreeHidden { get; set; } = [];
+
+    /// <summary>The folder each workspace had open, by workspace (prompt_08 §4); Photos uses <see cref="LastFolder"/>.</summary>
+    public Dictionary<string, string> WorkspaceFolders { get; set; } = [];
+
+    /// <summary>Collages: the thumbnail panel and the settings panel are folded away (prompt_08 §3).</summary>
+    public bool CollageThumbsCollapsed { get; set; }
+
+    public bool CollageSettingsCollapsed { get; set; }
+
     public bool RecentCollapsed { get; set; }
 
     /// <summary>Width of the adjustments panel in the Photos editor and the ID Photo Creator (resizable).</summary>

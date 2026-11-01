@@ -11,6 +11,7 @@ public sealed class AppPaths
             DataDir = Path.Combine(rootOverride, "data");
             CacheDir = Path.Combine(rootOverride, "cache");
             UserDataDir = Path.Combine(rootOverride, "userdata");
+            LogDir = Path.Combine(DataDir, "logs");
         }
         else if (OperatingSystem.IsWindows())
         {
@@ -19,6 +20,8 @@ public sealed class AppPaths
             CacheDir = Path.Combine(DataDir, "cache");
             // The installer owns %LOCALAPPDATA%\PhotoX and removes it on uninstall; print history must survive that.
             UserDataDir = ConfigDir;
+            // So must the logs: an update through the installer replaces %LOCALAPPDATA%\PhotoX (prompt_08 §6).
+            LogDir = Path.Combine(UserDataDir, "logs");
         }
         else
         {
@@ -27,6 +30,7 @@ public sealed class AppPaths
             DataDir = Path.Combine(Env("XDG_STATE_HOME") ?? Path.Combine(home, ".local", "state"), "PhotoX");
             CacheDir = Path.Combine(Env("XDG_CACHE_HOME") ?? Path.Combine(home, ".cache"), "PhotoX");
             UserDataDir = Path.Combine(Env("XDG_DATA_HOME") ?? Path.Combine(home, ".local", "share"), "PhotoX");
+            LogDir = Path.Combine(DataDir, "logs");
         }
     }
 
@@ -44,7 +48,8 @@ public sealed class AppPaths
 
     public string SettingsFile => Path.Combine(ConfigDir, "settings.json");
 
-    public string LogDir => Path.Combine(DataDir, "logs");
+    /// <summary>Daily log files (14 kept). On Windows beside the settings, outside the installation folder.</summary>
+    public string LogDir { get; }
 
     public string ThumbnailDir => Path.Combine(CacheDir, "thumbs");
 

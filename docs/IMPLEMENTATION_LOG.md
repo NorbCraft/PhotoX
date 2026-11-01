@@ -550,3 +550,4 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Printing:** Clear and Print gained icons.
   - No button moved. The mockup README records the choice.
 - **Verification (Linux):** 148 core and 60 UI tests pass. A new UI test checks the editor's action buttons for an icon beside their label. Headless screenshots of the editor, ID framing and sheet steps, Printing and Collages in light and dark mode were inspected.
+- **CI result for 0.10.1:** runs 41328523416 (main) and 41328525438 (tag v0.10.1), both on commit 6eac4a8, passed: `windows-latest` 146 core and 58 UI tests, `ubuntu-latest` 144 and 58; `windows-package` built the artifact `PhotoX-0.10.1-windows`. Not installed or run on a Windows PC.

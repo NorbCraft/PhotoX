@@ -70,6 +70,29 @@ public class SaveIntegrityTests(ITestOutputHelper output)
         Assert.True(failures.Count == 0, string.Join("\n", failures));
     }
 
+    /// <summary>prompt_07 §1.4: the faster geometry gives the pixels of turning or straightening the whole photo, then cropping.</summary>
+    [Theory]
+    [InlineData(0, 0.0)]
+    [InlineData(1, 0.0)]
+    [InlineData(2, 0.0)]
+    [InlineData(3, 0.0)]
+    [InlineData(0, 3.5)]
+    [InlineData(1, -2.0)]
+    [InlineData(3, 7.0)]
+    public void Cropping_before_turning_and_straightening_into_the_crop_give_the_same_pixels(int turns, double straighten)
+    {
+        using var source = Fixtures.CoordinateImage(901, 640);
+        var recipe = new EditRecipe { QuarterTurns = turns, Straighten = straighten, Crop = new NormalizedRect(0.13, 0.21, 0.55, 0.47) };
+        using var expected = (MagickImage)source.Clone();
+        RecipeRenderer.ApplyRotation(expected, recipe);
+        var c = CropMath.ToPixelRect(recipe.Crop, (int)expected.Width, (int)expected.Height);
+        expected.Crop(new MagickGeometry(c.X, c.Y, (uint)c.Width, (uint)c.Height));
+        expected.ResetPage();
+        using var actual = RecipeRenderer.RenderGeometry(source, recipe);
+        Assert.Equal((expected.Width, expected.Height), (actual.Width, actual.Height));
+        Assert.Equal(0, actual.Compare(expected, ErrorMetric.Absolute));
+    }
+
     [Fact]
     public void The_tone_pass_matches_the_reference_on_a_full_size_photo()
     {

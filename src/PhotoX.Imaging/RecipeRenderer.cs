@@ -26,22 +26,13 @@ public static class RecipeRenderer
     /// <summary>Full render for saving: rotation, the exact selected crop, tone and composition (FR-004, FR-049, FR-073).</summary>
     public static MagickImage RenderFinal(MagickImage source, EditRecipe recipe)
     {
-        var image = (MagickImage)source.Clone();
+        var image = RenderGeometry(source, recipe);
         try
         {
-            ApplyRotation(image, recipe);
-            var crop = recipe.Composition == Composition.Fill ? recipe.Crop : NormalizedRect.Full;
-            var c = CropMath.ToPixelRect(crop, (int)image.Width, (int)image.Height);
-            if (c.X != 0 || c.Y != 0 || c.Width != (int)image.Width || c.Height != (int)image.Height)
-            {
-                image.Crop(new MagickGeometry(c.X, c.Y, (uint)c.Width, (uint)c.Height));
-                image.ResetPage();
-            }
-
             ToneProcessor.Apply(image, recipe);
 
-            var (canvasW, canvasH, _) = RenderPlan.CanvasFor(c.Width, c.Height, recipe);
-            if (canvasW > c.Width || canvasH > c.Height)
+            var (canvasW, canvasH, _) = RenderPlan.CanvasFor((int)image.Width, (int)image.Height, recipe);
+            if (canvasW > image.Width || canvasH > image.Height)
             {
                 image.BackgroundColor = MagickColors.White;
                 image.Extent((uint)canvasW, (uint)canvasH, Gravity.Center, MagickColors.White);
@@ -54,6 +45,130 @@ public static class RecipeRenderer
             image.Dispose();
             throw;
         }
+    }
+
+    /// <summary>
+    /// The kept part of the photo, turned and straightened (prompt_07 §1.4): the same pixels as
+    /// <see cref="ApplyRotation"/> followed by the crop, but only the kept pixels are computed. Without straightening
+    /// the crop is taken from the photo first and only that part is turned (both steps copy pixels exactly). With
+    /// straightening the rotation renders straight into the crop, in parallel bands where the Magick library itself
+    /// runs on one thread.
+    /// </summary>
+    public static MagickImage RenderGeometry(MagickImage source, EditRecipe recipe)
+    {
+        var turns = ((recipe.QuarterTurns % 4) + 4) % 4;
+        var crop = recipe.Composition == Composition.Fill ? recipe.Crop : NormalizedRect.Full;
+        var (w, h) = ((int)source.Width, (int)source.Height);
+        var (tw, th) = turns % 2 == 1 ? (h, w) : (w, h);
+        if (Math.Abs(recipe.Straighten) <= 1e-6)
+        {
+            var c = CropMath.ToPixelRect(crop, tw, th);
+            var s = UnturnRect(c, w, h, turns);
+            var image = (MagickImage)source.Clone();
+            try
+            {
+                if (s.X != 0 || s.Y != 0 || s.Width != w || s.Height != h)
+                {
+                    image.Crop(new MagickGeometry(s.X, s.Y, (uint)s.Width, (uint)s.Height));
+                    image.ResetPage();
+                }
+
+                if (turns != 0) image.Rotate(90 * turns);
+                return image;
+            }
+            catch
+            {
+                image.Dispose();
+                throw;
+            }
+        }
+
+        MagickImage? turned = null;
+        try
+        {
+            if (turns != 0)
+            {
+                turned = (MagickImage)source.Clone();
+                turned.Rotate(90 * turns);
+            }
+
+            var from = turned ?? source;
+            var (rw, rh) = CropMath.RotatedSize(from.Width, from.Height, recipe.Straighten);
+            var vw = (int)Math.Round(rw);
+            var vh = (int)Math.Round(rh);
+            var ox = (int)Math.Round((from.Width - vw) / 2.0);
+            var oy = (int)Math.Round((from.Height - vh) / 2.0);
+            var c = CropMath.ToPixelRect(crop, vw, vh);
+            return Straighten(from, recipe.Straighten, ox + c.X, oy + c.Y, c.Width, c.Height);
+        }
+        finally
+        {
+            turned?.Dispose();
+        }
+    }
+
+    /// <summary>A crop of the turned photo, as the matching rectangle of the photo before turning.</summary>
+    internal static PixelRect UnturnRect(PixelRect c, int width, int height, int turns) => turns switch
+    {
+        1 => new PixelRect(c.Y, height - c.X - c.Width, c.Height, c.Width),
+        2 => new PixelRect(width - c.X - c.Width, height - c.Y - c.Height, c.Width, c.Height),
+        3 => new PixelRect(width - c.Y - c.Height, c.X, c.Height, c.Width),
+        _ => c,
+    };
+
+    /// <summary>
+    /// Rotates <paramref name="image"/> by <paramref name="degrees"/> about its centre and renders only the region
+    /// (<paramref name="x"/>, <paramref name="y"/>, <paramref name="width"/> × <paramref name="height"/>) of the rotated
+    /// frame, with the same resampling as <see cref="ApplyRotation"/>. The bundled Magick library runs a distortion on
+    /// one thread unless it was built with OpenMP, so the region is then split into bands rendered in parallel from
+    /// clones that only read the shared pixels.
+    /// </summary>
+    private static MagickImage Straighten(MagickImage image, double degrees, int x, int y, int width, int height)
+    {
+        var bands = MagickNET.Features.Contains("OpenMP", StringComparison.OrdinalIgnoreCase) ? 1 : Math.Clamp(Environment.ProcessorCount, 1, 8);
+        bands = Math.Max(1, Math.Min(bands, height / 64));
+        var rows = (height + bands - 1) / bands;
+        var parts = new MagickImage?[bands];
+        var clones = Enumerable.Range(0, bands).Select(_ => (MagickImage)image.Clone()).ToArray();
+        try
+        {
+            Parallel.For(0, bands, i =>
+            {
+                var top = i * rows;
+                var h = Math.Min(rows, height - top);
+                if (h <= 0) return;
+                var part = clones[i];
+                part.BackgroundColor = MagickColors.White;
+                part.VirtualPixelMethod = VirtualPixelMethod.Background;
+                part.SetArtifact("distort:viewport", $"{width}x{h}{x:+0;-0;+0}{y + top:+0;-0;+0}");
+                part.Distort(DistortMethod.ScaleRotateTranslate, degrees);
+                part.RemoveArtifact("distort:viewport");
+                part.ResetPage();
+                parts[i] = part;
+            });
+
+            if (bands == 1) return Take(ref clones[0]);
+            using var collection = new MagickImageCollection();
+            for (var i = 0; i < bands; i++)
+            {
+                if (parts[i] is not null) collection.Add(Take(ref clones[i]));
+            }
+
+            var result = (MagickImage)collection.AppendVertically();
+            result.ResetPage();
+            return result;
+        }
+        finally
+        {
+            foreach (var c in clones) c?.Dispose();
+        }
+    }
+
+    private static MagickImage Take(ref MagickImage image)
+    {
+        var taken = image;
+        image = null!;
+        return taken;
     }
 
     public static void ApplyRotation(MagickImage image, EditRecipe recipe)

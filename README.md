@@ -2,9 +2,9 @@
 
 PhotoX is a lightweight, offline photo-preparation desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software with one focused tool:
 
-- **Photos:** open an order folder, select photos, edit if needed (crop to 10×15 / 15×20 / 9×13 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), then **Print** or **Discard originals**. Originals are kept in an `Original` subfolder until Discard originals, and Restore original can bring them back.
-- **ID Photos:** choose the format, click a portrait in the built-in explorer, frame it (face guides, Auto Align, 90° rotation), adjust it, then **Save** (JPG) or **Print**.
-- **Collages:** choose a 10×15 or 15×20 sheet and a template, drag photos into the frames, adjust the layout, then **Save** (JPG) or **Print**.
+- **Photos:** open an order folder (folders and photos side by side, like a file explorer), select photos, edit if needed (crop to 10×15 / 15×20 / 9×13 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), then **Print** or **Discard originals**. Originals are kept in an `Original` subfolder until Discard originals, and Restore original can bring them back. Deleted photos wait in `Original` too and can be restored from the Deleted filter.
+- **ID Photos:** choose the format, click a portrait among the folder's thumbnails (step 1), frame it (face guides, Auto Align, 90° rotation), adjust it, then **Save** (JPG) or **Print**.
+- **Collages:** choose a 10×15 or 15×20 sheet and a template, drag photos from the thumbnail panel into the frames, adjust the layout, then **Save** (JPG) or **Print**.
 - **Printing:** a workspace that prints directly through the installed Windows printer driver (Citizen CY-02), with the queue, the print history and statistics, and a print counter on every thumbnail.
 
 Light and dark mode are available in Settings.
@@ -13,13 +13,13 @@ The UI is in Romanian and English. All processing is local and no customer photo
 
 ## Current status
 
-> **Version 0.10.0**: fixes the **partly black saved photos**, saves turned or straightened photos faster, adds 9 × 13, Close / Print / Save in the editor, a simpler ID Photos with Clear, and printing refinements (paper chosen by size, Crop or Whole, calibration that returns to the prepared print, Escape back) (prompt_07). Earlier: light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.11.0**: one file explorer in all workspaces (folder cards, Up, a button to hide the tree), ID Photos with a Select photo step, foldable collage panels, **safe photo deletion** with a Deleted filter and Restore, Discard originals for the whole folder, **Check for updates** from GitHub Releases, and a new About (prompt_08). Earlier: the fix for partly black saved photos, faster saving, Close / Print / Save in the editor and printing refinements (prompt_07); light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
 | Plan | revision P-2 (simplified; all open questions decided) |
 | UI mockups | concept screens, EN and RO, in `docs/mockups/` |
-| GitHub repository | <https://github.com/NorbCraft/PhotoX> (private); CI on Linux and Windows |
+| GitHub repository | <https://github.com/NorbCraft/PhotoX> (public since prompt_08); CI on Linux and Windows; approved versions on [Releases](https://github.com/NorbCraft/PhotoX/releases) |
 
 ## Documentation
 
@@ -60,25 +60,25 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-python3 packaging/windows/make_splash.py 0.10.0 releases/splash.png                                     # installer splash with the version
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.10.0 --packDir publish/win-x64 \
+python3 packaging/windows/make_splash.py 0.11.0 releases/splash.png                                     # installer splash with the version
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.11.0 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX \
   --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --outputDir releases/win            # Windows installer
 python3 assets/logo/build_icons.py     # re-render the icon PNGs and ICO after editing the SVG masters
 ```
 
-**Installing on Windows:** every push builds the artifact `PhotoX-<version>-windows` in GitHub Actions. It contains `PhotoX-<version>-win-Setup.exe` and `PhotoX-<version>-win-Portable.zip` (no install). Only the Setup file is needed to install; the other files are for a future update feed. The installer is not code-signed, so Windows SmartScreen may ask to confirm (*More info → Run anyway*).
+**Installing on Windows:** approved versions are on the [Releases page](https://github.com/NorbCraft/PhotoX/releases): download `PhotoX-<version>-win-Setup.exe` and run it. Every push also builds the artifact `PhotoX-<version>-windows` in GitHub Actions (for testing), with the same Setup file, its `.sha256` checksum and `PhotoX-<version>-win-Portable.zip` (no install). The installer is not code-signed, so Windows SmartScreen may ask to confirm (*More info → Run anyway*).
 
 - **Install:** run the Setup file. It shows PhotoX and its version while it installs for the current user (no administrator rights) into `%LOCALAPPDATA%\PhotoX`, adds PhotoX to the Start menu and the desktop, and starts it.
 - **Find and manage it:** *Settings → Apps → Installed apps → PhotoX* (version, uninstall). PhotoX's Settings → About also shows the program folder.
-- **Update:** run the Setup file of the newer version; it replaces the installed version in place. Settings, print counters and the print history (in `%APPDATA%\PhotoX`) stay.
+- **Update:** *Settings → Updates → Check for updates* (from 0.11.0). When a newer published version exists, *Download and install* downloads its Setup file, checks it against the published checksum, closes PhotoX and starts it; the setup asks to update the older version. Running the newer Setup file by hand does the same. Settings, print counters, the print history and the logs (in `%APPDATA%\PhotoX`) stay.
 - **Uninstall:** from Installed apps. The program folder is removed; the settings folder `%APPDATA%\PhotoX` stays unless deleted by hand.
 
 **Linux menu entry:** publish a build (`dotnet publish src/PhotoX.App -c Release -r linux-x64 --self-contained -o ~/PhotoX`), then run `packaging/linux/install-desktop-entry.sh ~/PhotoX` to add PhotoX with its icon to the application menu.
 
 ## Repository hosting
 
-The repository is hosted on GitHub at `NorbCraft/PhotoX`. GitHub Actions builds and tests every push on `ubuntu-latest` and `windows-latest` and produces the Windows package ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
+The repository is hosted on GitHub at `NorbCraft/PhotoX`. GitHub Actions builds and tests every push on `ubuntu-latest` and `windows-latest` and produces the Windows package ([.github/workflows/ci.yml](.github/workflows/ci.yml)). A version tag `vX.Y.Z` also prepares a **draft** release with the installer and its checksum; publishing the draft approves the version, and only then does Check for updates offer it ([DEVELOPMENT.md §2](docs/DEVELOPMENT.md#2-versioning)).
 
 ## Licence
 

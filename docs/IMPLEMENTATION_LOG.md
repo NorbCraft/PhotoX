@@ -575,3 +575,64 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - A new UI test, `ButtonFitTests`, checks every icon-and-label button in all five workspaces, in English and Romanian, at the default and the narrowest panel widths. No label may be wider than its button, take more than two lines or break inside a word, and rows with a key chip must fit.
   - Screenshots of the narrow Romanian panels and the English defaults were inspected.
 - **CI result for 0.10.2:** runs 41333664436 (main) and 41333666544 (tag v0.10.2), both on commit 6d6f2ab, passed: `windows-latest` 146 core and 62 UI tests (including the button-fit test in both languages), `ubuntu-latest` 144 and 62; `windows-package` built the artifact `PhotoX-0.10.2-windows`. Not installed or run on a Windows PC.
+
+### 2026-11-01: Version 0.11.0, prompt_08 (file explorer, safe deletion, Discard Originals for the folder, updates)
+- **Prompt:** [docs/prompts/prompt_08.md](prompts/prompt_08.md), archived unchanged. In the same conversation the owner also asked for a better **About** section (logo, name, the build's version, the tagline "Photo preparation, made simple." with a given description, a *Third-party licences* link, EN and RO); it is included here (DEC-082). The work was paused once at the owner's request and resumed from local commits.
+- **Shared explorer (§§1–4, DEC-077):**
+  - **Folder cards:** every gallery shows the open folder's subfolders as folder cards (one `FolderCard` view) before the photos. Double-click or Enter opens a folder and selects it in the tree; Up (`LocationBar`) and Backspace open the parent.
+  - **Photos filters:** All, To do and Done keep the folders; the photo counts are unchanged.
+  - **Tree button:** one button with a side-bar icon, left of the workspaces, shows or hides the tree of the workspace shown. The choice is remembered per workspace; a hidden tree's column collapses and gets its remembered width back.
+  - **Folders:** each workspace keeps its own folder, also after a restart.
+- **ID Photos (§2):**
+  - **Three steps:** *1 Select photo* (the folder's thumbnails beside the tree, Photos-sized cards, no sidebar), *2 Framing & adjustment*, *3 Print*.
+  - **Picking:** a click picks a photo and opens step 2; picking the loaded photo again keeps its framing.
+  - **Layout:** the steps row now spans the photo and the sidebar, because in Romanian at 1366 px the three steps squeezed *Golește* (caught by `ButtonFitTests`).
+  - **Unchanged:** framing, Auto Align, formats, the editing sidebar and the sheet.
+- **Collages (§3):**
+  - **Layout:** tree | thumbnails | collage | settings.
+  - **Folding:** the thumbnail panel (resizable, at least 200 px so *Place in selected frame* stays on two lines) and the settings fold to a 42 px strip with a chevron and the panel's name. Remembered.
+  - **Drag and drop:** unchanged.
+- **Safe deletion (§5, DEC-078):**
+  - **Delete:** from the right-click menu or the Delete key, after a confirmation with the count (*Delete 2 photos?*); unsaved edits of those photos are discarded, and the confirmation says so.
+  - **Storage:** `PhotoTrash` records each deletion in the sidecar (version 2, *deleted* section) **before** moving the photo into `Original/` under a free `name (deleted).ext`.
+  - **Deleted filter:** lists the deleted photos faded, with the deletion time. **Restore** moves them back first and records afterwards, under the old name or a free `name (2).ext` (reported); the edit state and kept original come back.
+  - **Elsewhere:** deleted photos are not in the editor's sequence, printing, ID Photos or Collages.
+  - **Other photos:** the gallery updates in place, so they keep their unsaved edits.
+- **Discard Originals for the folder (§5, DEC-079):**
+  - **Scope:** the whole open folder, whatever is selected.
+  - **Warning:** names the folder, counts the originals and states that the photos marked Deleted go for good unless restored first. The button then reads *Discard originals and deleted photos*, and Cancel is highlighted.
+  - **Deletion:** `OrderBackups.DiscardFolder` checks each recorded file (size, write time, and for originals the edited photo) before deleting it, one at a time; nothing unrecorded, no directory, no recursion. AGENTS.md's rule was reworded to match.
+- **Unsaved edits on folder change (DEC-081):** opening another folder with unsaved edits silently dropped them before; it now asks (save and open, discard, cancel).
+- **Updates (§6, DEC-080):**
+  - **CI:** still builds the installer for every push. A `vX.Y.Z` tag that matches the version adds a **draft** release with the installer, its `.sha256` and the portable zip, with the CHANGELOG section as notes. The owner approves by publishing it.
+  - **Check for updates (Settings):** reads the latest published release (public API, no token) and compares versions.
+  - **Install (Windows):** after a confirmation, it downloads only `PhotoX-X.Y.Z-win-Setup.exe` from this repository's release downloads to `%TEMP%\PhotoX-update` with progress and Cancel. It keeps the file only if size, published SHA-256 and GitHub's digest (when given) match, refuses while anything is saving, and asks about unsent prints and unsaved edits as on closing. Then it starts the installer through the shell and closes.
+  - **Linux:** opens the release page instead.
+  - **The installer's behaviour, checked in its source:** the Velopack setup detects the older installation and offers *Update*; it renames the old folder, installs, then removes the old folder (restoring it if installation fails). Settings and print history were already in `%APPDATA%\PhotoX`; the logs moved there too, so an update no longer removes them. The thumbnail cache is rebuilt.
+- **About (DEC-082):**
+  - **Card:** the logo, *PhotoX* styled as in the top bar, *Version X.Y.Z* from the running assembly, the tagline and the description (EN and RO).
+  - ***Third-party licences*:** opens a page inside Settings listing each component with its version, licence and project page (opened in the browser), read from THIRD-PARTY-NOTICES.md, now embedded in the app. The file is not installed, and Windows has no default viewer for Markdown.
+  - **Settings layout:** the dialog scrolls when the window is short.
+- **Verification (actually run, Linux):**
+  - **Totals:** 177 core and 77 UI tests pass (Release); 2 and 3 opt-in or Windows-only tests are skipped.
+  - **New tests:**
+    - `PhotoTrashTests` (12 storage tests on generated images in temp folders);
+    - `UpdateClientTests` (17, against a fake GitHub);
+    - `Prompt08Tests` (13 UI tests, with screenshots);
+    - `ButtonFitTests` now also checks the narrowest thumbnail panel.
+  - **Updated tests:** two Discard Originals tests use the folder-wide action.
+  - **Real GitHub API:** Check for updates answered *no published release* (404), as expected before the first published release.
+  - **Screens inspected (headless, 1366 × 768):**
+    - Photos with folder cards (light and dark) and the Deleted filter;
+    - ID steps 1–3 in English and Romanian;
+    - Collages unfolded and folded, with the tree hidden and shown;
+    - the delete and Discard confirmations;
+    - Settings with an available update, About and the licences page in both languages.
+- **Not tested:**
+  - downloading and running the real installer on Windows, and Velopack's update dialog;
+  - SmartScreen;
+  - any GitHub Release: none is published, and the first draft is created by the v0.11.0 tag;
+  - folder navigation with real mouse double-clicks on Windows;
+  - the Citizen CY-02 and any physical print.
+
+  The Windows CI result is recorded below once the run has finished.

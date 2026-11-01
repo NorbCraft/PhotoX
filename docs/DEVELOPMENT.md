@@ -31,6 +31,8 @@ Plan revision **P-2** (2026-10-29). [PLAN.md](PLAN.md) is authoritative for *wha
 
 The version lives in `Directory.Build.props`. Implementation starts at **0.1.0**. Unfinished or unverified milestones are never tagged.
 
+**Releases (prompt_08, DEC-080):** pushing a tag `vX.Y.Z` equal to the version runs CI as usual and then creates a **draft** GitHub Release named *PhotoX X.Y.Z* with `PhotoX-X.Y.Z-win-Setup.exe`, `PhotoX-X.Y.Z-win-Setup.exe.sha256` and `PhotoX-X.Y.Z-win-Portable.zip`, and the version's CHANGELOG section as notes. A draft is invisible to Check for updates. **The owner approves a version** by opening the draft on GitHub (Releases), checking it and pressing *Publish release*; from then on installed copies offer it. Agents never publish drafts, and never mark a pre-release as latest. Ordinary commits produce only CI artifacts.
+
 ## 3. Code
 
 - .NET 10, C# latest, nullable enabled, warnings as errors, file-scoped namespaces, one public type per file (small related records may share a file).

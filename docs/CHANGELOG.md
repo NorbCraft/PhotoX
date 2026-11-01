@@ -4,6 +4,33 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-01
+
+### Added
+- **Folders in the galleries:**
+  - Photos, ID Photos and Collages list the open folder's subfolders as folder cards before the photos.
+  - Double-click or Enter opens a folder, and the tree follows.
+  - **Up** above the gallery, or Backspace, opens the parent folder.
+- **Folder tree button** left of the workspaces: shows or hides the folder tree. Each workspace remembers its choice and its own folder, also after a restart.
+- **ID Photos, step 1 Select photo:** the folder's subfolders and photos beside the tree, like the Photos gallery. A click on a photo opens step 2 *Framing & adjustment*; step 3 is *Print*.
+- **Collages layout:** folder tree | photo thumbnails | collage | settings. The thumbnail panel can be resized, and it and the settings fold to a strip with a clear button to bring them back.
+- **Delete photos** from the gallery: right-click menu or the Delete key, for one photo or the selection, after a confirmation with the count.
+  - Nothing is deleted: the photos move into the `Original` folder, under a name of their own that never replaces a file there.
+  - The new **Deleted** filter lists them; **Restore** brings them back to the folder with their edits, under a new name if the old one is taken.
+- **Check for updates** in Settings: shows the installed version and asks GitHub for the latest published version.
+  - **Windows:** after a confirmation it downloads the installer and checks it against its published checksum. It then asks about unsent print jobs and unsaved edits, starts the installer and closes PhotoX. Settings, print history, logs and photos stay.
+  - **Linux:** opens the download page.
+- **GitHub Releases:** a version tag prepares a draft release with the Windows installer (`PhotoX-X.Y.Z-win-Setup.exe`), its `.sha256` checksum and the portable zip. Publishing the draft makes the version available to Check for updates.
+- **About** in Settings: the logo, the name, the version of the running build, "Photo preparation, made simple." with a short description, and a **Third-party licences** link that lists the components inside Settings.
+
+### Changed
+- **Discard originals** applies to the **whole open folder**, not only the selected photos.
+  - It also permanently removes the photos marked Deleted; the warning says so and highlights Cancel.
+  - Only files PhotoX recorded are deleted, each one checked first.
+- Opening another folder while photos have **unsaved edits** now asks first (save, discard or stay); before, the edits were lost.
+- The ID steps row spans the photo and the sidebar.
+- **Logs on Windows** moved to `%APPDATA%\PhotoX\logs`, outside the folder an update replaces.
+
 ## [0.10.2] - 2026-11-01
 
 ### Changed

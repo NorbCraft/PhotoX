@@ -1,6 +1,6 @@
 # Instructions for AI coding agents
 
-## Current phase: IMPLEMENTATION (approved by `docs/prompts/prompt_02.md`; later prompts `prompt_03.md` … `prompt_07.md` take precedence where they conflict)
+## Current phase: IMPLEMENTATION (approved by `docs/prompts/prompt_02.md`; later prompts `prompt_03.md` … `prompt_08.md` take precedence where they conflict)
 
 Work autonomously through [docs/ROADMAP.md](docs/ROADMAP.md) under the rules in [docs/DEVELOPMENT.md §6](docs/DEVELOPMENT.md#6-agent-rules-autonomous-implementation-prompt_02-20). Ask the owner only for genuine contradictions, infeasible major requirements, unsuitable dependency terms, scope or user-data risks, or missing access.
 
@@ -14,7 +14,7 @@ Work autonomously through [docs/ROADMAP.md](docs/ROADMAP.md) under the rules in 
 ## Non-negotiables
 
 - A failed save must never damage the existing photo or its preserved original. All writes go through `PhotoX.Storage`; printing never writes to photos or their folders.
-- Discard Originals (formerly Save Changes) and Restore Original delete only verified PhotoX backups, per photo (DEC-056). Never add folder-wide or recursive deletion.
+- Discard Originals (formerly Save Changes; for the whole open folder since prompt_08, DEC-079), Restore Original and Delete/Restore of photos remove or move only files PhotoX recorded and verified, one file at a time (DEC-056, DEC-078). Deleting a photo moves it into `Original/`, never removes it. Never delete a folder, never delete recursively, never overwrite a file.
 - **Enter / Save & Next saves exactly the current edits and the selected crop, waits for success, then advances.**
 - Never commit real photos: not customer images, not `id_photo/IMG_6153.JPG`, not their derivatives. Write tests on real photos only on copies in a temp workspace.
 - Never edit archived prompts in `docs/prompts/`.

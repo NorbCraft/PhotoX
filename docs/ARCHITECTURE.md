@@ -36,9 +36,10 @@ src/
   PhotoX.Imaging/    Magick.NET: load (orient, colour), render recipe, encode, thumbnails,
                      histogram, Auto Correct estimation, ID render, sheet render, collage render;
                      face detection (0.4.0)
-  PhotoX.Storage/    file handling: folder scan, order state + sidecar, safe save, Save Changes and
-                     Restore Original (OrderBackups), Duplicate image, thumbnail cache, settings,
-                     data files, print counters
+  PhotoX.Storage/    file handling: folder scan, order state + sidecar, safe save, Discard Originals and
+                     Restore Original (OrderBackups), Delete and restore (PhotoTrash), Duplicate
+                     image, thumbnail cache, settings, data files, print counters, the update
+                     client (Updates/UpdateClient: GitHub Releases, verified installer download)
   PhotoX.Printing/   print items, page preparation, the print queue (PrintService) and the
                      Windows driver backend (spooler + GDI); no printing on other platforms
   PhotoX.App/        Avalonia UI: views, view models, localization, composition
@@ -69,13 +70,13 @@ Rules:
 
 ## 4. UI structure
 
-- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.9.0", prompt_04 §1); top bar (Photos | ID Photos | Collages | Printing, each with an icon and the selected one in blue, the Printing tab with the number of jobs in progress; folder/photo context; EN|RO; settings; then the PhotoX logo and name, prompt_05 §1, prompt_06 §1) and a content area. The five pages (Browse, Edit, ID, Collages, Printing) are created once and shown or hidden, so switching never rebuilds the gallery.
+- **Shell:** native window title bar with the PhotoX icon, name and version ("PhotoX 0.9.0", prompt_04 §1); top bar (the folder tree button, prompt_08 §4; Photos | ID Photos | Collages | Printing, each with an icon and the selected one in blue, the Printing tab with the number of jobs in progress; folder/photo context; EN|RO; settings; then the PhotoX logo and name, prompt_05 §1, prompt_06 §1) and a content area. The five pages (Browse, Edit, ID, Collages, Printing) are created once and shown or hidden, so switching never rebuilds the gallery.
 - **Light and dark mode (prompt_06 §3, DEC-061):** `App.axaml` defines every colour twice in `ThemeDictionaries` (Dark keeps the earlier palette; Light is a neutral light palette with a mid-grey behind photos) under the same keys, and the views use `DynamicResource`, so `App.ApplyTheme` (Settings, remembered as `theme` in `settings.json`) switches the whole window at once, including the Fluent controls. Status colours are classes (`ok`, `warn`, `error`, `faint`) rather than converters, and the levels histogram picks its colours from the theme variant. The primary blue `#3B82F6` is the same in both modes and is the blue of the icon.
 - **Side panels:** every workspace has a resizable explorer on the left and a resizable settings panel on the right (`GridSplitter`, minimum widths, widths remembered in `settings.json`), with the centre taking the rest.
-- **Explorer (DEC-055):** `ExplorerViewModel` + `ExplorerView` (locations, four recent orders, folder tree) is one control used by Browse, by the ID portrait picker and by Collages. `PhotoPickerViewModel` adds the thumbnail grid (`PickerGrid`) of the open folder; thumbnails come from the same cache and loader as the gallery (`ThumbnailSource`). Each workspace keeps its own folder; pickers start in the order open in Photos.
-- **Photos workspace:** *Browse* (explorer, gallery with multiple selection and a thumbnail-size slider, state badges top right and print counters bottom right, a right-click menu: Edit, Use for ID photo, Print, Duplicate image, Restore original; a details panel with Edit progress and the folder's printed copies, and the actions: Print selected, Print all, Edit this photo, Use for ID photo, Discard originals, Restore original) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
-- **ID workspace (prompt_06 §5, prompt_07 §2):** within the photo column, a row with the format list, the steps *1 Framing & adjustment* / *2 Print* and Clear, then a toolbar like the editor's (90° turns, Auto Align, zoom, rotation, reset framing, before/after); the explorer and the folder's thumbnails on the left (a click loads the portrait); the editing sidebar of Photos on the right, then Continue; on the sheet step the sheet options with Back, Save and Print.
-- **Collages workspace:** explorer and thumbnails (left; thumbnails can be dragged into frames), the collage canvas with slot sizes and a right-click menu (centre), sheet, orientation, templates, spacing, the selected slot's size, Save JPG and Print (right); see §7.1.
+- **Explorer (DEC-055, DEC-077):** `ExplorerViewModel` + `ExplorerView` (locations, four recent orders, folder tree) is one control used by Browse, by the ID portrait picker and by Collages, one instance per workspace (key `photos`, `id`, `collage`). It also owns the open folder, `Navigate` (open a folder and select it in the tree), Up (`GoUp`), `Mark` (select without opening) and `IsTreeVisible`. Every gallery lists the open folder's subfolders as `FolderItemViewModel` cards (one `FolderCard` view) before its photos, under one `LocationBar` (Up and the path). `PhotoPickerViewModel` adds the thumbnail grid (`PickerGrid`, folders and photos in `Items`) of the open folder; thumbnails come from the same cache and loader as the gallery (`ThumbnailSource`). Each workspace keeps its own folder and tree visibility (`WorkspaceFolders`, `TreeHidden` in the settings); pickers start in the order open in Photos the first time. The top-bar button toggles the tree of the shown workspace (`ShellViewModel.CurrentExplorer`); `PanelWidth.Show`/`FollowTree` collapse a hidden panel's column and restore its remembered width.
+- **Photos workspace:** *Browse* (explorer, gallery of `GalleryItems` = folder cards then `VisiblePhotos`, with multiple selection and a thumbnail-size slider, filters All, To do, Done and Deleted, state badges top right and print counters bottom right, a right-click menu: Edit, Use for ID photo, Print, Duplicate image, Restore original, Delete, or Restore for a deleted photo; Enter opens the selected folder or edits the photo, Delete asks to delete, Backspace goes up; a details panel with Edit progress and the folder's printed copies, and the actions: Print selected, Print all, Edit this photo, Use for ID photo, Discard originals (the whole folder), Restore original, or under Deleted only Restore selected) ⇄ *Edit* (one fixed toolbar row, canvas with crop overlay or the applied result, resizable adjustment panel with one Reset, filmstrip, actions; Save & Next becomes Close when the order is done; Before/After shows the original while held).
+- **ID workspace (prompt_06 §5, prompt_07 §2, prompt_08 §2):** across the photo and the sidebar, a row with the format list, the steps *1 Select photo* / *2 Framing & adjustment* / *3 Print* and Clear; the folder tree on the left. Step 1 (`IsSelectStep`) shows the picker grid of the open folder in the centre and hides the sidebar; a click picks a photo, which loads it and opens step 2 (the loaded photo picked again just returns to step 2). Steps 2 and 3: a toolbar like the editor's (90° turns, Auto Align, zoom, rotation, reset framing, before/after), the photo, and the editing sidebar of Photos with Continue; on the sheet step the sheet options with Back, Save and Print.
+- **Collages workspace (prompt_08 §3):** folder tree | thumbnail panel (the picker grid; thumbnails are dragged into frames; resizable) | the collage canvas with slot sizes and a right-click menu | settings (sheet, orientation, templates, spacing, the selected slot's size, Save and Print). The thumbnail and settings panels fold to a 42 px strip with a chevron and their name (`ThumbsCollapsed`, `SettingsCollapsed`, remembered); see §7.1.
 - **Printing workspace (prompt_06 §7, prompt_07 §3):** statistics (folded away when Print opens the workspace), the queue of this session and the history (left); the pages as they will print (centre); printer, size, Crop | Whole for photos, paper, copies, Clear and Print (right). Its tab sits at the right of the top bar. Escape and Back return to the workspace it was opened from. See §9.
 - **Shared editing sidebar (DEC-062):** `EditActionsView` (Undo, Redo, Reset) and `ToneAdjustmentsView` (levels histogram with three triangle handles, Auto Adjust, exposure, contrast, white balance, tint, saturation with gradient tracks; exposure also on the + / − keys), both bound to one `ToneAdjustmentsViewModel` that carries the owner's Undo, Redo, Reset and Auto Adjust commands. The Photos editor and the ID Photo Creator use them identically (prompt_03 §7, prompt_04 §§7–8, prompt_06 §1).
 - **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
@@ -89,9 +90,13 @@ stateDiagram-v2
     Edit --> Browse: Back to folder (Esc)
     Browse --> Printing: Print selected / Print all
     Printing --> Browse: Back (after Print or Clear)
-    Browse --> DiscardOriginals: Discard originals / Restore original (warning)
+    Browse --> Browse: folder card / Up (asks first if edits are unsaved)
+    Browse --> DiscardOriginals: Discard originals (whole folder) / Restore original / Delete (warning)
     DiscardOriginals --> Browse
-    Browse --> IdFraming: ID Photos tab / Use for ID
+    Browse --> IdSelect: ID Photos tab
+    IdSelect --> IdFraming: click a photo
+    IdFraming --> IdSelect: step 1
+    Browse --> IdFraming: Use for ID
     IdFraming --> IdSheet: Continue
     IdSheet --> IdFraming: Back
     IdSheet --> Printing: Print
@@ -177,9 +182,10 @@ The result is written into the recipe as slider values: one undo step, fully adj
 Order/
   IMG_001.jpg                 edited (or untouched)
   .IMG_001.jpg.photox-tmp     only while a save is being written (hidden)
-  Original/                   hidden from the gallery
-    IMG_001.jpg               untouched original (temporary, until Finish Order)
-    .photox-order.json        sidecar: version, backups, recipes, reviewed marks
+  Original/                   hidden from the gallery and the explorer
+    IMG_001.jpg               untouched original (temporary, until Discard Originals)
+    IMG_007 (deleted).jpg     a photo deleted from the gallery, restorable (prompt_08)
+    .photox-order.json        sidecar: version (2), backups, recipes, reviewed marks, deleted photos
 ```
 
 ### 6.2 Save (FR-004, FR-005, FR-021–FR-024, FR-026)
@@ -194,11 +200,11 @@ Order/
 
 If any step fails, the temp file is deleted and the existing photo and backup are unchanged. **The UI advances only after step 7 succeeds.** There is no journal or recovery service. Because the original is *copied* before the atomic replace, an interruption at any point leaves either the old or the new photo at its path, plus at most a stray temp file. Stray temp files are ignored by the gallery and deleted on the next save of that photo or at Finish Order.
 
-### 6.3 Save Changes and Restore Original (FR-072, FR-083, DEC-056)
+### 6.3 Discard Originals and Restore Original (FR-072, FR-083, DEC-056, DEC-079)
 
-Both work per photo, only through the sidecar, in `OrderBackups` (Storage). Finish Order and its folder-wide cleanup are gone.
+Both work one recorded file at a time, only through the sidecar, in `OrderBackups` (Storage). Finish Order and its folder-wide cleanup are gone.
 
-- **Save Changes:** the App saves pending edits with `PhotoSaver` (stopping at the first failure), then `RemoveBackups(folder, names)`. For each name, the backup is deleted only if:
+- **Discard Originals** (for the whole folder since prompt_08): the App saves the folder's pending edits with `PhotoSaver` (stopping at the first failure), then `DiscardFolder(folder)`, which runs `RemoveBackups` for every photo the sidecar records and then removes every deleted photo (§6.5) with its kept original, both verified by recorded size and write time before either goes. For each photo, the backup is deleted only if:
   - the sidecar names it with plain file names inside `Original/`;
   - the edited photo exists, is non-empty, reads as an image, and still has the size and write time recorded when PhotoX saved it;
   - the backup still has its recorded size and write time.
@@ -210,6 +216,15 @@ Both work per photo, only through the sidecar, in `OrderBackups` (Storage). Fini
   - only then are the backup and the record removed.
 
   Read-only photos and backups that are not PhotoX's are refused and left untouched.
+
+### 6.5 Delete and restore photos (FR-085, DEC-078)
+
+`PhotoTrash` (Storage) never deletes a file:
+
+- **Delete:** for each photo, a free stored name `name (deleted).ext` (`(deleted 2)`, …) is chosen against the files in `Original/` and every name a record uses; all deletions are recorded in the sidecar's `deleted` section (stored name → original name, time, size, write time, the photo's edit record) and saved; then each photo is renamed into `Original/` without overwrite. A failed move removes its record. The photo's own record leaves `photos`; its kept original stays where it is.
+- **List:** the recorded deleted photos whose stored file still has the recorded size and write time.
+- **Restore:** a verified stored file is moved back to the order folder under its name, or the first free `name (2).ext` (a file or a record using the name counts as taken), without overwrite; then its record returns under that name. `Original/` goes when empty.
+- The sidecar stays while deleted photos are recorded; `ChooseBackupName` avoids names that records use.
 
 ### 6.4 Thumbnail cache (FR-053)
 
@@ -241,8 +256,10 @@ The cache lives in `%LOCALAPPDATA%/PhotoX/cache/thumbs` (Linux: `$XDG_CACHE_HOME
 - **Settings:** `settings.json` in `%APPDATA%/PhotoX` (`$XDG_CONFIG_HOME/PhotoX`), written atomically. It stores language, theme, last folder, recent folders, ID and collage output folders, custom ID sizes, JPEG quality (100 by default; version-1 files with the old default 95 are upgraded once, DEC-064), ID print scale correction, thumbnail size, panel widths and cache limits.
 - **User data (DEC-063):** print counters (`print-history.json`) and the print history (`print-log/yyyy-MM.jsonl`) are kept in `%APPDATA%/PhotoX` on Windows (`$XDG_DATA_HOME/PhotoX` on Linux), not in `%LOCALAPPDATA%/PhotoX`, which is the Velopack installation folder and is removed on uninstall. 0.8 counters are copied once from the old location.
 - **Configuration data:** `print-formats.json` (physical sizes of the three print presets and the 20×30 sheet) and `id-sizes.json` (ID sizes) in the same folder, created with the planned values if missing, read at startup. A damaged file is left untouched and the built-in values apply (DEC-049).
-- **Logs:** Serilog daily files in `%LOCALAPPDATA%/PhotoX/logs`, kept for 14 days. File paths are logged, never image content (FR-051).
+- **Logs:** Serilog daily files in `%APPDATA%/PhotoX/logs` on Windows since 0.11.0 (outside the installation folder, which an update replaces; DEC-080) and `$XDG_STATE_HOME/PhotoX/logs` on Linux, kept for 14 days. File paths are logged, never image content (FR-051).
 - **Errors:** unhandled exceptions are logged and shown as a localized message. Expected failures (save, load) return typed results with a message key.
+- **Updates (FR-086, DEC-080):** `UpdateClient` (Storage) calls `GET https://api.github.com/repos/NorbCraft/PhotoX/releases/latest` with a User-Agent and no token, accepts only plain `vX.Y.Z` tags of published, non-pre-release releases, and compares major.minor.patch with the running assembly. The installer asset `PhotoX-X.Y.Z-win-Setup.exe` and its `.sha256` must come from `https://github.com/NorbCraft/PhotoX/releases/download/…`; the download goes to `%TEMP%/PhotoX-update/….partial` with progress, is checked against the asset size, the published SHA-256 and GitHub's `digest` when present, and only then renamed. `SettingsViewModel` drives it through an `UpdateHost` from the shell: confirm, `PrepareClose` (not while saving; unsent prints and unsaved edits asked as on closing, `ConfirmCloseAsync`), start the installer through the shell, close the window. Linux opens the release page instead. The tests answer with a fake GitHub (`FakeGitHub`).
+- **About:** the logo, name and assembly version, the tagline and description, and the third-party components parsed from the embedded THIRD-PARTY-NOTICES.md (`ThirdPartyNotices`), each with a link to its project page (DEC-082).
 
 ## 9. Printing (FR-050, FR-080–FR-082, DEC-057, DEC-058)
 

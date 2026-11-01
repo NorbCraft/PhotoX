@@ -95,6 +95,20 @@ public static class Icons
     /// <summary>A folder: choose the output folder.</summary>
     public static readonly Geometry Folder = Geometry.Parse("M4.5 6h4.5l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-10A1.5 1.5 0 0 1 4.5 6z");
 
+    /// <summary>A window with a side bar: show or hide the folder tree (prompt_08 §4).</summary>
+    public static readonly Geometry Sidebar = Geometry.Parse("M4.5 4.5h15A1.5 1.5 0 0 1 21 6v12a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18V6a1.5 1.5 0 0 1 1.5-1.5z M9.5 4.5v15 M5.5 8.5h2 M5.5 11.5h2 M5.5 14.5h2");
+
+    /// <summary>A folder with an arrow up: the parent folder (prompt_08 §1).</summary>
+    public static readonly Geometry FolderUp = Geometry.Parse("M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z M12 16.5v-6 M9.5 13 12 10.5l2.5 2.5");
+
+    /// <summary>Chevrons: fold a side panel away and bring it back (prompt_08 §3).</summary>
+    public static readonly Geometry ChevronLeft = Geometry.Parse("M14.5 6 8.5 12l6 6");
+
+    public static readonly Geometry ChevronRight = Geometry.Parse("M9.5 6l6 6-6 6");
+
+    /// <summary>An arrow down to a tray: download and install an update (prompt_08 §6).</summary>
+    public static readonly Geometry Download = Geometry.Parse("M12 4v11 M7.5 10.5 12 15l4.5-4.5 M5 19.5h14");
+
     public static readonly Geometry Undo = Geometry.Parse("M9 6.5 4.5 11 9 15.5 M5 11h9.5a4.5 4.5 0 0 1 0 9H12");
 
     public static readonly Geometry Redo = Geometry.Parse("M15 6.5 19.5 11 15 15.5 M19 11H9.5a4.5 4.5 0 0 0 0 9H12");

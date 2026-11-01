@@ -14,8 +14,13 @@
   <Grid RowDefinitions="56,*">
     <!-- Top bar (FR-008, FR-009): the three workspaces on the left; Printing, language, settings and the PhotoX name on the right (prompt_05 §1, prompt_06 §1, prompt_07 §3.8) -->
     <Border Grid.Row="0" Background="{DynamicResource BarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto" Margin="12,0,16,0">
-        <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="12,0,16,0">
+        <!-- Show or hide the folder tree of the workspace shown; each workspace remembers its own choice (prompt_08 §4) -->
+        <ToggleButton x:Name="TreeToggle" Classes="icon tree" Focusable="False" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip.Tip="{l:Tr ToggleTree}"
+                      IsChecked="{Binding IsTreeVisible, Mode=OneWay}" Command="{Binding ToggleTreeCommand}">
+          <Path Data="{x:Static s:Icons.Sidebar}" />
+        </ToggleButton>
+        <Border Grid.Column="1" Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="4">
             <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPhotosWorkspace, Mode=OneWay}" Command="{Binding ShowPhotosCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.Photos}" /><TextBlock Text="{l:Tr TabPhotos}" VerticalAlignment="Center" /></StackPanel>
@@ -28,13 +33,13 @@
             </ToggleButton>
           </StackPanel>
         </Border>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="12,0">
+        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="12,0">
           <TextBlock Text="{Binding ContextText}" Classes="muted" FontSize="14" TextTrimming="CharacterEllipsis" MaxWidth="460" VerticalAlignment="Center" />
           <Border IsVisible="{Binding ShowUnsaved}" Background="{DynamicResource WarnBgBrush}" BorderBrush="{DynamicResource WarnBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,3">
             <TextBlock Text="{l:Tr Unsaved}" Foreground="{DynamicResource WarnTextBrush}" FontSize="12.5" FontWeight="SemiBold" />
           </Border>
         </StackPanel>
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <!-- Printing, apart from the three creation workspaces (prompt_07 §3.8) -->
           <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
               <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPrintWorkspace, Mode=OneWay}" Command="{Binding ShowPrintingCommand}">
@@ -79,7 +84,129 @@
       <Panel IsVisible="{Binding IsPrintWorkspace}"><v:PrintView DataContext="{Binding Print}" /></Panel>
     </Panel>
 
-    <!-- In-window dialogs (warnings, unsaved changes, messages) -->
+    <!-- Settings (FR-040) -->
+    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Settings, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource OverlayBrush}">
+      <Border DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel" Width="560" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20"
+              Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="0,0,0,20">
+        <DockPanel>
+        <Button DockPanel.Dock="Bottom" Classes="primary" HorizontalAlignment="Right" MinWidth="120" Margin="24,12,24,0" Content="{l:Tr Close}" Command="{Binding CloseCommand}" />
+        <!-- Third-party licences (About): each component with its version, licence and project page -->
+        <DockPanel IsVisible="{Binding ShowLicences}" Margin="24,24,24,0">
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="0,0,0,8">
+            <Button Classes="icon" Focusable="False" Command="{Binding ToggleLicencesCommand}" ToolTip.Tip="{l:Tr Back}" Margin="0,0,10,0">
+              <Path Data="{x:Static s:Icons.ChevronLeft}" />
+            </Button>
+            <TextBlock Grid.Column="1" Text="{l:Tr ThirdPartyLicences}" FontSize="19" FontWeight="Bold" VerticalAlignment="Center" />
+          </Grid>
+          <TextBlock DockPanel.Dock="Top" Text="{l:Tr LicencesIntro}" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,10" />
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Components}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="s:ThirdPartyComponent">
+                  <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" />
+                      <Button Classes="link" Focusable="False" HorizontalAlignment="Left" Padding="0,1" FontSize="12.5" IsVisible="{Binding HasSource}"
+                              Content="{Binding Source}" ToolTip.Tip="{Binding Source}"
+                              Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).OpenSourceCommand}" CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="24,24,24,0" IsVisible="{Binding !ShowLicences}">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{l:Tr SettingsTitle}" FontSize="19" FontWeight="Bold" />
+          <!-- Light or dark mode (prompt_06 §3) -->
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{l:Tr Appearance}" VerticalAlignment="Center" FontWeight="SemiBold" />
+            <Border Grid.Column="1" Classes="segbox">
+              <StackPanel Orientation="Horizontal">
+                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeLight}" IsChecked="{Binding IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="light" />
+                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeDark}" IsChecked="{Binding !IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="dark" />
+              </StackPanel>
+            </Border>
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{l:Tr JpegQuality}" VerticalAlignment="Center" FontWeight="SemiBold" />
+            <NumericUpDown Grid.Column="1" Width="130" Minimum="80" Maximum="100" Increment="1" FormatString="0" Value="{Binding JpegQuality}" ToolTip.Tip="{l:Tr JpegQualityTip}" />
+          </Grid>
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{l:Tr IdScale}" VerticalAlignment="Center" FontWeight="SemiBold" />
+              <NumericUpDown Grid.Column="1" Width="130" Minimum="90" Maximum="110" Increment="0.1" FormatString="0.0" Value="{Binding IdScalePercent}" />
+            </Grid>
+            <TextBlock Text="{l:Tr IdScaleHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Text="{l:Tr DataFilesTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding DataFilesText}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Text="{l:Tr ThumbnailCache}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding CacheText}" Classes="muted" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Button Command="{Binding ClearCacheCommand}" Padding="10,6,14,6">
+                <c:IconLabel Icon="{x:Static s:Icons.Delete}" Text="{l:Tr ClearCache}" />
+              </Button>
+              <TextBlock Text="{Binding CacheMessage}" Classes="ok" VerticalAlignment="Center" />
+            </StackPanel>
+          </StackPanel>
+          <!-- Check for updates (prompt_08 §6): the latest stable release on GitHub -->
+          <StackPanel Spacing="8">
+            <TextBlock Text="{l:Tr Updates}" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding InstalledVersionText}" Classes="muted" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Command="{Binding CheckUpdatesCommand}" Padding="10,6,14,6">
+                <c:IconLabel Icon="{x:Static s:Icons.Reset}" Text="{l:Tr CheckUpdates}" />
+              </Button>
+            </Grid>
+            <TextBlock Text="{Binding UpdateStatus}" IsVisible="{Binding HasUpdateStatus}" TextWrapping="Wrap" Classes.warn="{Binding UpdateStatusIsWarning}" Classes.ok="{Binding HasUpdate}" />
+            <Button Classes="primary" HorizontalAlignment="Left" Padding="12,8,16,8" IsVisible="{Binding CanInstall}" Command="{Binding InstallUpdateCommand}">
+              <c:IconLabel Icon="{x:Static s:Icons.Download}" Text="{l:Tr UpdateNow}" />
+            </Button>
+            <Button HorizontalAlignment="Left" Padding="12,8,16,8" IsVisible="{Binding CanOpenPage}" Command="{Binding OpenReleasePageCommand}">
+              <c:IconLabel Icon="{x:Static s:Icons.Download}" Text="{l:Tr OpenReleasePage}" />
+            </Button>
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsDownloading}">
+              <StackPanel Spacing="4" VerticalAlignment="Center">
+                <TextBlock Text="{Binding DownloadText}" Classes="muted" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding DownloadProgress}" />
+              </StackPanel>
+              <Button Grid.Column="1" Margin="12,0,0,0" Content="{l:Tr Cancel}" Command="{Binding CancelDownloadCommand}" />
+            </Grid>
+          </StackPanel>
+          <!-- About: logo, name, version of this build, what PhotoX is, the third-party licences -->
+          <StackPanel Spacing="10">
+            <TextBlock Text="{l:Tr About}" FontWeight="SemiBold" />
+            <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="16,14">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="Auto,*">
+                  <Image Source="/Assets/photox-icon-256.png" Width="52" Height="52" VerticalAlignment="Center" Margin="0,0,14,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                    <TextBlock FontSize="21" FontWeight="Bold">
+                      <Run Text="Photo" Foreground="{DynamicResource TextBrush}" /><Run Text="X" Foreground="{DynamicResource AccentBrush}" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding AboutVersionText}" Classes="muted" />
+                  </StackPanel>
+                </Grid>
+                <TextBlock Text="{l:Tr AboutTagline}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{l:Tr AboutDescription}" Classes="muted" TextWrapping="Wrap" />
+                <Button Classes="link" Focusable="False" HorizontalAlignment="Left" Padding="0,2" Content="{l:Tr ThirdPartyLicences}" Command="{Binding ToggleLicencesCommand}" />
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{Binding InstallText}" Classes="faint" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding LogsText}" Classes="faint" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+        </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Panel>
+    <!-- In-window dialogs (warnings, unsaved changes, messages), above Settings so the update can ask -->
     <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource OverlayBrush}">
       <Border DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel" Width="580" HorizontalAlignment="Center" VerticalAlignment="Center"
               Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
@@ -121,59 +248,5 @@
       </Border>
     </Panel>
 
-    <!-- Settings (FR-040) -->
-    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Settings, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource OverlayBrush}">
-      <Border DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel" Width="560" HorizontalAlignment="Center" VerticalAlignment="Center"
-              Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="12" Padding="24">
-        <StackPanel Spacing="16">
-          <TextBlock Text="{l:Tr SettingsTitle}" FontSize="19" FontWeight="Bold" />
-          <!-- Light or dark mode (prompt_06 §3) -->
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{l:Tr Appearance}" VerticalAlignment="Center" FontWeight="SemiBold" />
-            <Border Grid.Column="1" Classes="segbox">
-              <StackPanel Orientation="Horizontal">
-                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeLight}" IsChecked="{Binding IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="light" />
-                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeDark}" IsChecked="{Binding !IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="dark" />
-              </StackPanel>
-            </Border>
-          </Grid>
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{l:Tr JpegQuality}" VerticalAlignment="Center" FontWeight="SemiBold" />
-            <NumericUpDown Grid.Column="1" Width="130" Minimum="80" Maximum="100" Increment="1" FormatString="0" Value="{Binding JpegQuality}" ToolTip.Tip="{l:Tr JpegQualityTip}" />
-          </Grid>
-          <StackPanel Spacing="6">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{l:Tr IdScale}" VerticalAlignment="Center" FontWeight="SemiBold" />
-              <NumericUpDown Grid.Column="1" Width="130" Minimum="90" Maximum="110" Increment="0.1" FormatString="0.0" Value="{Binding IdScalePercent}" />
-            </Grid>
-            <TextBlock Text="{l:Tr IdScaleHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-          </StackPanel>
-          <StackPanel Spacing="6">
-            <TextBlock Text="{l:Tr DataFilesTitle}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding DataFilesText}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-          </StackPanel>
-          <StackPanel Spacing="6">
-            <TextBlock Text="{l:Tr ThumbnailCache}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding CacheText}" Classes="muted" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Spacing="12">
-              <Button Command="{Binding ClearCacheCommand}" Padding="10,6,14,6">
-                <c:IconLabel Icon="{x:Static s:Icons.Delete}" Text="{l:Tr ClearCache}" />
-              </Button>
-              <TextBlock Text="{Binding CacheMessage}" Classes="ok" VerticalAlignment="Center" />
-            </StackPanel>
-          </StackPanel>
-          <StackPanel Spacing="6">
-            <TextBlock Text="{l:Tr About}" FontWeight="SemiBold" />
-            <Grid ColumnDefinitions="Auto,*">
-              <Image Source="/Assets/photox-icon-256.png" Width="40" Height="40" VerticalAlignment="Top" Margin="0,0,12,0" />
-              <TextBlock Grid.Column="1" Text="{Binding AboutText}" Classes="muted" TextWrapping="Wrap" />
-            </Grid>
-            <TextBlock Text="{Binding InstallText}" Classes="faint" FontSize="12" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding LogsText}" Classes="faint" FontSize="12" TextWrapping="Wrap" />
-          </StackPanel>
-          <Button Classes="primary" HorizontalAlignment="Right" MinWidth="120" Content="{l:Tr Close}" Command="{Binding CloseCommand}" />
-        </StackPanel>
-      </Border>
-    </Panel>
   </Grid>
 </Window>

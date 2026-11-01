@@ -42,8 +42,18 @@ public sealed partial class PhotoItemViewModel : ViewModelBase
     public partial Bitmap? Thumbnail { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StateText), nameof(IsDone), nameof(IsToDo), nameof(IsOpenable), nameof(HasBadge), nameof(IsWarning))]
+    [NotifyPropertyChangedFor(nameof(StateText), nameof(IsDone), nameof(IsToDo), nameof(IsOpenable), nameof(HasPreview), nameof(HasBadge), nameof(ShowStateLine), nameof(IsWarning))]
     public partial PhotoState State { get; set; }
+
+    /// <summary>
+    /// The photo's file name in <c>Original/</c> when it was deleted from the gallery (prompt_08 §5): such a photo is
+    /// shown only under Deleted and can only be restored.
+    /// </summary>
+    public string? DeletedKey { get; init; }
+
+    public DateTime DeletedUtc { get; init; }
+
+    public bool IsDeleted => DeletedKey is not null;
 
     [ObservableProperty]
     public partial string Info { get; set; } = string.Empty;
@@ -73,13 +83,22 @@ public sealed partial class PhotoItemViewModel : ViewModelBase
 
     public bool IsToDo => State is PhotoState.ToDo or PhotoState.Unsaved;
 
-    public bool IsOpenable => State is not (PhotoState.Error or PhotoState.UnsupportedHeic or PhotoState.Unsupported);
+    /// <summary>Can be edited, printed or used for an ID photo: a readable photo that is not deleted.</summary>
+    public bool IsOpenable => !IsDeleted && HasPreview;
 
-    public bool HasBadge => State != PhotoState.ToDo;
+    /// <summary>A thumbnail can be made (deleted photos included).</summary>
+    public bool HasPreview => State is not (PhotoState.Error or PhotoState.UnsupportedHeic or PhotoState.Unsupported);
 
-    public bool IsWarning => State is PhotoState.Unsaved or PhotoState.Error or PhotoState.UnsupportedHeic or PhotoState.Unsupported;
+    public bool HasBadge => !IsDeleted && State != PhotoState.ToDo;
 
-    public string StateText => Localizer.Instance[State switch
+    /// <summary>The state line under the name replaces the size line (an edited, unsaved, failing or deleted photo).</summary>
+    public bool ShowStateLine => HasBadge || IsDeleted;
+
+    public bool IsWarning => IsDeleted || State is PhotoState.Unsaved or PhotoState.Error or PhotoState.UnsupportedHeic or PhotoState.Unsupported;
+
+    public string StateText => IsDeleted
+        ? Localizer.Instance.Format("StateDeleted", DeletedUtc.ToLocalTime().ToString("g", Localizer.Instance.Culture))
+        : Localizer.Instance[State switch
     {
         PhotoState.Edited => "StateEdited",
         PhotoState.Reviewed => "StateReviewed",

@@ -18,6 +18,14 @@ public sealed partial class MainWindow : Window
         Closing += OnClosing;
     }
 
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (DataContext is not ShellViewModel shell) return;
+        shell.ExitRequested += CloseConfirmed;
+        shell.OpenUrlRequested += url => _ = Launcher.LaunchUriAsync(new Uri(url));
+    }
+
     private bool _closeConfirmed;
 
     /// <summary>
@@ -27,30 +35,16 @@ public sealed partial class MainWindow : Window
     private async void OnClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_closeConfirmed || DataContext is not ShellViewModel shell || shell.Dialog is not null) return;
-        var unsent = shell.Print.Queue.UnsentCount;
-        if (!shell.HasPendingEdits && unsent == 0) return;
+        if (!shell.HasPendingEdits && shell.Print.Queue.UnsentCount == 0) return;
         e.Cancel = true;
-        var tr = Localization.Localizer.Instance;
-        if (unsent > 0)
-        {
-            var p = new DialogViewModel(tr["UnsentTitle"], tr.Plural("UnsentMessage", unsent));
-            p.Buttons.Add(new DialogButton("cancel", tr["Cancel"], true));
-            p.Buttons.Add(new DialogButton("close", tr["CloseAnyway"], false));
-            if (await shell.ShowDialogAsync(p) != "close") return;
-        }
+        if (!await shell.ConfirmCloseAsync()) return;
+        _closeConfirmed = true;
+        Close();
+    }
 
-        if (shell.HasPendingEdits)
-        {
-            var count = shell.Browse.AllPhotos.Count(p => p.PendingRecipe is not null);
-            var names = string.Join(", ", shell.Browse.AllPhotos.Where(p => p.PendingRecipe is not null).Take(6).Select(p => p.Name));
-            var d = new DialogViewModel(tr["UnsavedTitle"], tr.Format("UnsavedMessage", count, names));
-            d.Buttons.Add(new DialogButton("cancel", tr["Cancel"], false));
-            d.Buttons.Add(new DialogButton("discard", tr["CloseWithoutSaving"], false));
-            d.Buttons.Add(new DialogButton("save", tr["SaveAndClose"], true));
-            var answer = await shell.ShowDialogAsync(d);
-            if (answer != "discard" && !(answer == "save" && await shell.SavePendingAsync())) return;
-        }
-
+    /// <summary>Closes without asking again (the shell has already asked, e.g. before installing an update).</summary>
+    public void CloseConfirmed()
+    {
         _closeConfirmed = true;
         Close();
     }
@@ -90,7 +84,15 @@ public sealed partial class MainWindow : Window
                 e.Handled = true;
                 break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:
-                browse.EditPhotoCommand.Execute(null); // Edit this photo (prompt_05 §5)
+                browse.OpenSelected(); // Edit this photo (prompt_05 §5), or open the selected folder (prompt_08 §1)
+                e.Handled = true;
+                break;
+            case BrowseViewModel browse when e.Key == Key.Delete && e.KeyModifiers == KeyModifiers.None && !browse.IsDeletedView:
+                browse.DeleteSelectedCommand.Execute(null); // asks first (prompt_08 §5)
+                e.Handled = true;
+                break;
+            case BrowseViewModel browse when e.Key == Key.Back && e.KeyModifiers == KeyModifiers.None:
+                browse.Explorer.GoUpCommand.Execute(null);
                 e.Handled = true;
                 break;
         }

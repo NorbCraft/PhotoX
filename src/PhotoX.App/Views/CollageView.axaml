@@ -19,32 +19,80 @@
       <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
+    <!-- A folded panel (prompt_08 §3): a full-height strip with a chevron and the panel's name; a click brings it back -->
+    <Style Selector="Button.strip">
+      <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Width" Value="42" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.strip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
+    </Style>
+    <Style Selector="Button.strip Path, Button.fold Path">
+      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="StrokeThickness" Value="2.2" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Stretch" Value="None" />
+    </Style>
+    <Style Selector="Button.fold">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="28" />
+    </Style>
   </UserControl.Styles>
-  <!-- Collages (prompt_04 §5): Select photos → Choose template → Arrange → Save JPG -->
-  <Grid x:Name="Root" ColumnDefinitions="300,Auto,*,Auto,320">
+  <!-- Collages (prompt_04 §5, prompt_08 §3): Folder tree | Photo thumbnails | Collage preview | Collage settings.
+       The tree hides from the toolbar (prompt_08 §4); the thumbnails and the settings fold to a strip. -->
+  <Grid x:Name="Root" ColumnDefinitions="260,Auto,280,Auto,*,Auto,320">
 
-    <!-- 1. Photos: the built-in explorer and the folder's thumbnails (prompt_04 §6); drag a photo into a frame (prompt_06 §6) -->
-    <Border Background="{DynamicResource PanelBrush}">
-      <Grid RowDefinitions="1.25*,5,*">
-        <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
-        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{DynamicResource BorderBrush}" />
-        <DockPanel Grid.Row="2">
-          <StackPanel DockPanel.Dock="Top" Margin="18,10,14,4" Spacing="2">
-            <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
-            <TextBlock Text="{l:Tr CollagePickHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-          </StackPanel>
+    <!-- The folder tree shared by all workspaces (prompt_08 §3) -->
+    <Border x:Name="TreePanel" Background="{DynamicResource PanelBrush}">
+      <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
+    </Border>
+    <GridSplitter x:Name="TreeSplitter" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
+
+    <!-- 1. Photos: the folder's thumbnails (prompt_04 §6); drag a photo into a frame (prompt_06 §6) -->
+    <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+      <Panel>
+        <DockPanel x:Name="ThumbsPanel" IsVisible="{Binding !ThumbsCollapsed}">
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="18,10,8,4">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
+              <TextBlock Text="{l:Tr CollagePickHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="fold" Focusable="False" VerticalAlignment="Top" Command="{Binding ToggleThumbsCommand}" ToolTip.Tip="{l:Tr HideThumbs}">
+              <Path Data="{x:Static s:Icons.ChevronLeft}" />
+            </Button>
+          </Grid>
           <Button DockPanel.Dock="Bottom" Margin="12,4,12,12" HorizontalAlignment="Stretch" Focusable="False" Command="{Binding Picker.PickCommand}">
             <c:IconLabel Icon="{x:Static s:Icons.FrameAdd}" Text="{l:Tr AddToFrame}" />
           </Button>
-          <v:PickerGrid Margin="8,0" DataContext="{Binding Picker}" />
+          <v:PickerGrid Margin="4,0" DataContext="{Binding Picker}" />
         </DockPanel>
-      </Grid>
+        <Button x:Name="ThumbsStrip" Classes="strip" Focusable="False" IsVisible="{Binding ThumbsCollapsed}" Command="{Binding ToggleThumbsCommand}" ToolTip.Tip="{l:Tr ShowThumbs}">
+          <StackPanel Spacing="12" Margin="0,12,0,0">
+            <Path Data="{x:Static s:Icons.ChevronRight}" HorizontalAlignment="Center" />
+            <LayoutTransformControl HorizontalAlignment="Center">
+              <LayoutTransformControl.LayoutTransform><RotateTransform Angle="90" /></LayoutTransformControl.LayoutTransform>
+              <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
+            </LayoutTransformControl>
+          </StackPanel>
+        </Button>
+      </Panel>
     </Border>
-
-    <GridSplitter Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
+    <GridSplitter x:Name="ThumbsSplitter" Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnThumbsSplitterDragCompleted" />
 
     <!-- 3. Arrange: the whole collage in true proportions; right-click a photo for its menu (prompt_06 §6) -->
-    <Panel Grid.Column="2" Background="{DynamicResource CanvasBrush}">
+    <Panel Grid.Column="4" Background="{DynamicResource CanvasBrush}">
       <c:CollageCanvas x:Name="Canvas" Scene="{Binding Scene}" Margin="8,8,8,40">
         <c:CollageCanvas.ContextMenu>
           <ContextMenu Opening="OnSlotMenuOpening">
@@ -75,12 +123,28 @@
       </Border>
     </Panel>
 
-    <GridSplitter Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnRightSplitterDragCompleted" />
+    <GridSplitter x:Name="SettingsSplitter" Grid.Column="5" Classes="panel" ResizeDirection="Columns" DragCompleted="OnRightSplitterDragCompleted" />
 
-    <!-- 2. Sheet and template; then save or print -->
-    <Border Grid.Column="4" Background="{DynamicResource PanelBrush}">
-      <Grid RowDefinitions="*,Auto">
-        <ScrollViewer Padding="18,16,18,8">
+    <!-- 2. Sheet and template; then save or print. Folds to a strip on the right (prompt_08 §3). -->
+    <Border Grid.Column="6" Background="{DynamicResource PanelBrush}">
+      <Panel>
+      <Button x:Name="SettingsStrip" Classes="strip" Focusable="False" IsVisible="{Binding SettingsCollapsed}" Command="{Binding ToggleSettingsCommand}" ToolTip.Tip="{l:Tr ShowCollageSettings}">
+        <StackPanel Spacing="12" Margin="0,12,0,0">
+          <Path Data="{x:Static s:Icons.ChevronLeft}" HorizontalAlignment="Center" />
+          <LayoutTransformControl HorizontalAlignment="Center">
+            <LayoutTransformControl.LayoutTransform><RotateTransform Angle="90" /></LayoutTransformControl.LayoutTransform>
+            <TextBlock Classes="section" Text="{l:Tr CollageSettings}" />
+          </LayoutTransformControl>
+        </StackPanel>
+      </Button>
+      <Grid x:Name="SettingsPanel" RowDefinitions="Auto,*,Auto" IsVisible="{Binding !SettingsCollapsed}">
+        <Grid ColumnDefinitions="Auto,*" Margin="8,10,18,0">
+          <Button Classes="fold" Focusable="False" Command="{Binding ToggleSettingsCommand}" ToolTip.Tip="{l:Tr HideCollageSettings}">
+            <Path Data="{x:Static s:Icons.ChevronRight}" />
+          </Button>
+          <TextBlock Grid.Column="1" Classes="section" Text="{l:Tr CollageSettings}" VerticalAlignment="Center" Margin="6,0,0,0" />
+        </Grid>
+        <ScrollViewer Grid.Row="1" Padding="18,10,18,8">
           <StackPanel Spacing="8">
             <TextBlock Classes="section" Text="{l:Tr Sheet}" />
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -163,7 +227,7 @@
           </StackPanel>
         </ScrollViewer>
         <!-- Save and Print use the same composition (prompt_05 §8) -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,8,*" Margin="18,8,18,16">
+        <Grid Grid.Row="2" ColumnDefinitions="*,8,*" Margin="18,8,18,16">
           <Button Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}">
             <c:IconLabel Icon="{x:Static s:Icons.Save}" Text="{l:Tr SaveJpg}" TextElement.FontSize="15" />
           </Button>
@@ -172,6 +236,7 @@
           </Button>
         </Grid>
       </Grid>
+      </Panel>
     </Border>
   </Grid>
 </UserControl>

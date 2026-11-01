@@ -10,13 +10,21 @@ public sealed partial class BrowseView : UserControl
     public BrowseView()
     {
         InitializeComponent();
-        PanelWidth.Apply(Root.ColumnDefinitions[0], "browse-left", 290, PanelWidth.MinLeft);
+        ApplyLeftWidth();
         PanelWidth.Apply(Root.ColumnDefinitions[4], "browse-right", 330, 290);
         // The view model gets the whole selection (Ctrl/Shift + click), not only the anchor photo.
         Gallery.SelectionChanged += (_, _) =>
         {
             if (DataContext is BrowseViewModel vm) vm.SetSelection(Gallery.SelectedItems?.OfType<PhotoItemViewModel>() ?? []);
         };
+    }
+
+    private void ApplyLeftWidth() => PanelWidth.Apply(Root.ColumnDefinitions[0], "browse-left", 290, PanelWidth.MinLeft);
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (DataContext is BrowseViewModel vm) PanelWidth.FollowTree(vm.Explorer, Root.ColumnDefinitions[0], TreePanel, TreeSplitter, ApplyLeftWidth);
     }
 
     private void OnLeftSplitterDragCompleted(object? sender, VectorEventArgs e) => PanelWidth.Save("browse-left", Root.ColumnDefinitions[0]);
@@ -43,6 +51,10 @@ public sealed partial class BrowseView : UserControl
     private void OnPrintClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.PrintSelectedCommand.Execute(item));
 
     private void OnRestoreClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.RestoreOriginalCommand.Execute(item));
+
+    private void OnDeleteClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.DeleteSelectedCommand.Execute(item));
+
+    private void OnRestoreDeletedClick(object? sender, RoutedEventArgs e) => Run(sender, (vm, item) => vm.RestoreDeletedCommand.Execute(item));
 
     private void Run(object? sender, Action<BrowseViewModel, PhotoItemViewModel> action)
     {

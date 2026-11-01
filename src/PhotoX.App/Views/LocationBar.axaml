@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:s="using:PhotoX.App.Services"
+             x:Class="PhotoX.App.Views.LocationBar"
+             x:DataType="vm:ExplorerViewModel">
+  <!-- Above each gallery (prompt_08 §1): Up to the parent folder and the open folder's path -->
+  <Grid ColumnDefinitions="Auto,*">
+    <Button Classes="icon" Focusable="False" Command="{Binding GoUpCommand}" ToolTip.Tip="{Binding UpTip}" Margin="0,0,8,0" VerticalAlignment="Center">
+      <Path Data="{x:Static s:Icons.FolderUp}" />
+    </Button>
+    <TextBlock Grid.Column="1" Text="{Binding CurrentFolder}" ToolTip.Tip="{Binding CurrentFolder}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+  </Grid>
+</UserControl>

@@ -27,7 +27,7 @@ public class ButtonFitTests
             Directory.CreateDirectory(config);
             File.WriteAllText(Path.Combine(config, "settings.json"), """
                 { "version": 2, "editorPanelWidth": 1, "idPanelWidth": 1,
-                  "panelWidths": { "browse-left": 1, "browse-right": 1, "collage-left": 1, "collage-right": 1, "id-left": 1, "print-left": 1, "print-right": 1 } }
+                  "panelWidths": { "browse-left": 1, "browse-right": 1, "collage-left": 1, "collage-thumbs": 1, "collage-right": 1, "id-left": 1, "print-left": 1, "print-right": 1 } }
                 """);
         }
 

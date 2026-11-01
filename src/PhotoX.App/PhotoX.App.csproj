@@ -12,6 +12,8 @@
     <AvaloniaResource Include="..\..\assets\logo\photox-icon-256.png" Link="Assets\photox-icon-256.png" />
     <AvaloniaResource Include="..\..\assets\logo\photox-icon-64.png" Link="Assets\photox-icon-64.png" />
     <EmbeddedResource Include="Localization\Strings_*.json" LogicalName="PhotoX.Strings.%(Filename).json" WithCulture="false" />
+    <!-- Shown in Settings → About → Third-party licences; the repository file stays the single source -->
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.md" LogicalName="PhotoX.ThirdPartyNotices.md" Link="ThirdPartyNotices.md" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />

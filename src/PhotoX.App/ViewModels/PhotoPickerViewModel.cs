@@ -29,17 +29,18 @@ public sealed partial class PickerPhoto(PhotoEntry entry) : ViewModelBase
 
 /// <summary>
 /// Chooses photos with the built-in explorer (prompt_04 §6): the same folder tree as the Photos workspace and a
-/// thumbnail grid of the open folder. Used by the ID Photos workspace (portrait) and the Collages workspace.
+/// thumbnail grid of the open folder, its subfolders first (prompt_08 §1). Used by the ID Photos workspace (portrait)
+/// and the Collages workspace; each keeps its own folder.
 /// </summary>
 public sealed partial class PhotoPickerViewModel : ViewModelBase
 {
     private readonly AppServices _services;
     private CancellationTokenSource _cts = new();
 
-    public PhotoPickerViewModel(AppServices services)
+    public PhotoPickerViewModel(AppServices services, string workspace)
     {
         _services = services;
-        Explorer = new ExplorerViewModel(services);
+        Explorer = new ExplorerViewModel(services, workspace);
         Explorer.FolderOpened += folder => _ = OpenFolderAsync(folder);
     }
 
@@ -63,7 +64,29 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
 
     partial void OnSelectedPhotoChanged(PickerPhoto? value)
     {
+        if (!_syncing)
+        {
+            _syncing = true;
+            SelectedItem = value;
+            _syncing = false;
+        }
+
         if (PickOnSelect && !_opening && value is { IsOpenable: true }) Picked?.Invoke(value);
+    }
+
+    private bool _syncing;
+
+    /// <summary>The selected card: a photo or a folder (the grid's selection).</summary>
+    [ObservableProperty]
+    public partial object? SelectedItem { get; set; }
+
+    partial void OnSelectedItemChanged(object? value)
+    {
+        if (_syncing) return;
+        _syncing = true;
+        SelectedPhoto = value as PickerPhoto;
+        _syncing = false;
+        if (PickOnSelect && !_opening && value is PickerPhoto { IsOpenable: true } photo) Picked?.Invoke(photo);
     }
 
     /// <summary>No photo selected, without picking anything (so a click on the same photo loads it again).</summary>
@@ -76,6 +99,9 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
 
     public ObservableCollection<PickerPhoto> Photos { get; } = [];
 
+    /// <summary>The cards of the grid: the subfolders, then the photos.</summary>
+    public ObservableCollection<object> Items { get; } = [];
+
     [ObservableProperty]
     public partial PickerPhoto? SelectedPhoto { get; set; }
 
@@ -83,15 +109,19 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial bool IsScanning { get; set; }
 
-    public bool IsEmpty => Explorer.CurrentFolder is not null && !IsScanning && Photos.Count == 0;
+    public bool IsEmpty => Explorer.CurrentFolder is not null && !IsScanning && Items.Count == 0;
 
     public bool HasFolder => Explorer.CurrentFolder is not null;
 
+    /// <summary>Picks the photo, or opens the folder (double-click, Enter, the pick button).</summary>
     [RelayCommand]
-    public void Pick(PickerPhoto? photo)
+    public void Pick(object? item)
     {
-        photo ??= SelectedPhoto;
-        if (photo is { IsOpenable: true }) Picked?.Invoke(photo);
+        switch (item ?? SelectedItem)
+        {
+            case FolderItemViewModel folder: folder.Open(); break;
+            case PickerPhoto { IsOpenable: true } photo: Picked?.Invoke(photo); break;
+        }
     }
 
     /// <summary>
@@ -102,8 +132,10 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
     {
         Explorer.RefreshRecent();
         if (Explorer.CurrentFolder is not null) return;
+        // Its own folder from last time first (prompt_08 §4), then the one open in Photos.
+        if (Explorer.RememberedFolder is { } own && Directory.Exists(own)) folder = own;
         Explorer.ShowStart(folder);
-        if (folder is not null) Explorer.Open(folder);
+        if (folder is not null && Directory.Exists(folder)) Explorer.Navigate(folder);
     }
 
     public async Task OpenFolderAsync(string folder)
@@ -115,11 +147,18 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
         _opening = true;
         SelectedPhoto = null;
         Photos.Clear();
+        Items.Clear();
         OnPropertyChanged(nameof(HasFolder));
-        var entries = await Task.Run(() => FolderScanner.Scan(folder));
+        var (entries, folders) = await Task.Run(() => (FolderScanner.Scan(folder), FolderScanner.SubFolders(folder)));
         if (ct.IsCancellationRequested) return;
         var items = entries.Select(e => new PickerPhoto(e)).ToList();
-        foreach (var item in items) Photos.Add(item);
+        foreach (var f in folders) Items.Add(Explorer.FolderItem(f));
+        foreach (var item in items)
+        {
+            Photos.Add(item);
+            Items.Add(item);
+        }
+
         if (!PickOnSelect) SelectedPhoto = items.FirstOrDefault(p => p.IsOpenable);
         _opening = false;
         IsScanning = false;

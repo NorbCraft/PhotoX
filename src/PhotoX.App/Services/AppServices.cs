@@ -44,6 +44,12 @@ public sealed class AppServices
 
     public ThumbnailCache ThumbnailCache { get; }
 
+    /// <summary>Makes the HTTP handler for Check for Updates (prompt_08 §6); tests answer with a fake GitHub.</summary>
+    public Func<HttpMessageHandler> UpdateHandler { get; set; } = () => new SocketsHttpHandler();
+
+    /// <summary>Where a downloaded installer waits until it starts: the temp folder, never the installation folder.</summary>
+    public string UpdateDownloadDir { get; set; } = Path.Combine(Path.GetTempPath(), "PhotoX-update");
+
     public void SaveSettings()
     {
         try

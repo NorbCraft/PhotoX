@@ -15,14 +15,24 @@ public sealed partial class IdView : UserControl
         Canvas.Moved += (dx, dy) => Vm?.MoveBy(dx, dy);
         Canvas.Zoomed += f => Vm?.ZoomBy(f);
         Canvas.Rotated += d => Vm?.RotateBy(d);
-        PanelWidth.Apply(Root.ColumnDefinitions[0], "id-left", 290, PanelWidth.MinLeft);
-        // At least 350 px: Back, Save and Print of the sheet keep their icon and whole label (DEC-076).
-        PanelWidth.Apply(Root.ColumnDefinitions[4], AppServices.Current?.Settings.IdPanelWidth ?? 360, min: 350);
+        ApplyLeftWidth();
+        ApplyRightWidth();
         // Before / after shows the photo without adjustments only while the button is held, like Space.
         BeforeButton.PropertyChanged += (_, e) =>
         {
             if (e.Property == Button.IsPressedProperty && Vm is { } vm) vm.ShowBefore = BeforeButton.IsPressed;
         };
+    }
+
+    private void ApplyLeftWidth() => PanelWidth.Apply(Root.ColumnDefinitions[0], "id-left", 290, PanelWidth.MinLeft);
+
+    // At least 350 px: Back, Save and Print of the sheet keep their icon and whole label (DEC-076).
+    private void ApplyRightWidth() => PanelWidth.Apply(Root.ColumnDefinitions[4], AppServices.Current?.Settings.IdPanelWidth ?? 360, min: 350);
+
+    /// <summary>Step 1 has no editing sidebar: the thumbnails take the whole width right of the tree (prompt_08 §2).</summary>
+    private void UpdateRightPanel()
+    {
+        if (Vm is { } vm) PanelWidth.Show(Root.ColumnDefinitions[4], RightPanel, RightSplitter, !vm.IsSelectStep, ApplyRightWidth);
     }
 
     private void OnSplitterDragCompleted(object? sender, VectorEventArgs e) =>
@@ -38,6 +48,12 @@ public sealed partial class IdView : UserControl
         if (Vm is not { } vm) return;
         vm.PickFolder = PickFolderAsync;
         vm.SizeChosen += () => FormatButton.Flyout?.Hide();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IdViewModel.IsSelectStep)) UpdateRightPanel();
+        };
+        UpdateRightPanel();
+        PanelWidth.FollowTree(vm.Picker.Explorer, Root.ColumnDefinitions[0], TreePanel, TreeSplitter, ApplyLeftWidth);
     }
 
     private void OnZoomDoubleTapped(object? sender, TappedEventArgs e) => Vm?.ResetZoom();

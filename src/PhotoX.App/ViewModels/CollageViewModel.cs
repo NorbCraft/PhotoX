@@ -78,8 +78,10 @@ public sealed partial class CollageViewModel : ViewModelBase
     public CollageViewModel(AppServices services)
     {
         _services = services;
-        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 116, ThumbHeight = 116, CanDrag = true };
+        Picker = new PhotoPickerViewModel(services, ExplorerViewModel.CollageWorkspace) { ThumbWidth = 120, ThumbHeight = 132, CanDrag = true };
         Picker.Picked += photo => _ = PlaceAsync(photo.Path);
+        ThumbsCollapsed = services.Settings.CollageThumbsCollapsed;
+        SettingsCollapsed = services.Settings.CollageSettingsCollapsed;
         foreach (var t in CollageTemplates.All) Templates.Add(new CollageTemplateItem(t));
         Template = CollageTemplates.Default;
         Sheet = PrintFormats.P10x15;
@@ -90,6 +92,34 @@ public sealed partial class CollageViewModel : ViewModelBase
 
     /// <summary>The built-in explorer and thumbnails for choosing photos (prompt_04 §6).</summary>
     public PhotoPickerViewModel Picker { get; }
+
+    /// <summary>The thumbnail panel is folded to a narrow strip, so the collage gets its width (prompt_08 §3); remembered.</summary>
+    [ObservableProperty]
+    public partial bool ThumbsCollapsed { get; set; }
+
+    /// <summary>The settings panel is folded to a narrow strip (prompt_08 §3); remembered.</summary>
+    [ObservableProperty]
+    public partial bool SettingsCollapsed { get; set; }
+
+    partial void OnThumbsCollapsedChanged(bool value)
+    {
+        if (_services.Settings.CollageThumbsCollapsed == value) return;
+        _services.Settings.CollageThumbsCollapsed = value;
+        _services.SaveSettings();
+    }
+
+    partial void OnSettingsCollapsedChanged(bool value)
+    {
+        if (_services.Settings.CollageSettingsCollapsed == value) return;
+        _services.Settings.CollageSettingsCollapsed = value;
+        _services.SaveSettings();
+    }
+
+    [RelayCommand]
+    private void ToggleThumbs() => ThumbsCollapsed = !ThumbsCollapsed;
+
+    [RelayCommand]
+    private void ToggleSettings() => SettingsCollapsed = !SettingsCollapsed;
 
     /// <summary>Set by the shell: the folder open in Photos, where the picker starts.</summary>
     public Func<string?>? StartFolder { get; set; }

@@ -39,4 +39,33 @@ internal static class PanelWidth
     }
 
     public static void Save(string name, ColumnDefinition column) => Save(s => s.PanelWidths[name] = Math.Round(column.ActualWidth));
+
+    /// <summary>
+    /// Shows or folds a side panel (prompt_08 §3, §4): folded, its column and splitter take no space and the centre
+    /// grows; shown again, <paramref name="restore"/> gives it back its remembered width and limits.
+    /// </summary>
+    public static void Show(ColumnDefinition column, Control panel, Control? splitter, bool visible, Action restore)
+    {
+        panel.IsVisible = visible;
+        if (splitter is not null) splitter.IsVisible = visible;
+        if (visible)
+        {
+            restore();
+            return;
+        }
+
+        column.MinWidth = 0;
+        column.Width = new GridLength(0);
+    }
+
+    /// <summary>Keeps the folder tree column of a workspace in step with its explorer's <see cref="ViewModels.ExplorerViewModel.IsTreeVisible"/>.</summary>
+    public static void FollowTree(ViewModels.ExplorerViewModel explorer, ColumnDefinition column, Control panel, Control splitter, Action restore)
+    {
+        void Update() => Show(column, panel, splitter, explorer.IsTreeVisible, restore);
+        explorer.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ViewModels.ExplorerViewModel.IsTreeVisible)) Update();
+        };
+        Update();
+    }
 }

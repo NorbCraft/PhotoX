@@ -77,8 +77,9 @@ public sealed partial class IdViewModel : ViewModelBase
             _committed = Adjustments;
             Rerender();
         };
-        Picker = new PhotoPickerViewModel(services) { ThumbWidth = 124, ThumbHeight = 124, PickOnSelect = true };
-        Picker.Picked += photo => _ = LoadSourceAsync(photo.Path);
+        // Step 1 shows the folder like the Photos gallery, with cards of the same size (prompt_08 §2).
+        Picker = new PhotoPickerViewModel(services, ExplorerViewModel.IdWorkspace) { ThumbWidth = 176, ThumbHeight = 172, PickOnSelect = true };
+        Picker.Picked += photo => _ = PickAsync(photo.Path);
         foreach (var s in IdSizes.BuiltIn) Sizes.Add(new IdSizeItem(s));
         foreach (var c in services.Settings.CustomIdSizes.Where(c => IdSizes.IsValidCustom(c.WidthMm, c.HeightMm)))
         {
@@ -256,7 +257,7 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial IdSizeItem SelectedSize { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSource), nameof(ShowFraming), nameof(ShowSheet), nameof(ShowEmpty))]
+    [NotifyPropertyChangedFor(nameof(HasSource), nameof(ShowFraming), nameof(ShowSheet))]
     public partial string? SourcePath { get; set; }
 
     [ObservableProperty]
@@ -269,8 +270,17 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial Bitmap? SheetPreview { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFraming), nameof(ShowFraming), nameof(ShowSheet), nameof(ShowEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsFraming), nameof(ShowFraming), nameof(ShowSheet))]
     public partial bool IsSheetStep { get; set; }
+
+    /// <summary>A chosen photo is being read (shown over the thumbnails in step 1).</summary>
+    [ObservableProperty]
+    public partial bool IsLoadingPhoto { get; set; }
+
+    /// <summary>Step 1, Select photo (prompt_08 §2): the folder's thumbnails fill the workspace.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFraming), nameof(ShowFraming), nameof(ShowSheet))]
+    public partial bool IsSelectStep { get; set; } = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanAutoAlign))]
@@ -312,15 +322,14 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public bool HasSource => SourcePath is not null;
 
-    public bool IsFraming => !IsSheetStep;
+    /// <summary>Step 2, Framing &amp; adjustments.</summary>
+    public bool IsFraming => !IsSelectStep && !IsSheetStep;
 
     /// <summary>The framing canvas is shown (a portrait is loaded).</summary>
-    public bool ShowFraming => HasSource && !IsSheetStep;
+    public bool ShowFraming => HasSource && IsFraming;
 
-    public bool ShowSheet => HasSource && IsSheetStep;
+    public bool ShowSheet => HasSource && IsSheetStep && !IsSelectStep;
 
-    /// <summary>No portrait loaded yet: the hint to choose one.</summary>
-    public bool ShowEmpty => !HasSource;
 
     public bool CanUndo => _undo.Count > 0;
 
@@ -370,11 +379,42 @@ public sealed partial class IdViewModel : ViewModelBase
     /// <summary>Called when the workspace is shown: the explorer opens the order of the Photos workspace the first time.</summary>
     public void Activate() => Picker.EnsureStarted(SourcePath is { } p ? Path.GetDirectoryName(p) : StartFolder?.Invoke());
 
+    /// <summary>
+    /// A photo chosen in step 1: it loads and step 2 opens. The portrait already loaded continues with its framing and
+    /// adjustments instead of starting again.
+    /// </summary>
+    private async Task PickAsync(string path)
+    {
+        if (string.Equals(path, SourcePath, StringComparison.Ordinal) && _source is not null)
+        {
+            ShowFramingStep();
+            return;
+        }
+
+        await LoadSourceAsync(path);
+    }
+
+    /// <summary>Step 1 (Select photo): the folder's thumbnails; the loaded portrait stays as it is.</summary>
+    [RelayCommand]
+    private void ShowSelectStep()
+    {
+        StatusMessage = null;
+        ClearFaceChoices();
+        IsSheetStep = false;
+        IsSelectStep = true;
+    }
+
+    private void ShowFramingStep()
+    {
+        IsSheetStep = false;
+        IsSelectStep = false;
+    }
     /// <summary>Loads a portrait (read-only). Used by Open photo and by "Use for ID photo" in the Photos workspace.</summary>
     public async Task LoadSourceAsync(string path)
     {
         ErrorMessage = null;
         IsBusy = true;
+        IsLoadingPhoto = true;
         try
         {
             var (source, proxy, levels) = await Task.Run(() =>
@@ -410,7 +450,7 @@ public sealed partial class IdViewModel : ViewModelBase
 
             SourcePath = path;
             OnPropertyChanged(nameof(SourceName));
-            IsSheetStep = false;
+            ShowFramingStep();
             ResetAll();
             Log.Information("ID: loaded portrait {Path}", path);
         }
@@ -421,6 +461,7 @@ public sealed partial class IdViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+            IsLoadingPhoto = false;
         }
     }
 
@@ -581,6 +622,7 @@ public sealed partial class IdViewModel : ViewModelBase
         (StatusMessage, ErrorMessage) = (null, null);
         Framing = null;
         IsSheetStep = false;
+        IsSelectStep = true;
         SourcePath = null;
         OnPropertyChanged(nameof(SourceName));
         var (preview, sheet) = (Preview, SheetPreview);
@@ -690,6 +732,7 @@ public sealed partial class IdViewModel : ViewModelBase
         if (_source is null) return;
         StatusMessage = null;
         ClearFaceChoices();
+        IsSelectStep = false;
         IsSheetStep = true;
         _ = RenderSheetPreviewAsync();
     }
@@ -698,7 +741,8 @@ public sealed partial class IdViewModel : ViewModelBase
     private void BackToFraming()
     {
         if (IsSheetStep) StatusMessage = null;
-        IsSheetStep = false;
+        if (_source is null) return;
+        ShowFramingStep();
     }
 
     [RelayCommand]
@@ -713,6 +757,17 @@ public sealed partial class IdViewModel : ViewModelBase
     /// <summary>Framing keys; Space (held) shows the photo without adjustments, the only before/after control here (prompt_04 §8).</summary>
     public bool HandleKey(Key key, KeyModifiers modifiers)
     {
+        if (IsSelectStep && modifiers == KeyModifiers.None)
+        {
+            // Step 1 behaves like the Photos gallery: Enter picks the photo or opens the folder, Backspace goes up.
+            switch (key)
+            {
+                case Key.Enter: Picker.Pick(null); return true;
+                case Key.Back: Picker.Explorer.GoUpCommand.Execute(null); return true;
+                default: return false;
+            }
+        }
+
         if (!ShowFraming || Framing is null) return false;
         var step = modifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
         var ctrl = modifiers.HasFlag(KeyModifiers.Control);

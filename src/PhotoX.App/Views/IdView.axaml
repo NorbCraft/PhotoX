@@ -79,12 +79,13 @@
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
   </UserControl.Styles>
-  <!-- ID Photos (prompt_06 §5, prompt_07 §2): steps and tools above the photo, the explorer on the left, the photo in
-       the centre and the editing sidebar of the Photos workspace on the right -->
+  <!-- ID Photos (prompt_06 §5, prompt_07 §2, prompt_08 §2): steps and tools above the photo, the folder tree on the left.
+       Step 1 shows the folder's thumbnails like the Photos gallery; steps 2 and 3 show the photo or the sheet in the
+       centre and the editing sidebar of the Photos workspace on the right. -->
   <Grid x:Name="Root" ColumnDefinitions="290,Auto,*,Auto,340" RowDefinitions="Auto,Auto,*">
 
-    <!-- Above the photo (prompt_07 §2.2): the format, the two steps and Clear, within the photo column -->
-    <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,7">
+    <!-- Above the photo (prompt_07 §2.2): the format, the three steps and Clear, across the photo and the right panel -->
+    <Border Grid.Column="2" Grid.ColumnSpan="3" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,7">
       <Grid ColumnDefinitions="*,Auto,*">
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
             <Button x:Name="FormatButton" Classes="chip selected" Focusable="False" Padding="12,4,14,4" MinHeight="34" ToolTip.Tip="{l:Tr IdFormatTip}">
@@ -144,17 +145,24 @@
             </Button.Flyout>
           </Button>
         </StackPanel>
+        <!-- The three steps (prompt_08 §2): Select photo, Framing & adjustment, Print -->
         <Border Grid.Column="1" Classes="segbox" Margin="10,0">
           <StackPanel Orientation="Horizontal" Spacing="2">
-            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsFraming, Mode=OneWay}" Command="{Binding BackToFramingCommand}">
+            <ToggleButton x:Name="SelectStepButton" Classes="segacc step" Focusable="False" IsChecked="{Binding IsSelectStep, Mode=OneWay}" Command="{Binding ShowSelectStepCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Border Classes="stepnum"><TextBlock Text="1" /></Border>
+                <TextBlock Text="{l:Tr StepSelect}" VerticalAlignment="Center" />
+              </StackPanel>
+            </ToggleButton>
+            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsFraming, Mode=OneWay}" Command="{Binding BackToFramingCommand}" IsEnabled="{Binding HasSource}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Classes="stepnum"><TextBlock Text="2" /></Border>
                 <TextBlock Text="{l:Tr Step1}" VerticalAlignment="Center" />
               </StackPanel>
             </ToggleButton>
-            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsSheetStep, Mode=OneWay}" Command="{Binding ContinueToSheetCommand}" IsEnabled="{Binding HasSource}">
+            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding ShowSheet, Mode=OneWay}" Command="{Binding ContinueToSheetCommand}" IsEnabled="{Binding HasSource}">
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <Border Classes="stepnum"><TextBlock Text="2" /></Border>
+                <Border Classes="stepnum"><TextBlock Text="3" /></Border>
                 <TextBlock Text="{l:Tr Step2}" VerticalAlignment="Center" />
               </StackPanel>
             </ToggleButton>
@@ -216,21 +224,20 @@
       </Grid>
     </Border>
 
-    <!-- Left: the common explorer and the folder's photos; a click loads a photo (prompt_05 §7) -->
-    <Border Grid.RowSpan="3" Background="{DynamicResource PanelBrush}">
-      <Grid RowDefinitions="1.1*,5,*">
-        <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
-        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{DynamicResource BorderBrush}" />
-        <DockPanel Grid.Row="2">
-          <TextBlock DockPanel.Dock="Top" Classes="section" Text="{l:Tr IdPhotos}" Margin="18,10,14,4" />
-          <v:PickerGrid Margin="6,0,6,6" DataContext="{Binding Picker}" />
-        </DockPanel>
-      </Grid>
+    <!-- Left: the folder tree shared by all workspaces (prompt_08 §2); it can be hidden from the toolbar (prompt_08 §4) -->
+    <Border x:Name="TreePanel" Grid.RowSpan="3" Background="{DynamicResource PanelBrush}">
+      <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
     </Border>
-    <GridSplitter Grid.RowSpan="3" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
+    <GridSplitter x:Name="TreeSplitter" Grid.RowSpan="3" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
 
-    <!-- Centre: the photo under the ID frame, or the sheet -->
-    <Panel Grid.Row="2" Grid.Column="2" Background="{DynamicResource CanvasBrush}">
+    <!-- Step 1: the folder's subfolders and photos, as in the Photos gallery; a click on a photo opens it in step 2 -->
+    <DockPanel Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" IsVisible="{Binding IsSelectStep}">
+      <TextBlock DockPanel.Dock="Top" Text="{l:Tr IdPickHint}" Classes="muted" Margin="24,12,24,2" TextWrapping="Wrap" />
+      <v:PickerGrid x:Name="SelectGrid" Margin="16,6,8,8" DataContext="{Binding Picker}" />
+    </DockPanel>
+
+    <!-- Steps 2 and 3: the photo under the ID frame, or the sheet -->
+    <Panel Grid.Row="2" Grid.Column="2" Background="{DynamicResource CanvasBrush}" IsVisible="{Binding !IsSelectStep}">
       <c:IdCanvas x:Name="Canvas" IsVisible="{Binding ShowFraming}" Margin="16" Source="{Binding Preview}" Size="{Binding SelectedSize.Size}"
                   FrameWidth="{Binding PreviewFrameWidth}" FrameHeight="{x:Static vm:IdViewModel.PreviewFrameHeight}" />
       <Border IsVisible="{Binding ShowSheet}" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 6 18 0 #90000000">
@@ -252,18 +259,23 @@
         <Button Focusable="False" HorizontalAlignment="Center" Content="{l:Tr KeepManual}" Command="{Binding KeepManualFramingCommand}" IsVisible="{Binding HasFaceChoices}" />
       </StackPanel>
       <TextBlock IsVisible="{Binding ShowFraming}" Text="{l:Tr MoveHint}" Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" />
-      <TextBlock IsVisible="{Binding ShowEmpty}" Text="{l:Tr IdSelectPhoto}" Classes="muted" FontSize="15" TextWrapping="Wrap" MaxWidth="420" TextAlignment="Center"
-                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Panel>
+
+    <!-- Over every step: loading a photo, and why a photo could not be opened -->
+    <Panel Grid.Row="1" Grid.RowSpan="2" Grid.Column="2">
+      <Border IsVisible="{Binding IsLoadingPhoto}" Background="#A0000000" CornerRadius="8" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="{l:Tr Loading}" Foreground="White" FontSize="14" />
+      </Border>
       <Border IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource ErrorBgBrush}" BorderBrush="{DynamicResource ErrorBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10"
               Margin="24" HorizontalAlignment="Center" VerticalAlignment="Bottom" MaxWidth="700">
         <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource ErrorTextBrush}" TextWrapping="Wrap" />
       </Border>
     </Panel>
 
-    <!-- Resizable right panel (prompt_03 §3) -->
-    <GridSplitter Grid.RowSpan="3" Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnSplitterDragCompleted" />
+    <!-- Resizable right panel (prompt_03 §3); not in step 1, where the thumbnails take its place -->
+    <GridSplitter x:Name="RightSplitter" Grid.Row="1" Grid.RowSpan="2" Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnSplitterDragCompleted" />
 
-    <Border Grid.RowSpan="3" Grid.Column="4" Background="{DynamicResource PanelBrush}">
+    <Border x:Name="RightPanel" Grid.Row="1" Grid.RowSpan="2" Grid.Column="4" Background="{DynamicResource PanelBrush}">
       <Panel>
         <!-- Step 1: the editing sidebar of the Photos workspace (prompt_06 §5), then Continue -->
         <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding !IsSheetStep}">

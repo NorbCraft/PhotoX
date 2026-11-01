@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoX.App.ViewModels"
+             xmlns:s="using:PhotoX.App.Services"
+             x:Class="PhotoX.App.Views.FolderCard"
+             x:DataType="vm:FolderItemViewModel">
+  <!-- A subfolder in a gallery (prompt_08 §1), the same card in Photos, ID Photos and Collages: a large folder icon
+       instead of a thumbnail, so folders and photos are told apart at a glance. Double-click opens it. -->
+  <Border Classes="card folder" CornerRadius="9" ToolTip.Tip="{Binding Path}">
+    <Grid RowDefinitions="*,Auto" Margin="8">
+      <Path Data="{x:Static s:Icons.Folder}" Stroke="{DynamicResource AccentBrush}" Fill="{DynamicResource AccentTintBrush}" StrokeThickness="2" StrokeJoin="Round"
+            Stretch="Uniform" MaxWidth="84" MaxHeight="68" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="1" Classes="name" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="2,6,2,0" />
+    </Grid>
+  </Border>
+</UserControl>

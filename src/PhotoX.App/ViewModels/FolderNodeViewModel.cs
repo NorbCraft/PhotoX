@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PhotoX.Storage;
 
 namespace PhotoX.App.ViewModels;
@@ -55,3 +56,17 @@ public sealed partial class FolderNodeViewModel : ViewModelBase
 }
 
 public sealed record LocationItem(string Name, string Path, bool IsRemovable);
+
+/// <summary>
+/// A subfolder shown as a card in a gallery, before the photos (prompt_08 §1). Double-click (or Enter) opens it in the
+/// workspace's explorer, which also selects it in the tree.
+/// </summary>
+public sealed partial class FolderItemViewModel(string path, ExplorerViewModel explorer) : ViewModelBase
+{
+    public string Path { get; } = path;
+
+    public string Name { get; } = ExplorerViewModel.FolderName(path);
+
+    [RelayCommand]
+    public void Open() => explorer.Navigate(Path);
+}

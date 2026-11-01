@@ -9,16 +9,18 @@
              x:DataType="vm:BrowseViewModel">
   <Grid x:Name="Root" ColumnDefinitions="290,Auto,*,Auto,330">
 
-    <!-- Explorer (FR-001), the same control as in ID Photos and Collages (prompt_04 §6); resizable (prompt_06 §1) -->
-    <Border Grid.Column="0" Background="{DynamicResource PanelBrush}">
+    <!-- Explorer (FR-001), the same control as in ID Photos and Collages (prompt_04 §6); resizable (prompt_06 §1);
+         hidden and shown with the toolbar button (prompt_08 §4) -->
+    <Border x:Name="TreePanel" Grid.Column="0" Background="{DynamicResource PanelBrush}">
       <v:ExplorerView DataContext="{Binding Explorer}" />
     </Border>
-    <GridSplitter Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
+    <GridSplitter x:Name="TreeSplitter" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
 
     <!-- Gallery (FR-002) -->
     <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
       <StackPanel Margin="24,16,24,8" Spacing="12">
-        <TextBlock Text="{Binding CurrentFolder}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+        <!-- Up and the open folder (prompt_08 §1) -->
+        <v:LocationBar DataContext="{Binding Explorer}" IsVisible="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).HasFolder}" />
         <Grid ColumnDefinitions="*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Button Classes="chip" Focusable="False" Classes.selected="{Binding Filter, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=All}"
@@ -32,6 +34,14 @@
           <Button Classes="chip" Focusable="False" Classes.selected="{Binding Filter, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=Done}"
                   Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:PhotoFilter.Done}">
             <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{l:Tr FilterDone}" /><TextBlock Text="{Binding CountDone}" Opacity="0.7" /></StackPanel>
+          </Button>
+          <!-- Deleted photos, kept in “Original” until Discard originals (prompt_08 §5) -->
+          <Button Classes="chip" Focusable="False" Classes.selected="{Binding Filter, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=Deleted}"
+                  Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:PhotoFilter.Deleted}" ToolTip.Tip="{l:Tr FilterDeletedTip}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{x:Static s:Icons.Delete}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6" StrokeJoin="Round" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" Margin="-4,-6" VerticalAlignment="Center" RenderTransform="scale(0.75)" />
+              <TextBlock Text="{l:Tr FilterDeleted}" /><TextBlock Text="{Binding CountDeleted}" Opacity="0.7" />
+            </StackPanel>
           </Button>
         </StackPanel>
         <!-- Thumbnail size (prompt_06 §4): left smaller, right larger, double-click for the default -->
@@ -47,10 +57,10 @@
         <TextBlock Text="{l:Tr RemovableWarning}" Foreground="{DynamicResource WarnTextBrush}" TextWrapping="Wrap" />
       </Border>
       <TextBlock Grid.Row="2" IsVisible="{Binding !HasFolder}" Text="{l:Tr NoFolder}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-      <TextBlock Grid.Row="2" IsVisible="{Binding IsEmpty}" Text="{l:Tr NoPhotos}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="2" IsVisible="{Binding ShowNoPhotos}" Text="{Binding EmptyText}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Grid.Row="2" IsVisible="{Binding IsScanning}" Text="{l:Tr Loading}" Classes="muted" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <!-- Ctrl + click and Shift + click select several photos; Ctrl + A selects all (prompt_05 §5; no permanent hint, prompt_06 §4) -->
-      <ListBox Grid.Row="2" x:Name="Gallery" Margin="16,0,8,8" Background="Transparent" ItemsSource="{Binding VisiblePhotos}" SelectedItem="{Binding SelectedPhoto}"
+      <ListBox Grid.Row="2" x:Name="Gallery" Margin="16,0,8,8" Background="Transparent" ItemsSource="{Binding GalleryItems}" SelectedItem="{Binding SelectedGalleryItem}"
                SelectionMode="Multiple" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListBox.ItemsPanel>
           <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -83,28 +93,44 @@
           <Style Selector="ListBoxItem:pointerover Border.card">
             <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
           </Style>
+          <!-- A deleted photo is shown faded: it can only be restored -->
+          <Style Selector="Border.card.deleted Image">
+            <Setter Property="Opacity" Value="0.55" />
+          </Style>
         </ListBox.Styles>
-        <ListBox.ItemTemplate>
+        <!-- Subfolders first, as folder cards (prompt_08 §1), then the photos -->
+        <ListBox.DataTemplates>
+          <DataTemplate x:DataType="vm:FolderItemViewModel">
+            <v:FolderCard Width="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).CardWidth}" Height="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).CardHeight}" />
+          </DataTemplate>
           <DataTemplate x:DataType="vm:PhotoItemViewModel">
-            <Border Classes="card" CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped"
+            <Border Classes="card" Classes.deleted="{Binding IsDeleted}" CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped"
                     Width="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).CardWidth}" Height="{Binding $parent[ListBox].((vm:BrowseViewModel)DataContext).CardHeight}">
               <Border.ContextMenu>
                 <!-- Right-click actions (prompt_04 §4) -->
                 <ContextMenu>
-                  <MenuItem Header="{l:Tr EditSelected}" IsEnabled="{Binding IsOpenable}" Click="OnEditClick">
+                  <MenuItem Header="{l:Tr EditSelected}" IsEnabled="{Binding IsOpenable}" IsVisible="{Binding !IsDeleted}" Click="OnEditClick">
                     <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Edit}" /></MenuItem.Icon>
                   </MenuItem>
-                  <MenuItem Header="{l:Tr UseForId}" IsEnabled="{Binding IsOpenable}" Click="OnUseForIdClick">
+                  <MenuItem Header="{l:Tr UseForId}" IsEnabled="{Binding IsOpenable}" IsVisible="{Binding !IsDeleted}" Click="OnUseForIdClick">
                     <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.IdPhoto}" /></MenuItem.Icon>
                   </MenuItem>
-                  <MenuItem Header="{l:Tr PrintMenu}" IsEnabled="{Binding IsOpenable}" Click="OnPrintClick">
+                  <MenuItem Header="{l:Tr PrintMenu}" IsEnabled="{Binding IsOpenable}" IsVisible="{Binding !IsDeleted}" Click="OnPrintClick">
                     <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /></MenuItem.Icon>
                   </MenuItem>
-                  <Separator />
-                  <MenuItem Header="{l:Tr DuplicateImage}" Click="OnDuplicateClick">
+                  <Separator IsVisible="{Binding !IsDeleted}" />
+                  <MenuItem Header="{l:Tr DuplicateImage}" IsVisible="{Binding !IsDeleted}" Click="OnDuplicateClick">
                     <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Duplicate}" /></MenuItem.Icon>
                   </MenuItem>
-                  <MenuItem Header="{l:Tr RestoreOriginal}" IsEnabled="{Binding IsOpenable}" Click="OnRestoreClick">
+                  <MenuItem Header="{l:Tr RestoreOriginal}" IsEnabled="{Binding IsOpenable}" IsVisible="{Binding !IsDeleted}" Click="OnRestoreClick">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Restore}" /></MenuItem.Icon>
+                  </MenuItem>
+                  <!-- Delete (prompt_08 §5): asks first; the photo moves to “Original” and can be restored from Deleted -->
+                  <Separator IsVisible="{Binding !IsDeleted}" />
+                  <MenuItem Header="{l:Tr DeleteMenu}" IsVisible="{Binding !IsDeleted}" Click="OnDeleteClick" InputGesture="Delete">
+                    <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Delete}" /></MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="{l:Tr RestoreDeletedMenu}" IsVisible="{Binding IsDeleted}" Click="OnRestoreDeletedClick">
                     <MenuItem.Icon><Path Classes="bi" Data="{x:Static s:Icons.Restore}" /></MenuItem.Icon>
                   </MenuItem>
                 </ContextMenu>
@@ -122,13 +148,13 @@
                 </Border>
                 <StackPanel Grid.Row="1" Margin="2,8,2,0" Spacing="2">
                   <TextBlock Classes="name" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding StateText}" FontSize="11.5" IsVisible="{Binding HasBadge}" Classes.warn="{Binding IsWarning}" Classes.ok="{Binding !IsWarning}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding Info}" FontSize="11.5" IsVisible="{Binding !HasBadge}" Foreground="{DynamicResource Text3Brush}" />
+                  <TextBlock Text="{Binding StateText}" FontSize="11.5" IsVisible="{Binding ShowStateLine}" Classes.warn="{Binding IsWarning}" Classes.ok="{Binding !IsWarning}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Info}" FontSize="11.5" IsVisible="{Binding !ShowStateLine}" Foreground="{DynamicResource Text3Brush}" />
                 </StackPanel>
               </Grid>
             </Border>
           </DataTemplate>
-        </ListBox.ItemTemplate>
+        </ListBox.DataTemplates>
       </ListBox>
     </Grid>
 
@@ -166,8 +192,15 @@
               <TextBlock Text="{Binding PrintedText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
             </StackPanel>
           </StackPanel>
-          <!-- Actions (prompt_05 §5): print, edit or use one photo, save or restore the selection -->
-          <StackPanel Grid.Row="4" Spacing="8">
+          <!-- Under Deleted (prompt_08 §5): only Restore, and how long deleted photos are kept -->
+          <StackPanel Grid.Row="4" Spacing="10" IsVisible="{Binding IsDeletedView}">
+            <TextBlock Text="{Binding DeletedNote}" Classes="muted" TextWrapping="Wrap" />
+            <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Padding="8,6" Command="{Binding RestoreDeletedCommand}">
+              <c:IconLabel Icon="{x:Static s:Icons.Restore}" Text="{l:Tr RestoreDeletedSelected}" TextElement.FontWeight="SemiBold" />
+            </Button>
+          </StackPanel>
+          <!-- Actions (prompt_05 §5): print, edit or use one photo, restore the selection; Discard originals for the folder (prompt_08 §5) -->
+          <StackPanel Grid.Row="4" Spacing="8" IsVisible="{Binding !IsDeletedView}">
             <Grid ColumnDefinitions="*,8,*">
               <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Padding="8,6" Command="{Binding PrintSelectedCommand}" IsEnabled="{Binding HasSelection}">
                 <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr PrintSelected}" TextElement.FontWeight="SemiBold" />
@@ -186,7 +219,7 @@
               <c:IconLabel Icon="{x:Static s:Icons.IdPhoto}" Text="{l:Tr UseForId}" />
             </Button>
             <Grid ColumnDefinitions="*,8,*">
-              <Button Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding HasSelection}" ToolTip.Tip="{l:Tr SaveChangesTip}">
+              <Button Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding DiscardOriginalsCommand}" IsEnabled="{Binding HasFolder}" ToolTip.Tip="{l:Tr SaveChangesTip}">
                 <c:IconLabel Icon="{x:Static s:Icons.Delete}" Text="{l:Tr SaveChanges}" />
               </Button>
               <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Padding="8,6" Command="{Binding RestoreOriginalCommand}" IsEnabled="{Binding HasSelection}" ToolTip.Tip="{l:Tr RestoreTip}">

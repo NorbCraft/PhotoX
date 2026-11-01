@@ -3,22 +3,26 @@
              xmlns:vm="using:PhotoX.App.ViewModels"
              xmlns:l="using:PhotoX.App.Localization"
              xmlns:s="using:PhotoX.App.Services"
+             xmlns:v="using:PhotoX.App.Views"
              x:Class="PhotoX.App.Views.PickerGrid"
              x:DataType="vm:PhotoPickerViewModel">
-  <!-- Thumbnails of the folder open in the picker's explorer (prompt_04 §6). Double-click or Enter picks a photo. -->
+  <!-- Thumbnails of the folder open in the picker's explorer (prompt_04 §6), its subfolders first (prompt_08 §1), under
+       Up and the folder's path. Double-click or Enter picks a photo or opens a folder. -->
+  <DockPanel>
+    <v:LocationBar DockPanel.Dock="Top" DataContext="{Binding Explorer}" Margin="8,4,8,6" IsVisible="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).HasFolder}" />
   <Panel>
     <TextBlock IsVisible="{Binding !HasFolder}" Text="{l:Tr PickFolder}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <TextBlock IsVisible="{Binding IsEmpty}" Text="{l:Tr NoPhotos}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <TextBlock IsVisible="{Binding IsScanning}" Text="{l:Tr Loading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
-    <ListBox x:Name="Grid" Background="Transparent" ItemsSource="{Binding Photos}" SelectedItem="{Binding SelectedPhoto}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+    <ListBox x:Name="Grid" Background="Transparent" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
       <ListBox.ItemsPanel>
         <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
       </ListBox.ItemsPanel>
       <ListBox.Styles>
         <Style Selector="ListBoxItem">
           <Setter Property="Padding" Value="0" />
-          <Setter Property="Margin" Value="4" />
-          <Setter Property="CornerRadius" Value="8" />
+          <Setter Property="Margin" Value="5" />
+          <Setter Property="CornerRadius" Value="9" />
         </Style>
         <Style Selector="ListBoxItem:selected /template/ ContentPresenter, ListBoxItem:pointerover /template/ ContentPresenter">
           <Setter Property="Background" Value="Transparent" />
@@ -36,19 +40,27 @@
         <Style Selector="ListBoxItem:pointerover Border.card">
           <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
         </Style>
+        <Style Selector="ListBoxItem:selected TextBlock.name">
+          <Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}" />
+        </Style>
       </ListBox.Styles>
-      <ListBox.ItemTemplate>
+      <!-- The same cards as the Photos gallery: thumbnail and name in bold; folders as folder cards -->
+      <ListBox.DataTemplates>
         <DataTemplate x:DataType="vm:PickerPhoto">
           <Border Classes="card" Width="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).ThumbWidth}" Height="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).ThumbHeight}"
-                  CornerRadius="8" DoubleTapped="OnPhotoDoubleTapped" ToolTip.Tip="{Binding Name}">
-            <Grid RowDefinitions="*,Auto" Margin="6">
+                  CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped" Tapped="OnPhotoTapped" ToolTip.Tip="{Binding Name}">
+            <Grid RowDefinitions="*,Auto" Margin="7">
               <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
               <TextBlock Text="…" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
-              <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="12" Margin="2,5,2,0" TextTrimming="CharacterEllipsis" Classes.faint="{Binding !IsOpenable}" />
+              <TextBlock Grid.Row="1" Classes="name" Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" Margin="2,6,2,0" TextTrimming="CharacterEllipsis" Classes.faint="{Binding !IsOpenable}" />
             </Grid>
           </Border>
         </DataTemplate>
-      </ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:FolderItemViewModel">
+          <v:FolderCard Width="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).ThumbWidth}" Height="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).ThumbHeight}" />
+        </DataTemplate>
+      </ListBox.DataTemplates>
     </ListBox>
   </Panel>
+  </DockPanel>
 </UserControl>

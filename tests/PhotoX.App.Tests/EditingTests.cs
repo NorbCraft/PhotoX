@@ -88,7 +88,10 @@ public class EditingTests
         window.Close();
     }
 
-    /// <summary>prompt_05 §5: Save Changes saves pending edits after a clear warning, then deletes only PhotoX's originals.</summary>
+    /// <summary>
+    /// prompt_05 §5, prompt_08 §5: Discard Originals (for the whole folder) saves pending edits after a clear warning,
+    /// then deletes only PhotoX's originals.
+    /// </summary>
     [AvaloniaFact]
     public async Task Save_changes_saves_pending_edits_and_deletes_only_photox_originals()
     {
@@ -102,12 +105,13 @@ public class EditingTests
         shell.Editor.BackToFolderCommand.Execute(null);
         File.WriteAllText(Path.Combine(order, "Original", "notes.txt"), "customer notes");
 
-        var save = shell.SaveChangesAsync(shell.Browse.AllPhotos.ToList());
+        var save = shell.DiscardOriginalsAsync();
         await UiHelpers.WaitUntil(() => shell.Dialog is not null);
-        Assert.Contains("P2.jpg", shell.Dialog!.Message);           // the photos are named
+        Assert.Contains("P2.jpg", shell.Dialog!.Message);           // the unsaved photo is named
         Assert.Contains("permanently", shell.Dialog.Message);       // and the deletion is explained
+        Assert.Contains("whole folder", shell.Dialog.Message);
         UiHelpers.Capture(window, "save-changes-warning");
-        shell.Dialog.PressCommand.Execute("save");
+        shell.Dialog.PressCommand.Execute("discard");
         await UiHelpers.WaitUntil(() => shell.Dialog is { Buttons.Count: 1 });
         shell.Dialog!.PressCommand.Execute("ok");
         await save;
@@ -178,7 +182,7 @@ public class EditingTests
         shell.Editor.BackToFolderCommand.Execute(null);
         var before = Directory.GetFiles(order, "*", SearchOption.AllDirectories).ToDictionary(f => f, Fixtures.Sha);
 
-        var save = shell.SaveChangesAsync(shell.Browse.AllPhotos.ToList());
+        var save = shell.DiscardOriginalsAsync();
         await UiHelpers.WaitUntil(() => shell.Dialog is not null);
         shell.Dialog!.PressCommand.Execute("cancel");
         await save;

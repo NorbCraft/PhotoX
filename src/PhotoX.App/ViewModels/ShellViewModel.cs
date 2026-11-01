@@ -21,8 +21,11 @@ public sealed partial class ShellViewModel : ViewModelBase
         Print.BackRequested += BackFromPrinting;
         Browse.EditRequested += item => _ = OpenEditorAsync(item);
         Browse.PrintRequested += PrintPhotos;
-        Browse.SaveChangesRequested += items => _ = SaveChangesAsync(items);
+        Browse.DiscardOriginalsRequested += () => _ = DiscardOriginalsAsync();
         Browse.RestoreRequested += items => _ = RestoreOriginalAsync(items);
+        Browse.DeleteRequested += items => _ = DeletePhotosAsync(items);
+        Browse.RestoreDeletedRequested += items => _ = RestoreDeletedAsync(items);
+        Browse.ConfirmLeaveFolder = ConfirmLeaveFolderAsync;
         Id.PrintRequested += (item, size) => OpenPrint([item], size, sizeFixed: true);
         Collage.PrintRequested += (item, size) => OpenPrint([item], size, sizeFixed: true);
         Print.Queue.PropertyChanged += (_, e) =>
@@ -70,8 +73,32 @@ public sealed partial class ShellViewModel : ViewModelBase
     public CollageViewModel Collage { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsCollageWorkspace), nameof(IsPrintWorkspace), nameof(IsEditing), nameof(IsBrowsing))]
+    [NotifyPropertyChangedFor(nameof(IsPhotosWorkspace), nameof(IsIdWorkspace), nameof(IsCollageWorkspace), nameof(IsPrintWorkspace), nameof(IsEditing), nameof(IsBrowsing),
+        nameof(CurrentExplorer), nameof(CanToggleTree), nameof(IsTreeVisible))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleTreeCommand))]
     public partial ViewModelBase CurrentPage { get; set; }
+
+    /// <summary>The explorer of the page shown, whose folder tree the toolbar button shows or hides (prompt_08 §4).</summary>
+    public ExplorerViewModel? CurrentExplorer => CurrentPage switch
+    {
+        BrowseViewModel => Browse.Explorer,
+        IdViewModel => Id.Picker.Explorer,
+        CollageViewModel => Collage.Picker.Explorer,
+        _ => null,
+    };
+
+    public bool CanToggleTree => CurrentExplorer is not null;
+
+    /// <summary>The button is marked while the shown workspace's tree is visible.</summary>
+    public bool IsTreeVisible => CurrentExplorer?.IsTreeVisible == true;
+
+    /// <summary>Shows or hides the folder tree of the workspace shown; each workspace keeps its own choice (prompt_08 §4).</summary>
+    [RelayCommand(CanExecute = nameof(CanToggleTree))]
+    private void ToggleTree()
+    {
+        CurrentExplorer?.ToggleTree();
+        OnPropertyChanged(nameof(IsTreeVisible));
+    }
 
     public bool IsPhotosWorkspace => CurrentPage is BrowseViewModel or EditorViewModel;
 
@@ -186,11 +213,73 @@ public sealed partial class ShellViewModel : ViewModelBase
     private ViewModelBase? _lastPhotosPage;
 
     [RelayCommand]
-    private void OpenSettings()
+    private void OpenSettings() => Settings = CreateSettings(OperatingSystem.IsWindows());
+
+    /// <param name="updatesInstall">Windows installs updates itself; elsewhere the release page opens (tests choose).</param>
+    internal SettingsViewModel CreateSettings(bool updatesInstall)
     {
-        var vm = new SettingsViewModel(_services, Version);
+        var vm = new SettingsViewModel(_services, Version, new UpdateHost(ConfirmUpdateAsync, PrepareUpdateCloseAsync, RunInstallerAndExit, url => OpenUrlRequested?.Invoke(url)))
+        {
+            UpdatesInstall = updatesInstall,
+        };
         vm.Closed += () => Settings = null;
-        Settings = vm;
+        return vm;
+    }
+
+    /// <summary>Raised to close PhotoX without asking again (the update installer has started).</summary>
+    public event Action? ExitRequested;
+
+    /// <summary>Raised to open a web page in the browser (the release page on Linux).</summary>
+    public event Action<string>? OpenUrlRequested;
+
+    /// <summary>Starts the downloaded installer; tests replace it.</summary>
+    public Func<string, bool> StartInstaller { get; set; } = path =>
+    {
+        try
+        {
+            // Through the shell, so Windows applies its usual checks (SmartScreen) to the unsigned installer.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+            return true;
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+        {
+            Serilog.Log.Warning(ex, "Could not start the installer {Path}", path);
+            return false;
+        }
+    };
+
+    private async Task<bool> ConfirmUpdateAsync(Storage.Updates.ReleaseInfo release)
+    {
+        var tr = Localizer.Instance;
+        var version = Storage.Updates.UpdateClient.Format(release.Version);
+        var size = release.Installer is { Size: > 0 } i ? tr.Format("UpdateSize", i.Size / 1048576.0) : string.Empty;
+        var d = new DialogViewModel(tr.Format("UpdateConfirmTitle", version), tr.Format("UpdateConfirmMessage", version, Version, size))
+        {
+            Note = tr["UpdateSmartScreen"],
+        };
+        d.Buttons.Add(new DialogButton("cancel", tr["Cancel"], false));
+        d.Buttons.Add(new DialogButton("update", tr["UpdateInstall"], true));
+        return await ShowDialogAsync(d) == "update";
+    }
+
+    /// <summary>Before the installer starts: nothing may be saving; unsent print jobs and unsaved edits are asked about.</summary>
+    private async Task<bool> PrepareUpdateCloseAsync()
+    {
+        if (Editor.IsBusy || Id.IsBusy || Collage.IsBusy)
+        {
+            await ShowMessageAsync(Localizer.Instance["Updates"], Localizer.Instance["UpdateBusy"]);
+            return false;
+        }
+
+        return await ConfirmCloseAsync("UpdateAnyway");
+    }
+
+    private bool RunInstallerAndExit(string installer)
+    {
+        if (!StartInstaller(installer)) return false;
+        Serilog.Log.Information("Update installer started: {Path}; closing", installer);
+        ExitRequested?.Invoke();
+        return true;
     }
 
     private async Task UseForIdAsync(PhotoItemViewModel item)

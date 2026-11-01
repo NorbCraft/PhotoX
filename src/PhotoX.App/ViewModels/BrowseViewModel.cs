@@ -17,6 +17,9 @@ public enum PhotoFilter
     All,
     ToDo,
     Done,
+
+    /// <summary>Photos deleted from the gallery and kept in <c>Original/</c> until Discard Originals (prompt_08 §5).</summary>
+    Deleted,
 }
 
 /// <summary>Built-in explorer and gallery (FR-001, FR-002, FR-053, FR-054).</summary>
@@ -30,7 +33,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         _services = services;
         DetailsCollapsed = services.Settings.BrowseDetailsCollapsed;
         ThumbScale = Math.Clamp(services.Settings.ThumbnailScale, MinThumbScale, MaxThumbScale);
-        Explorer = new ExplorerViewModel(services);
+        Explorer = new ExplorerViewModel(services, ExplorerViewModel.PhotosWorkspace);
         Explorer.FolderOpened += OpenFolder;
         Localizer.Instance.LanguageChanged += (_, _) => RefreshTexts();
         // Counters change on the print worker once Windows accepts (or loses) a job.
@@ -51,8 +54,20 @@ public sealed partial class BrowseViewModel : ViewModelBase
     /// <summary>Raised with the photos to print (Print selected / Print all, prompt_05 §5).</summary>
     public event Action<IReadOnlyList<PhotoItemViewModel>>? PrintRequested;
 
-    /// <summary>Raised with the photos whose changes should be saved and originals removed (prompt_05 §5).</summary>
-    public event Action<IReadOnlyList<PhotoItemViewModel>>? SaveChangesRequested;
+    /// <summary>Raised for Discard Originals: the whole open folder (prompt_08 §5).</summary>
+    public event Action? DiscardOriginalsRequested;
+
+    /// <summary>Raised with the photos to delete (moved into <c>Original/</c>, prompt_08 §5).</summary>
+    public event Action<IReadOnlyList<PhotoItemViewModel>>? DeleteRequested;
+
+    /// <summary>Raised with deleted photos to bring back into the folder (prompt_08 §5).</summary>
+    public event Action<IReadOnlyList<PhotoItemViewModel>>? RestoreDeletedRequested;
+
+    /// <summary>
+    /// Set by the shell: asked before another folder opens while photos of this one have unsaved edits, which exist
+    /// only in memory (FR-019). True when the folder may change (the edits were saved or discarded).
+    /// </summary>
+    public Func<Task<bool>>? ConfirmLeaveFolder { get; set; }
 
     /// <summary>Raised with the photos to restore from their originals (prompt_05 §5).</summary>
     public event Action<IReadOnlyList<PhotoItemViewModel>>? RestoreRequested;
@@ -79,14 +94,19 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMultipleSelection));
         OnPropertyChanged(nameof(SelectionText));
         PrintSelectedCommand.NotifyCanExecuteChanged();
-        SaveChangesCommand.NotifyCanExecuteChanged();
         RestoreOriginalCommand.NotifyCanExecuteChanged();
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        RestoreDeletedCommand.NotifyCanExecuteChanged();
     }
 
-    private IReadOnlyList<PhotoItemViewModel> Targets(PhotoItemViewModel? item) =>
-        item is not null && !SelectedPhotos.Contains(item) ? [item] : SelectedPhotos.Count > 0 ? SelectedPhotos : SelectedPhoto is { } p ? [p] : [];
+    /// <summary>The photos an action applies to: the clicked one, else the selection; never a mix of deleted and present ones.</summary>
+    private IReadOnlyList<PhotoItemViewModel> Targets(PhotoItemViewModel? item, bool deleted = false) =>
+        (item is not null && !SelectedPhotos.Contains(item) ? [item] : SelectedPhotos.Count > 0 ? SelectedPhotos : SelectedPhoto is { } p ? [p] : [])
+        .Where(p => p.IsDeleted == deleted).ToList();
 
-    private bool HasTargets(PhotoItemViewModel? item) => item is not null || SelectedPhotos.Count > 0 || SelectedPhoto is not null;
+    private bool HasTargets(PhotoItemViewModel? item) => Targets(item).Count > 0;
+
+    private bool HasDeletedTargets(PhotoItemViewModel? item) => Targets(item, deleted: true).Count > 0;
 
     [RelayCommand(CanExecute = nameof(HasTargets))]
     private void PrintSelected(PhotoItemViewModel? item) => PrintRequested?.Invoke(Targets(item));
@@ -97,11 +117,29 @@ public sealed partial class BrowseViewModel : ViewModelBase
         if (AllPhotos.Any(p => p.IsOpenable)) PrintRequested?.Invoke(AllPhotos.Where(p => p.IsOpenable).ToList());
     }
 
-    [RelayCommand(CanExecute = nameof(HasTargets))]
-    private void SaveChanges(PhotoItemViewModel? item) => SaveChangesRequested?.Invoke(Targets(item));
+    /// <summary>Discard Originals: the whole open folder, whatever is selected (prompt_08 §5).</summary>
+    [RelayCommand]
+    private void DiscardOriginals()
+    {
+        if (CurrentFolder is not null) DiscardOriginalsRequested?.Invoke();
+    }
 
     [RelayCommand(CanExecute = nameof(HasTargets))]
     private void RestoreOriginal(PhotoItemViewModel? item) => RestoreRequested?.Invoke(Targets(item));
+
+    /// <summary>Delete (context menu, Delete key): the clicked photo or the selection, after a confirmation.</summary>
+    [RelayCommand(CanExecute = nameof(HasTargets))]
+    private void DeleteSelected(PhotoItemViewModel? item)
+    {
+        if (Targets(item) is { Count: > 0 } targets) DeleteRequested?.Invoke(targets);
+    }
+
+    /// <summary>Restore (Deleted view): the clicked deleted photo or the selected ones.</summary>
+    [RelayCommand(CanExecute = nameof(HasDeletedTargets))]
+    private void RestoreDeleted(PhotoItemViewModel? item)
+    {
+        if (Targets(item, deleted: true) is { Count: > 0 } targets) RestoreDeletedRequested?.Invoke(targets);
+    }
 
     /// <summary>Raised when the selected photo should open in the ID Photo Creator.</summary>
     public event Action<PhotoItemViewModel>? UseForIdRequested;
@@ -119,6 +157,39 @@ public sealed partial class BrowseViewModel : ViewModelBase
     public ObservableCollection<PhotoItemViewModel> AllPhotos { get; } = [];
 
     public ObservableCollection<PhotoItemViewModel> VisiblePhotos { get; } = [];
+
+    /// <summary>Subfolders of the open folder, shown before the photos (prompt_08 §1).</summary>
+    public ObservableCollection<FolderItemViewModel> Folders { get; } = [];
+
+    /// <summary>Photos deleted from this folder and still kept in <c>Original/</c> (prompt_08 §5).</summary>
+    public ObservableCollection<PhotoItemViewModel> DeletedPhotos { get; } = [];
+
+    /// <summary>The gallery's cards: the subfolders, then the visible photos (only the deleted ones under Deleted).</summary>
+    public ObservableCollection<object> GalleryItems { get; } = [];
+
+    /// <summary>The gallery's selected card, a photo or a folder; <see cref="SelectedPhoto"/> follows it.</summary>
+    [ObservableProperty]
+    public partial object? SelectedGalleryItem { get; set; }
+
+    private bool _syncingSelection;
+
+    partial void OnSelectedGalleryItemChanged(object? value)
+    {
+        if (_syncingSelection) return;
+        _syncingSelection = true;
+        SelectedPhoto = value as PhotoItemViewModel;
+        _syncingSelection = false;
+    }
+
+    partial void OnSelectedPhotoChanged(PhotoItemViewModel? value)
+    {
+        if (_syncingSelection) return;
+        _syncingSelection = true;
+        SelectedGalleryItem = value;
+        _syncingSelection = false;
+    }
+
+    public bool IsDeletedView => Filter == PhotoFilter.Deleted;
 
     [ObservableProperty]
     public partial string? CurrentFolder { get; set; }
@@ -145,6 +216,11 @@ public sealed partial class BrowseViewModel : ViewModelBase
     public bool HasFolder => CurrentFolder is not null;
 
     public bool IsEmpty => CurrentFolder is not null && AllPhotos.Count == 0;
+
+    /// <summary>The gallery shows no card at all (no photos and no subfolders, or nothing deleted under Deleted).</summary>
+    public bool ShowNoPhotos => CurrentFolder is not null && !IsScanning && GalleryItems.Count == 0;
+
+    public string EmptyText => Localizer.Instance[IsDeletedView ? "NoDeletedPhotos" : "NoPhotos"];
 
     public int TotalCount => AllPhotos.Count(p => p.IsOpenable);
 
@@ -200,7 +276,17 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
     public string CountDone => DoneCount.ToString(Localizer.Instance.Culture);
 
-    partial void OnFilterChanged(PhotoFilter value) => ApplyFilter();
+    public string CountDeleted => DeletedPhotos.Count.ToString(Localizer.Instance.Culture);
+
+    /// <summary>Under Deleted, what Restore does and how long deleted photos are kept.</summary>
+    public string DeletedNote => Localizer.Instance.Plural("DeletedNote", DeletedPhotos.Count);
+
+    partial void OnFilterChanged(PhotoFilter value)
+    {
+        ApplyFilter();
+        OnPropertyChanged(nameof(IsDeletedView));
+        RaiseCounts();
+    }
 
     partial void OnDetailsCollapsedChanged(bool value)
     {
@@ -230,11 +316,18 @@ public sealed partial class BrowseViewModel : ViewModelBase
         if (item is { IsOpenable: true }) EditRequested?.Invoke(item);
     }
 
+    /// <summary>Enter in the gallery: opens the selected folder, or edits the selected photo.</summary>
+    public void OpenSelected()
+    {
+        if (SelectedGalleryItem is FolderItemViewModel folder) folder.Open();
+        else EditPhoto(null);
+    }
+
     public void Initialize()
     {
         var last = _services.Settings.LastFolder;
         Explorer.ShowStart(last);
-        if (last is not null && Directory.Exists(last)) OpenFolder(last);
+        if (last is not null && Directory.Exists(last)) Explorer.Navigate(last);
     }
 
     /// <summary>Duplicate image (prompt_04 §4): copies the photo in its folder under a free name and shows the copy.</summary>
@@ -270,8 +363,28 @@ public sealed partial class BrowseViewModel : ViewModelBase
     /// <summary>Raised with the reason when a duplicate cannot be written.</summary>
     public event Action<string>? DuplicateFailed;
 
-    /// <summary>Opens an order folder. The scan runs in the background; <see cref="OpenFolderAsync"/> can be awaited.</summary>
-    public void OpenFolder(string folder) => _ = OpenFolderAsync(folder);
+    /// <summary>
+    /// Opens an order folder (from the explorer). Unsaved edits of the folder being left are not dropped silently: the
+    /// shell asks first, and the explorer stays on this folder when the operator cancels. The scan runs in the
+    /// background; <see cref="OpenFolderAsync"/> can be awaited.
+    /// </summary>
+    public void OpenFolder(string folder) => _ = OpenFolderGuardedAsync(folder);
+
+    private async Task OpenFolderGuardedAsync(string folder)
+    {
+        if (CurrentFolder is { } current && AllPhotos.Any(p => p.PendingRecipe is not null))
+        {
+            // The open folder again (a recent order, the tree): nothing to do, and reloading would drop the edits.
+            if (string.Equals(Path.GetFullPath(folder), Path.GetFullPath(current), StringComparison.Ordinal)) return;
+            if (ConfirmLeaveFolder is { } confirm && !await confirm())
+            {
+                Explorer.Mark(current);
+                return;
+            }
+        }
+
+        await OpenFolderAsync(folder);
+    }
 
     public async Task OpenFolderAsync(string folder)
     {
@@ -291,8 +404,11 @@ public sealed partial class BrowseViewModel : ViewModelBase
         SelectedPhoto = null;
         AllPhotos.Clear();
         VisiblePhotos.Clear();
+        Folders.Clear();
+        DeletedPhotos.Clear();
+        GalleryItems.Clear();
         RaiseCounts();
-        var (sidecar, entries) = await Task.Run(() =>
+        var (sidecar, entries, subfolders, deleted) = await Task.Run(() =>
         {
             var store = new OrderStore(folder);
             var s = store.Load();
@@ -301,10 +417,13 @@ public sealed partial class BrowseViewModel : ViewModelBase
                 Log.Warning("Made {Count} saved photos visible again in {Folder} (hidden by PhotoX 0.4.0)", unhidden, folder);
             }
 
-            return (s, FolderScanner.Scan(folder));
+            return (s, FolderScanner.Scan(folder), FolderScanner.SubFolders(folder), PhotoTrash.List(folder));
         });
         if (ct.IsCancellationRequested) return;
         IsScanning = false;
+        if (Filter == PhotoFilter.Deleted && deleted.Count == 0) Filter = PhotoFilter.All;
+        foreach (var f in subfolders) Folders.Add(Explorer.FolderItem(f));
+        foreach (var d in deleted) DeletedPhotos.Add(DeletedItem(folder, d));
 
         var items = new List<PhotoItemViewModel>(entries.Count);
         foreach (var entry in entries)
@@ -324,8 +443,80 @@ public sealed partial class BrowseViewModel : ViewModelBase
         // Select after the gallery holds the items, so the list shows the selection.
         SelectedPhoto = VisiblePhotos.FirstOrDefault(p => p.IsToDo && p.IsOpenable) ?? VisiblePhotos.FirstOrDefault();
         RaiseCounts();
-        _ = LoadThumbnailsAsync(items, ct);
-        Log.Information("Opened folder {Folder} with {Count} photos", folder, AllPhotos.Count);
+        _ = LoadThumbnailsAsync([.. items, .. DeletedPhotos], ct);
+        Log.Information("Opened folder {Folder} with {Count} photos, {Folders} subfolders, {Deleted} deleted", folder, AllPhotos.Count, Folders.Count, DeletedPhotos.Count);
+    }
+
+    private PhotoItemViewModel DeletedItem(string folder, DeletedPhoto d) =>
+        new(d.Entry(FormatSniffer.Detect(d.StoredPath)), PhotoState.ToDo)
+        {
+            DeletedKey = d.StoredName,
+            DeletedUtc = d.DeletedUtc,
+            PrintCount = _services.PrintHistory.CountFor(Path.Combine(folder, d.Name)),
+        };
+
+    /// <summary>After deleting (prompt_08 §5): the photos leave the gallery and appear under Deleted; other photos keep their state and unsaved edits.</summary>
+    public void ApplyDeleted(IReadOnlyList<PhotoItemViewModel> items, IReadOnlyList<DeletedPhoto> deleted)
+    {
+        if (CurrentFolder is not { } folder) return;
+        var byName = items.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        var added = new List<PhotoItemViewModel>();
+        foreach (var d in deleted)
+        {
+            if (byName.TryGetValue(d.Name, out var item)) AllPhotos.Remove(item);
+            var card = DeletedItem(folder, d);
+            card.Thumbnail = item?.Thumbnail;
+            card.Info = item?.Info ?? string.Empty;
+            added.Add(card);
+        }
+
+        foreach (var card in added) DeletedPhotos.Insert(IndexIn(DeletedPhotos, card), card);
+
+        ApplyFilter();
+        RaiseCounts();
+        foreach (var card in added.Where(c => c.Thumbnail is null)) RefreshThumbnail(card);
+    }
+
+    /// <summary>After restoring (prompt_08 §5): the photos leave Deleted and return to the gallery in name order.</summary>
+    public void ApplyRestored(IReadOnlyList<RestoredPhoto> restored)
+    {
+        if (CurrentFolder is not { } folder) return;
+        var sidecar = new OrderStore(folder).Load();
+        var entries = FolderScanner.Scan(folder).ToDictionary(e => e.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var r in restored)
+        {
+            var card = DeletedPhotos.FirstOrDefault(p => string.Equals(p.DeletedKey, r.StoredName, StringComparison.OrdinalIgnoreCase));
+            if (card is not null) DeletedPhotos.Remove(card);
+            if (!entries.TryGetValue(r.Name, out var entry) || AllPhotos.Any(p => string.Equals(p.Name, r.Name, StringComparison.OrdinalIgnoreCase))) continue;
+            var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry))
+            {
+                Thumbnail = card?.Thumbnail,
+                Info = card?.Info ?? string.Empty,
+                PrintCount = _services.PrintHistory.CountFor(entry.Path),
+            };
+            AllPhotos.Insert(IndexIn(AllPhotos, item), item);
+            if (item.Thumbnail is null) RefreshThumbnail(item);
+        }
+
+        ApplyFilter();
+        RaiseCounts();
+    }
+
+    /// <summary>After Discard Originals: deleted photos removed for good leave the Deleted view.</summary>
+    public void RemoveDeletedCards(IReadOnlyList<string> names)
+    {
+        foreach (var card in DeletedPhotos.Where(p => names.Contains(p.Name, StringComparer.OrdinalIgnoreCase)).ToList()) DeletedPhotos.Remove(card);
+        if (Filter == PhotoFilter.Deleted && DeletedPhotos.Count == 0) Filter = PhotoFilter.All;
+        ApplyFilter();
+        RaiseCounts();
+    }
+
+    /// <summary>Where <paramref name="item"/> belongs in a list in natural name order.</summary>
+    private static int IndexIn(IList<PhotoItemViewModel> list, PhotoItemViewModel item)
+    {
+        var i = 0;
+        while (i < list.Count && Core.Naming.NaturalComparer.Instance.Compare(list[i].Name, item.Name) <= 0) i++;
+        return i;
     }
 
     /// <summary>Reloads states from disk (after saving or returning from the editor).</summary>
@@ -360,7 +551,10 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(CountAll));
         OnPropertyChanged(nameof(CountToDo));
         OnPropertyChanged(nameof(CountDone));
-
+        OnPropertyChanged(nameof(CountDeleted));
+        OnPropertyChanged(nameof(DeletedNote));
+        OnPropertyChanged(nameof(ShowNoPhotos));
+        OnPropertyChanged(nameof(EmptyText));
     }
 
     /// <summary>
@@ -370,22 +564,35 @@ public sealed partial class BrowseViewModel : ViewModelBase
     public void ApplyFilter()
     {
         var keep = SelectedPhoto;
-        var wanted = AllPhotos.Where(p => Filter == PhotoFilter.All || (Filter == PhotoFilter.ToDo && p.IsToDo) || (Filter == PhotoFilter.Done && p.IsDone)).ToList();
+        var keepFolder = SelectedGalleryItem as FolderItemViewModel;
+        var wanted = Filter == PhotoFilter.Deleted
+            ? DeletedPhotos.ToList()
+            : AllPhotos.Where(p => Filter == PhotoFilter.All || (Filter == PhotoFilter.ToDo && p.IsToDo) || (Filter == PhotoFilter.Done && p.IsDone)).ToList();
         var wantedSet = wanted.ToHashSet();
-        for (var i = VisiblePhotos.Count - 1; i >= 0; i--)
+        Sync(VisiblePhotos, wanted);
+        // Folders stay reachable under All, To do and Done; Deleted lists only deleted photos.
+        Sync(GalleryItems, (Filter == PhotoFilter.Deleted ? [] : Folders.Cast<object>()).Concat(VisiblePhotos).ToList());
+        if (keepFolder is not null && GalleryItems.Contains(keepFolder)) return;
+        SelectedPhoto = keep is not null && wantedSet.Contains(keep) ? keep : VisiblePhotos.FirstOrDefault();
+    }
+
+    /// <summary>Makes <paramref name="list"/> equal to <paramref name="wanted"/> by removing, moving and inserting only what differs.</summary>
+    private static void Sync<T>(ObservableCollection<T> list, IReadOnlyList<T> wanted)
+        where T : class
+    {
+        var wantedSet = wanted.ToHashSet();
+        for (var i = list.Count - 1; i >= 0; i--)
         {
-            if (!wantedSet.Contains(VisiblePhotos[i])) VisiblePhotos.RemoveAt(i);
+            if (!wantedSet.Contains(list[i])) list.RemoveAt(i);
         }
 
         for (var i = 0; i < wanted.Count; i++)
         {
-            if (i < VisiblePhotos.Count && ReferenceEquals(VisiblePhotos[i], wanted[i])) continue;
-            var existing = VisiblePhotos.IndexOf(wanted[i]);
-            if (existing >= 0) VisiblePhotos.Move(existing, i);
-            else VisiblePhotos.Insert(i, wanted[i]);
+            if (i < list.Count && ReferenceEquals(list[i], wanted[i])) continue;
+            var existing = list.IndexOf(wanted[i]);
+            if (existing >= 0) list.Move(existing, i);
+            else list.Insert(i, wanted[i]);
         }
-
-        SelectedPhoto = keep is not null && wantedSet.Contains(keep) ? keep : VisiblePhotos.FirstOrDefault();
     }
 
     internal static PhotoState StateFromSidecar(OrderSidecar sidecar, PhotoEntry entry)
@@ -399,12 +606,12 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
     private void RefreshTexts()
     {
-        foreach (var p in AllPhotos) p.RefreshTexts();
+        foreach (var p in AllPhotos.Concat(DeletedPhotos)) p.RefreshTexts();
         RaiseCounts();
     }
 
     private Task LoadThumbnailsAsync(IReadOnlyList<PhotoItemViewModel> items, CancellationToken ct) =>
-        ThumbnailSource.LoadAllAsync(_services.ThumbnailCache, items, item => item.IsOpenable ? item.Entry : null, (item, bitmap, info, error) =>
+        ThumbnailSource.LoadAllAsync(_services.ThumbnailCache, items, item => item.HasPreview ? item.Entry : null, (item, bitmap, info, error) =>
         {
             item.Info = info;
             if (bitmap is not null)

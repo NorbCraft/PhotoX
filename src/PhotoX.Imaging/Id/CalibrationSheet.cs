@@ -20,8 +20,9 @@ public static class CalibrationSheet
         Rect(d, 12, 20, 30, 47, dashed: true);  // 3×4 + 7 mm strip
         Rect(d, 55, 20, 35, 45);
         Rect(d, 25, 80, 50.8, 50.8);             // 2×2 in
+        Rect(d, (101.6 - 90) / 2, (152.4 - 130) / 2, 90, 130, dashed: true); // centred 9×13 (prompt_07)
         d.Draw(page);
-        Label(page, "PhotoX 10x15 calibration: 30x40 (+7 = 47), 35x45, 50.8x50.8 mm; page 101.6 x 152.4 mm", 6, 145);
+        Label(page, "PhotoX 10x15 calibration: 30x40 (+7 = 47), 35x45, 50.8x50.8 mm, dashed centred 9x13 = 90x130 mm; page 101.6 x 152.4 mm", 6, 145);
         return page;
     }
 

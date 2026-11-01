@@ -4,6 +4,35 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-01
+
+Fixes and refinements from [prompt_07](prompts/prompt_07.md). Verified with automated tests on Linux (including the owner's example photos, on copies); Windows CI runs on push. **Not yet printed on the Citizen CY-02 and not yet tried on the studio PC.**
+
+### Fixed
+- **Saved photos partly black.** A photo saved with its whole frame (no crop, for example a 2:3 camera photo at 10 × 15) and any adjustment came out black below the first eighth or so. The gallery thumbnail, ID Photos, Collages and printing showed it black; the editor showed the kept original. Printing an unsaved edit could be affected the same way. Fixed at the cause, with regression tests; photos saved like this by earlier versions still have their original in `Original` and come out right when saved again (or with Restore original).
+
+### Added
+- **9 × 13** crop preset: the photo at 9 × 13 cm, centred on a white 10 × 15 sheet (the calibration sheet shows its frame).
+- **Editor actions:** Close, Print and Save above Save & Next. **Print** prints the photo as shown, with unsaved changes, without saving it.
+- **ID Photos: Clear** removes the photo from the workspace (the file is not touched).
+- **Printing:**
+  - **Crop | Whole** for photos from Photos: Crop (the default of every new print) fills the paper; Whole shows the whole photo with white borders. Photos edited in PhotoX keep their own crop.
+  - A clear message when the printer has no paper of the chosen size.
+  - The calibration sheet no longer replaces the prepared photos for good: Back, Escape or *Cancel calibration* (and printing the sheet) bring them back.
+  - **Escape** returns to the workspace the print came from, with its state.
+  - All-time statistics show since when ("since 01.11.2026").
+- Button and icon proposals for review in [docs/mockups/buttons](mockups/buttons/README.md) (not implemented).
+
+### Changed
+- **Faster saving** of turned or straightened photos: only the kept part is processed (straightening 3–4 s → about 1 s on the development PC).
+- *Crop to fill* and *Whole + borders* are now **Crop** and **Whole** (Decupare, Întreagă).
+- The Previous and Next buttons are gone from the editor (the arrow keys and the filmstrip still work).
+- **Reset** also resets the straightening and the crop (the format and 90° turns stay).
+- **ID Photos:** background brightness removed; the steps sit above the photo again, with the format and Clear beside them and the framing tools below.
+- **Printing:** the paper is chosen by its actual size whatever the driver calls it; statistics are folded away when Print opens the workspace; the Printing tab moved to the right of the top bar.
+- Collages: *Save JPG* is now **Save**.
+- **Light mode** is the default for new installations; a theme already chosen is kept.
+
 ## [0.9.0] - 2026-10-30
 
 A consistent interface, light and dark mode and a Printing workspace ([prompt_06](prompts/prompt_06.md)). Verified with automated tests and headless screenshots on Linux; Windows CI runs on push. **Not yet printed on the Citizen CY-02 and not yet tried on the studio PC.**

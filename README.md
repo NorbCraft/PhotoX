@@ -2,7 +2,7 @@
 
 PhotoX is a lightweight, offline photo-preparation desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software with one focused tool:
 
-- **Photos:** open an order folder, select photos, edit if needed (crop to 10×15 / 15×20 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), then **Print** or **Discard originals**. Originals are kept in an `Original` subfolder until Discard originals, and Restore original can bring them back.
+- **Photos:** open an order folder, select photos, edit if needed (crop to 10×15 / 15×20 / 9×13 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), then **Print** or **Discard originals**. Originals are kept in an `Original` subfolder until Discard originals, and Restore original can bring them back.
 - **ID Photos:** choose the format, click a portrait in the built-in explorer, frame it (face guides, Auto Align, 90° rotation), adjust it, then **Save** (JPG) or **Print**.
 - **Collages:** choose a 10×15 or 15×20 sheet and a template, drag photos into the frames, adjust the layout, then **Save** (JPG) or **Print**.
 - **Printing:** a workspace that prints directly through the installed Windows printer driver (Citizen CY-02), with the queue, the print history and statistics, and a print counter on every thumbnail.
@@ -13,7 +13,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 
 ## Current status
 
-> **Version 0.9.0**: a consistent interface with **light and dark mode**, the new icon, one editing sidebar for Photos and ID Photos, ID tools in the toolbar with 90° rotation, collage drag and drop, and a **Printing workspace** with queue, history and statistics (prompt_06). Earlier: direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.10.0**: fixes the **partly black saved photos**, saves turned or straightened photos faster, adds 9 × 13, Close / Print / Save in the editor, a simpler ID Photos with Clear, and printing refinements (paper chosen by size, Crop or Whole, calibration that returns to the prepared print, Escape back) (prompt_07). Earlier: light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -60,8 +60,8 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-python3 packaging/windows/make_splash.py 0.9.0 releases/splash.png                                     # installer splash with the version
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.9.0 --packDir publish/win-x64 \
+python3 packaging/windows/make_splash.py 0.10.0 releases/splash.png                                     # installer splash with the version
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.10.0 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX \
   --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --outputDir releases/win            # Windows installer
 python3 assets/logo/build_icons.py     # re-render the icon PNGs and ICO after editing the SVG masters

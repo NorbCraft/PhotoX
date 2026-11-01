@@ -479,3 +479,56 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Run 41066928190 (tag v0.9.0, same commit) failed** on `ubuntu-latest`: the same crop-preview test measured 3.3 % against 4.6 % for the 6 % shift. The difference between screen and file varies between runs (1.3 % to 3.8 %), and a 6 % shift of the smooth test image is only 4.6 % to 5.5 %, so the margin was too small. The comparison now uses a 12 % shift: a misplaced crop is still detected, and normal rendering differences pass. This is a test-only change (no version change, DEC-034).
   - **Run 41068376600 (main, commit fd20e97, with the robust check) passed:** `ubuntu-latest` 132 core and 49 UI tests, `windows-latest` 134 and 49 (virtual printer included), and the Windows package.
   - Not installed or run on a Windows PC; nothing printed on the Citizen CY-02.
+
+### 2026-11-01: Version 0.10.0, prompt_07 (black-image fix, faster saving, editor actions, printing refinements)
+- **Prompt:** [docs/prompts/prompt_07.md](prompts/prompt_07.md), archived unchanged. The owner's example photos (`photos_example/`, 170 JPEGs) are kept out of Git (`.gitignore`) and were only read; every test that saves works on copies in a temporary folder and checks the originals' checksums.
+- **Partly black photos (§1.6, DEC-067), investigated first:**
+  - **Samples checked:** none of the 170 examples was already damaged; all are sRGB, so colour-profile conversion was ruled out.
+  - **Reproduced on Linux:** a test saved 22 MP photos through the real pipeline in six variants. Only the variant without crop or turn (full frame, an exposure change) came out black from band 3 of 16 onwards; the same happened with copies of the owner's 5760 × 3840 Canon photos at the default 10×15 crop, whose full frame is exactly 2:3. Their thumbnail, preview and full size were black below about 1/8, as reported. PXL photos (3:4, so cropped) and turned photos were fine.
+  - **Cause:** the tone pass wrote a clone in strips with queued (write-only) pixel access; ImageMagick gives a clone that still shares its pixels new memory without copying them for such a write, so every later strip read zeros. The editor showed the kept original, which is why it looked right there.
+  - **Fix:** `ToneProcessor.OwnPixels` (a no-op composite) makes the image own its pixels first.
+  - **Verification:**
+    - the six-variant test, the full-size tone test and the owner-example test pass with the fix;
+    - without it, the owner-example test fails exactly as reported (band differences 0.29–0.69 against the reference);
+    - with it, the differences are 0.001–0.002 in all three read paths.
+  - **Not Windows-specific:** it reproduced on Linux.
+- **Saving after rotation (§1.4, DEC-068):**
+  - **Profile:** straightening was the slow step (distorting the whole enlarged photo, then cropping: 3.1–4.1 s); a 90° turn cost 0.2–0.45 s.
+  - **Now:** crop-then-turn without straightening (pixel-identical), and straightening rendered straight into the crop in parallel bands.
+  - **Measured on the 5760 × 3840 example** (16-core development PC, Linux, warm, best of three):
+
+    | Step | Before | After |
+    |---|---|---|
+    | turn only | 293 ms | 148 ms |
+    | straighten 2° | 3144 ms | 994 ms |
+    | turn + straighten | 3322 ms | 1130 ms |
+    | turn + straighten −4.5° | 4107 ms | 1054 ms |
+
+    A full save with a turn and straightening now takes about 2.0 s.
+  - **Not measured:** the studio PC and Windows (where the Magick library is expected to use OpenMP).
+- **Work done:**
+  - Editor: 9×13 (DEC-069); Crop | Whole; Close, Print, Save, Save & Next; no Previous/Next buttons; Reset with straightening and crop (DEC-073).
+  - ID Photos: background brightness removed with its code; steps above the photo with the format and Clear; framing tools below (DEC-074).
+  - Printing:
+    - paper by size with `PaperMatcher` (DEC-070); a message when the printer has no paper of the size;
+    - Crop | Whole (DEC-071) with a matching preview;
+    - calibration restores the prepared print; statistics folded on Print; all time "since";
+    - Escape back to the origin with its state; tab at the right.
+  - Collages: Save. Light by default (DEC-072).
+  - The 10×15 calibration sheet shows the centred 9×13 frame.
+  - **Mockups (§6):** four proposals and their use in ID Photos and Printing, drawn with PhotoX's styles by an opt-in generator test, in [docs/mockups/buttons](mockups/buttons/README.md). Not implemented.
+- **Verification (actually run, Linux):**
+  - **Totals:** 148 core and 59 UI tests pass (Release). Skipped: the Windows-only tests, two opt-in benchmarks and the mockup generator. The owner-example test runs only where `photos_example/` exists (skipped on CI).
+  - **New tests:** TS-22.
+  - **Screens inspected (headless):** the editor with 9×13 and the new actions, ID Photos before and after Clear, Printing with Whole (white sides in preview and print), the statistics toggle, the Printing tab on the right.
+  - **Found and fixed during the work:**
+    - the print preview ignored Whole;
+    - the ID tool row was slightly too wide at 1440 px;
+    - a test left the shared test application in dark mode.
+- **Not tested:**
+  - the Citizen CY-02 and its paper list (OQ-031), and any physical print;
+  - Windows outside CI and the save timings there;
+  - drag and drop with a real mouse.
+- **Plan review (§8):** every Must requirement is Implemented. What remains needs the owner: Citizen prints and calibration (OQ-031, FR-071), studio use on Windows and scaling, the Romanian review, samples for background whitening (FR-065), the later two-up 15×20 printing, and the choice among the button mockups. Nothing else was added.
+
+  The Windows CI result is recorded below once the run has finished.

@@ -70,6 +70,9 @@ public sealed partial class EditorViewModel : ViewModelBase
 
     public event Action? BackRequested;
 
+    /// <summary>Raised by Print with the photo being edited, its unsaved edits kept in memory (prompt_07 §1.5, §3.6).</summary>
+    public event Action<PhotoItemViewModel>? PrintRequested;
+
     public BrowseViewModel Browse { get; }
 
     public EditRecipe Recipe => _recipe;
@@ -466,6 +469,15 @@ public sealed partial class EditorViewModel : ViewModelBase
         if (item is { IsOpenable: true } && !IsBusy && item != Current) await OpenAsync(item);
     }
 
+    /// <summary>Print (prompt_07 §1.5): prints the photo as it is shown now, saved or not; nothing is written.</summary>
+    [RelayCommand]
+    public void Print()
+    {
+        if (Current is null || IsBusy) return;
+        KeepPending();
+        PrintRequested?.Invoke(Current);
+    }
+
     [RelayCommand]
     public void BackToFolder()
     {
@@ -606,11 +618,19 @@ public sealed partial class EditorViewModel : ViewModelBase
         SetRecipe(_recipe with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(ValidArea(_recipe), _recipe.CropRatio), w, h) }, null);
     }
 
-    /// <summary>Reset (prompt_04 §7): clears all tone adjustments as one undo step; the crop and rotation stay.</summary>
+    /// <summary>
+    /// Reset (prompt_04 §7, prompt_07 §1.5): clears the tone adjustments, the straightening and the crop as one undo
+    /// step: the photo fills the frame again with the largest centred crop of the format, oriented like the photo.
+    /// The format and the 90° turns stay.
+    /// </summary>
     [RelayCommand]
     public void ResetAdjustments()
     {
-        if (_proxy is not null) SetRecipe(_recipe.WithoutToneAdjustments(), null);
+        if (_proxy is null) return;
+        var next = _recipe.WithoutToneAdjustments() with { Straighten = 0, Composition = Composition.Fill };
+        var (w, h) = RotatedFullSize(next);
+        next = next with { Orientation = CropMath.OrientationFor(w, h) };
+        SetRecipe(next with { Crop = NormalizedRect.FromPixels(CropMath.LargestCentered(ValidArea(next), next.CropRatio), w, h) }, null);
     }
 
     [RelayCommand]

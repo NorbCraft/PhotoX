@@ -47,13 +47,13 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     public string InstallText { get; }
 
-    public bool IsLight => _services.Settings.Theme == "light";
+    public bool IsLight => _services.Settings.Theme != "dark";
 
     /// <summary>Light or dark mode (prompt_06 §3), applied at once and remembered.</summary>
     [RelayCommand]
     private void SetTheme(string theme)
     {
-        _services.Settings.Theme = theme == "light" ? "light" : "dark";
+        _services.Settings.Theme = theme == "dark" ? "dark" : "light";
         _services.SaveSettings();
         App.ApplyTheme(_services.Settings.Theme);
         OnPropertyChanged(nameof(IsLight));

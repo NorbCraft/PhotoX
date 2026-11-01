@@ -106,10 +106,12 @@ public sealed partial class PrintHistoryViewModel : ViewModelBase
             Entries.Clear();
             foreach (var e in entries.Where(e => !active.Contains(e.JobId))) Entries.Add(new PrintHistoryItem(e, Period == HistoryPeriod.Today));
             Tiles.Clear();
-            Tiles.Add(Tile("StatToday", stats.Today));
-            Tiles.Add(Tile("StatWeek", stats.Week));
-            Tiles.Add(Tile("StatMonth", stats.Month));
-            Tiles.Add(Tile("StatAll", stats.All));
+            Tiles.Add(Tile(Localizer.Instance["StatToday"], stats.Today));
+            Tiles.Add(Tile(Localizer.Instance["StatWeek"], stats.Week));
+            Tiles.Add(Tile(Localizer.Instance["StatMonth"], stats.Month));
+            Tiles.Add(stats.All.FirstUtc is { } first
+                ? Tile(Localizer.Instance.Format("StatAllSince", first.ToLocalTime().ToString("dd.MM.yyyy", System.Globalization.CultureInfo.InvariantCulture)), stats.All)
+                : Tile(Localizer.Instance["StatAll"], stats.All));
             OnPropertyChanged(nameof(HasEntries));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -118,8 +120,8 @@ public sealed partial class PrintHistoryViewModel : ViewModelBase
         }
     }
 
-    private static PrintStatTile Tile(string key, PrintTotals t) => new(
-        Localizer.Instance[key],
+    private static PrintStatTile Tile(string title, PrintTotals t) => new(
+        title,
         t.Prints.ToString(Localizer.Instance.Culture),
         Localizer.Instance.Format("StatSplit", t.PrintsOf(PrintFormats.P10x15.Id), t.PrintsOf(PrintFormats.P15x20.Id)));
 }

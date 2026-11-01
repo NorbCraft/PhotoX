@@ -66,6 +66,14 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
         if (PickOnSelect && !_opening && value is { IsOpenable: true }) Picked?.Invoke(value);
     }
 
+    /// <summary>No photo selected, without picking anything (so a click on the same photo loads it again).</summary>
+    public void ClearSelection()
+    {
+        _opening = true;
+        SelectedPhoto = null;
+        _opening = false;
+    }
+
     public ObservableCollection<PickerPhoto> Photos { get; } = [];
 
     [ObservableProperty]

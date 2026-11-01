@@ -24,6 +24,8 @@
                     Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=10x15}" />
             <Button Classes="chip compact" Focusable="False" Content="15 × 20" Command="{Binding SetFormatCommand}" CommandParameter="15x20"
                     Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
+            <Button Classes="chip compact" Focusable="False" Content="9 × 13" Command="{Binding SetFormatCommand}" CommandParameter="9x13"
+                    Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=9x13}" />
             <Button Classes="chip compact" Focusable="False" Content="13 × 18" Command="{Binding SetFormatCommand}" CommandParameter="13x18"
                     Classes.selected="{Binding FormatId, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=13x18}" />
             <Button Classes="chip compact" Focusable="False" Content="{l:Tr Custom}"
@@ -168,21 +170,13 @@
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Padding="18,6,18,8">
           <v:ToneAdjustmentsView DataContext="{Binding Tone}" />
         </ScrollViewer>
+        <!-- Actions (prompt_07 §1.5): Close, Print and Save, then Save & Next; shortcuts in the tooltips -->
         <StackPanel Grid.Row="2" Spacing="8" Margin="18,8,18,16">
-          <Grid ColumnDefinitions="*,10,*">
-            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding PreviousCommand}" IsEnabled="{Binding !IsBusy}">
-              <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="←" /><TextBlock Text="{l:Tr Previous}" /></StackPanel>
-            </Button>
-            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding NextCommand}" IsEnabled="{Binding !IsBusy}">
-              <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{l:Tr Next}" /><TextBlock Text="→" /></StackPanel>
-            </Button>
+          <Grid ColumnDefinitions="*,8,*,8,*">
+            <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Close}" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr CloseEditorTip}" />
+            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Print}" Command="{Binding PrintCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr PrintEditedTip}" />
+            <Button Grid.Column="4" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Save}" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr SaveTip}" />
           </Grid>
-          <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{l:Tr Save}" HorizontalAlignment="Center" />
-              <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Ctrl+S" /></Border>
-            </Grid>
-          </Button>
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock IsVisible="{Binding !IsCloseMode}" Text="{l:Tr SaveAndNext}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />

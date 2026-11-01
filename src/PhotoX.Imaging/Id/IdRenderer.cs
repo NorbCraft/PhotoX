@@ -7,9 +7,9 @@ namespace PhotoX.Imaging.Id;
 
 /// <summary>
 /// ID photo adjustments (FR-064): the tone adjustments of the Photos editor (only the tone fields of
-/// <paramref name="Tone"/> are used) plus a manual, mask-based lift of light neutral background areas.
+/// <paramref name="Tone"/> are used). The background brightness lift was removed in prompt_07 §2.1.
 /// </summary>
-public sealed record IdAdjustments(EditRecipe Tone, double BackgroundBrightness = 0)
+public sealed record IdAdjustments(EditRecipe Tone)
 {
     public IdAdjustments()
         : this(new EditRecipe())
@@ -36,7 +36,6 @@ public static class IdRenderer
         var h = heightPx ?? size.HeightPx;
         var image = Frame(source, framing, w / framing.FrameWidthSource, w, h, w / 2.0, h / 2.0);
         ToneProcessor.Apply(image, adjustments.ToRecipe());
-        BackgroundLift.Apply(image, adjustments.BackgroundBrightness, HeadOval(size, w, h));
         return image;
     }
 
@@ -66,22 +65,8 @@ public static class IdRenderer
     }
 
     /// <summary>The adjustment step of <see cref="RenderPreview"/>, applied in place to a framed viewport.</summary>
-    public static void AdjustPreview(MagickImage viewport, IdSize size, IdAdjustments adjustments, int frameWidthPx)
-    {
+    public static void AdjustPreview(MagickImage viewport, IdSize size, IdAdjustments adjustments, int frameWidthPx) =>
         ToneProcessor.Apply(viewport, adjustments.ToRecipe(), exact: false);
-        var frameH = frameWidthPx / size.Ratio;
-        var oval = HeadOval(size, frameWidthPx, (int)Math.Round(frameH)).Offset((viewport.Width - frameWidthPx) / 2.0, (viewport.Height - frameH) / 2.0);
-        BackgroundLift.Apply(viewport, adjustments.BackgroundBrightness, oval);
-    }
-
-    /// <summary>Head oval in output pixels from the size's guides.</summary>
-    public static RectD HeadOval(IdSize size, int width, int height)
-    {
-        var top = size.CrownFraction * height;
-        var head = size.HeadFraction * height;
-        var ovalW = head * 0.74;
-        return new RectD((width - ovalW) / 2, top, ovalW, head);
-    }
 
     /// <summary>
     /// Picks the image of <paramref name="levels"/> (each half the size of the previous) whose scale to the preview is

@@ -43,7 +43,7 @@ public class IdWorkflowTests
         Assert.True(id.HasStripOption);
         id.MoveBy(10, -20);
         id.ZoomBy(1.1);
-        id.BackgroundBrightness = 40;
+        id.Tone.Exposure = 0.2;
         id.ContinueToSheetCommand.Execute(null);
         await UiHelpers.WaitUntil(() => id.SheetPreview is not null);
         UiHelpers.Capture(window, "id-sheet-1366x768");

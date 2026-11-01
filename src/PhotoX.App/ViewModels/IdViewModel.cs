@@ -290,9 +290,6 @@ public sealed partial class IdViewModel : ViewModelBase
     public partial double Rotation { get; set; }
 
     [ObservableProperty]
-    public partial double BackgroundBrightness { get; set; }
-
-    [ObservableProperty]
     public partial bool ShowBefore { get; set; }
 
     // Sheet options
@@ -351,7 +348,7 @@ public sealed partial class IdViewModel : ViewModelBase
 
     public string SourceName => SourcePath is null ? string.Empty : Path.GetFileName(SourcePath);
 
-    public IdAdjustments Adjustments => new(Tone.ApplyTo(new Core.Editing.EditRecipe()), BackgroundBrightness);
+    public IdAdjustments Adjustments => new(Tone.ApplyTo(new Core.Editing.EditRecipe()));
 
     public string CopiesText => Localizer.Instance.Format("OfPlaces", Capacity);
 
@@ -534,14 +531,6 @@ public sealed partial class IdViewModel : ViewModelBase
         SetFraming(Framing with { RotationDeg = Math.Round(value, 1) }, "rotate");
     }
 
-    partial void OnBackgroundBrightnessChanged(double value)
-    {
-        if (_syncing || Framing is null) return;
-        PushUndo("background");
-        _committed = Adjustments;
-        Rerender();
-    }
-
     partial void OnShowBeforeChanged(bool value) => Rerender();
 
     partial void OnCopiesChanged(int value) => RaiseSheet();
@@ -559,6 +548,48 @@ public sealed partial class IdViewModel : ViewModelBase
     /// <summary>The start framing of the loaded portrait for the given quarter turns (zoom 100 %).</summary>
     private IdFraming? InitialFraming(int quarterTurns) =>
         _source is null ? null : IdFraming.Initial(_source.Width, _source.Height, SelectedSize.Size, quarterTurns);
+
+    /// <summary>
+    /// Clear (prompt_07 §2.3): removes the loaded portrait with its framing, adjustments and history, back to the
+    /// empty workspace. The file itself is only ever read, so nothing on disk changes.
+    /// </summary>
+    [RelayCommand]
+    public async Task ClearPhotoAsync()
+    {
+        if (SourcePath is null || IsBusy) return;
+        await _renderGate.WaitAsync();
+        try
+        {
+            Interlocked.Increment(ref _renderVersion);
+            _source?.Dispose();
+            foreach (var l in _levels) l.Dispose();
+            (_source, _proxy, _levels, _lastFrame) = (null, null, [], null);
+        }
+        finally
+        {
+            _renderGate.Release();
+        }
+
+        _undo.Clear();
+        _redo.Clear();
+        _syncing = true;
+        Tone.Load(new Core.Editing.EditRecipe());
+        Tone.Histogram = null;
+        _syncing = false;
+        _committed = Adjustments;
+        ClearFaceChoices();
+        (StatusMessage, ErrorMessage) = (null, null);
+        Framing = null;
+        IsSheetStep = false;
+        SourcePath = null;
+        OnPropertyChanged(nameof(SourceName));
+        var (preview, sheet) = (Preview, SheetPreview);
+        (Preview, SheetPreview) = (null, null);
+        (preview as IDisposable)?.Dispose();
+        (sheet as IDisposable)?.Dispose();
+        Picker.ClearSelection();
+        RaiseHistory();
+    }
 
     /// <summary>Reset framing (toolbar): the start position and zoom, without the fine rotation; a 90° turn stays.</summary>
     [RelayCommand]
@@ -591,7 +622,6 @@ public sealed partial class IdViewModel : ViewModelBase
         _redo.Clear();
         _syncing = true;
         Tone.Load(new Core.Editing.EditRecipe());
-        BackgroundBrightness = 0;
         _syncing = false;
         _committed = Adjustments;
         Framing = initial;
@@ -608,7 +638,6 @@ public sealed partial class IdViewModel : ViewModelBase
         PushUndo(null);
         _syncing = true;
         Tone.Load(new Core.Editing.EditRecipe());
-        BackgroundBrightness = 0;
         _syncing = false;
         _committed = Adjustments;
         Rerender();
@@ -639,7 +668,6 @@ public sealed partial class IdViewModel : ViewModelBase
         _lastTag = null;
         _syncing = true;
         Tone.Load(a.Tone);
-        BackgroundBrightness = a.BackgroundBrightness;
         _syncing = false;
         _committed = Adjustments;
         Framing = f;

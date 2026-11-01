@@ -56,7 +56,7 @@ public class Prompt04Tests
     }
 
     [AvaloniaFact]
-    public async Task Editor_orientation_switch_gives_the_largest_crop_and_reset_keeps_the_crop()
+    public async Task Editor_orientation_switch_gives_the_largest_crop_and_reset_restores_it()
     {
         using var dir = new TempDir();
         var order = Order(dir, 1, 900, 600);
@@ -74,7 +74,7 @@ public class Prompt04Tests
         Assert.Equal(1.0, editor.Recipe.Crop.Width, 3);                 // the whole 3:2 photo
         Assert.Equal(1.0, editor.Recipe.Crop.Height, 3);
 
-        // + / − keys change exposure in 1/6 EV steps; Reset clears tone adjustments and keeps the crop.
+        // + / − keys change exposure in 1/6 EV steps; Reset clears tone adjustments and, since prompt_07, the crop too.
         editor.CommitCrop(new Avalonia.Rect(50, 40, 300, 200));
         var crop = editor.Recipe.Crop;
         Assert.True(editor.HandleKey(Key.OemPlus, KeyModifiers.None));
@@ -86,8 +86,10 @@ public class Prompt04Tests
         editor.Tone.LevelsBlack = 0.1;
         editor.ResetAdjustmentsCommand.Execute(null);
         Assert.False(editor.Recipe.HasToneAdjustments);
-        Assert.Equal(crop, editor.Recipe.Crop);
+        Assert.NotEqual(crop, editor.Recipe.Crop);
+        Assert.Equal(new Core.Geometry.NormalizedRect(0, 0, 1, 1), editor.Recipe.Crop);   // the largest 10×15 crop of a 3:2 photo
         editor.UndoCommand.Execute(null);                              // one undo step brings them all back
+        Assert.Equal(crop, editor.Recipe.Crop);
         Assert.Equal(30, editor.Recipe.Contrast);
         Assert.Equal(0.1, editor.Recipe.LevelsBlack, 3);
         window.Close();

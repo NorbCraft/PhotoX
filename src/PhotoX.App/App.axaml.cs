@@ -16,7 +16,7 @@ public sealed class App : Application
     /// <summary>Light or dark mode for the whole application (prompt_06 §3).</summary>
     public static void ApplyTheme(string theme)
     {
-        if (Current is { } app) app.RequestedThemeVariant = theme == "light" ? ThemeVariant.Light : ThemeVariant.Dark;
+        if (Current is { } app) app.RequestedThemeVariant = theme == "dark" ? ThemeVariant.Dark : ThemeVariant.Light;
     }
 
     public override void OnFrameworkInitializationCompleted()

@@ -43,8 +43,11 @@ public sealed record PrintLogEntry(
     public bool Counts => Outcome is PrintOutcome.Submitted or PrintOutcome.Finished;
 }
 
-/// <summary>Copies counted as printed in a period, by print size, and the jobs that did not print.</summary>
-public sealed record PrintTotals(int Prints, IReadOnlyDictionary<string, int> PrintsBySize, int Jobs, int CanceledJobs, int FailedJobs)
+/// <summary>
+/// Copies counted as printed in a period, by print size, and the jobs that did not print. <paramref name="FirstUtc"/> is
+/// the time of the earliest job of the period (shown as "since …" for all time, prompt_07 §3.2).
+/// </summary>
+public sealed record PrintTotals(int Prints, IReadOnlyDictionary<string, int> PrintsBySize, int Jobs, int CanceledJobs, int FailedJobs, DateTime? FirstUtc = null)
 {
     public static PrintTotals Of(IEnumerable<PrintLogEntry> entries)
     {
@@ -55,7 +58,8 @@ public sealed record PrintTotals(int Prints, IReadOnlyDictionary<string, int> Pr
             counted.GroupBy(e => e.Size).ToDictionary(g => g.Key, g => g.Sum(e => e.Copies)),
             list.Count,
             list.Count(e => e.Outcome is PrintOutcome.Canceled or PrintOutcome.Removed),
-            list.Count(e => e.Outcome == PrintOutcome.Failed));
+            list.Count(e => e.Outcome == PrintOutcome.Failed),
+            list.Count > 0 ? list.Min(e => e.TimeUtc) : null);
     }
 
     public int PrintsOf(string size) => PrintsBySize.TryGetValue(size, out var n) ? n : 0;

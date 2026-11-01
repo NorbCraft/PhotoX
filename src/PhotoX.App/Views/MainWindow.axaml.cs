@@ -85,6 +85,10 @@ public sealed partial class MainWindow : Window
             case CollageViewModel collage:
                 e.Handled = collage.HandleKey(e.Key);
                 break;
+            case PrintViewModel print when e.Key == Key.Escape:
+                print.BackCommand.Execute(null); // back to where the print came from (prompt_07 §3.7)
+                e.Handled = true;
+                break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:
                 browse.EditPhotoCommand.Execute(null); // Edit this photo (prompt_05 §5)
                 e.Handled = true;

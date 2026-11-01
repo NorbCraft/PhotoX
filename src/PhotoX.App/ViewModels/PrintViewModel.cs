@@ -42,6 +42,10 @@ public sealed partial class PrintViewModel : ViewModelBase
     private readonly AppServices _services;
     private IReadOnlyList<PrintItem> _items = [];
     private CancellationTokenSource _previewCts = new();
+    private bool _syncingWhole;
+
+    /// <summary>What was waiting before the calibration sheet was shown, restored afterwards (prompt_07 §3.4).</summary>
+    private (IReadOnlyList<PrintItem> Items, PrintFormat Size, bool SizeFixed, int Copies, bool Whole)? _beforeCalibration;
 
     public PrintViewModel(AppServices services)
     {
@@ -98,9 +102,33 @@ public sealed partial class PrintViewModel : ViewModelBase
     [ObservableProperty]
     public partial string? StatusMessage { get; set; }
 
+    /// <summary>
+    /// Whole instead of Crop for photos without their own crop (prompt_07 §3.5): the whole photo with white borders.
+    /// Crop (fill the paper, centred) is the default of every print started from Photos.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool WholePhoto { get; set; }
+
+    /// <summary>The statistics are folded away when Print opens this workspace, so customers do not see them (prompt_07 §3.1).</summary>
+    [ObservableProperty]
+    public partial bool StatisticsOpen { get; set; }
+
+    /// <summary>The calibration sheet is shown in place of what was waiting (prompt_07 §3.4).</summary>
+    public bool IsCalibration => _beforeCalibration is not null;
+
+    /// <summary>Crop | Whole applies to photos from Photos, not to ID sheets or collages, whose layout is fixed.</summary>
+    public bool HasPhotos => _items.Any(i => i is PhotoPrintItem);
+
+    /// <summary>The printer has no paper of the print size (prompt_07 §3.3).</summary>
+    public bool HasNoMatchingPaper => HasPrinters && SelectedPrinter is not null && !Papers.Any(p => PrintLayout.PaperMatches(p.Paper.WidthMm, p.Paper.HeightMm, SelectedSize.WidthMm, SelectedSize.HeightMm));
+
+    public string NoMatchingPaperText => Localizer.Instance.Format("NoMatchingPaper", SelectedPrinter ?? string.Empty, SizeName(SelectedSize), InchName(SelectedSize));
+
+    public string ClearText => Localizer.Instance[IsCalibration ? "CancelCalibration" : "ClearPrint"];
+
     public bool HasItems => _items.Count > 0;
 
-    public bool HasOrigin => OriginName is not null;
+    public bool HasOrigin => OriginName is not null || IsCalibration;
 
     public bool HasPrinters => Printers.Count > 0;
 
@@ -112,7 +140,7 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public string MorePreviewsText => Localizer.Instance.Format("PrintMore", _items.Count - PreviewLimit);
 
-    public string BackText => Localizer.Instance.Format("BackTo", OriginName ?? string.Empty);
+    public string BackText => IsCalibration ? Localizer.Instance["CancelCalibration"] : Localizer.Instance.Format("BackTo", OriginName ?? string.Empty);
 
     /// <summary>The driver offers a paper of the print size; otherwise the operator chooses one and the print is centred.</summary>
     public bool PaperMatches => SelectedPaper is { } p && PrintLayout.PaperMatches(p.Paper.WidthMm, p.Paper.HeightMm, SelectedSize.WidthMm, SelectedSize.HeightMm);
@@ -139,16 +167,29 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public static string SizeName(PrintFormat f) => $"{f.Name} cm";
 
+    /// <summary>The size in inches, as drivers name photo papers (10×15 = 4 × 6 in).</summary>
+    private static string InchName(PrintFormat f) => string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.#} × {1:0.#} in", f.WidthMm / 25.4, f.HeightMm / 25.4);
+
     /// <summary>
     /// Shows what to print (from Print in another workspace). It replaces what was waiting here; nothing is sent
     /// before the operator presses Print.
     /// </summary>
     public void Load(IReadOnlyList<PrintItem> items, PrintFormat size, bool sizeFixed, string? origin)
     {
-        _items = items;
+        _beforeCalibration = null;
+        StatisticsOpen = false;
         OriginName = origin;
+        Show(items, size, sizeFixed, 1, whole: false);
+    }
+
+    private void Show(IReadOnlyList<PrintItem> items, PrintFormat size, bool sizeFixed, int copies, bool whole)
+    {
+        _items = items;
         IsSizeFixed = sizeFixed;
-        Copies = 1;
+        Copies = copies;
+        _syncingWhole = true;
+        WholePhoto = whole;
+        _syncingWhole = false;
         StatusMessage = null;
         Previews.Clear();
         foreach (var item in items.Take(PreviewLimit)) Previews.Add(new PrintPreviewItem(item.Name));
@@ -167,6 +208,11 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     partial void OnSelectedPrinterChanged(string? value) => LoadPapers();
 
+    partial void OnWholePhotoChanged(bool value)
+    {
+        if (!_syncingWhole) _ = RenderPreviewsAsync();
+    }
+
     partial void OnSelectedSizeChanged(PrintFormat value)
     {
         LoadPapers();
@@ -181,6 +227,9 @@ public sealed partial class PrintViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(HasOrigin));
         OnPropertyChanged(nameof(BackText));
+        OnPropertyChanged(nameof(HasNoMatchingPaper));
+        OnPropertyChanged(nameof(NoMatchingPaperText));
+        OnPropertyChanged(nameof(ClearText));
     }
 
     partial void OnCopiesChanged(int value)
@@ -202,8 +251,19 @@ public sealed partial class PrintViewModel : ViewModelBase
     [RelayCommand]
     private void CopiesPlus() => Copies = Math.Min(99, Copies + 1);
 
+    /// <summary>Back (and Escape): from the calibration sheet back to what was waiting; otherwise to the workspace that sent the print.</summary>
     [RelayCommand]
-    private void Back() => BackRequested?.Invoke();
+    private void Back()
+    {
+        if (IsCalibration) CancelCalibration();
+        else BackRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    private void ToggleStatistics() => StatisticsOpen = !StatisticsOpen;
+
+    [RelayCommand]
+    private void SetWhole(bool whole) => WholePhoto = whole;
 
     /// <summary>The driver's own settings dialog (quality, glossy/matte, cutting …), remembered per printer.</summary>
     [RelayCommand]
@@ -231,34 +291,76 @@ public sealed partial class PrintViewModel : ViewModelBase
         if (!CanPrint) return;
         var printer = SelectedPrinter!;
         var settings = _services.Settings.PrinterSettings.TryGetValue(printer, out var b64) ? TryDecode(b64) : null;
-        var requests = _items.Select(i => new PrintRequest(i with { Copies = Copies }, printer, SelectedPaper!.Paper, SelectedSize, settings)).ToList();
+        var requests = _items.Select(i => new PrintRequest(Prepared(i) with { Copies = Copies }, printer, SelectedPaper!.Paper, SelectedSize, settings)).ToList();
         _services.Printing.Enqueue(requests);
         _services.Settings.LastPrinter = printer;
         _services.SaveSettings();
-        Log.Information("Print: {Count} item(s) × {Copies} on {Printer}, {Size}, paper {Paper}", requests.Count, Copies, printer, SelectedSize.Id, SelectedPaper!.Paper.Name);
-        Clear();
+        Log.Information("Print: {Count} item(s) × {Copies} on {Printer}, {Size}, paper {Paper}, {Fit}", requests.Count, Copies, printer, SelectedSize.Id, SelectedPaper!.Paper.Name, WholePhoto ? "whole" : "crop");
+        if (IsCalibration)
+        {
+            CancelCalibration();          // the calibration sheet is printed: back to what was waiting
+            return;
+        }
+
+        ClearItems();
         StatusMessage = Localizer.Instance.Plural("JobsSent", requests.Count);
     }
+
+    /// <summary>The item as it prints: photos follow Crop | Whole.</summary>
+    private PrintItem Prepared(PrintItem item) => item is PhotoPrintItem photo ? photo with { Whole = WholePhoto } : item;
 
     /// <summary>
     /// The calibration sheet (FR-071, prompt_06): printed through the same path as photos, so measuring it checks
     /// PhotoX's direct printing. The sheet follows the chosen size (10×15 or 15×20).
     /// </summary>
     [RelayCommand]
-    private void LoadCalibration() => Load(
-        [new SizedPrintItem(Localizer.Instance["CalibrationJob"], (_, size) => size.Id == PrintFormats.P15x20.Id
-            ? Imaging.Id.CalibrationSheet.FifteenByTwenty()
-            : Imaging.Id.CalibrationSheet.TenByFifteen(), 1)],
-        SelectedSize, sizeFixed: false, OriginName);
+    private void LoadCalibration()
+    {
+        if (IsCalibration) return;
+        var before = (_items, SelectedSize, IsSizeFixed, Copies, WholePhoto);
+        Show(
+            [new SizedPrintItem(Localizer.Instance["CalibrationJob"], (_, size) => size.Id == PrintFormats.P15x20.Id
+                ? Imaging.Id.CalibrationSheet.FifteenByTwenty()
+                : Imaging.Id.CalibrationSheet.TenByFifteen(), 1)],
+            SelectedSize, sizeFixed: false, copies: 1, whole: false);
+        _beforeCalibration = before;
+        RaiseItems();
+    }
 
-    /// <summary>Removes what waits to be printed; nothing was sent.</summary>
+    /// <summary>Removes what waits to be printed (nothing was sent), or, with the calibration sheet, cancels it.</summary>
     [RelayCommand]
     private void Clear()
+    {
+        if (IsCalibration) CancelCalibration();
+        else ClearItems();
+    }
+
+    private void ClearItems()
     {
         _previewCts.Cancel();
         _items = [];
         Previews.Clear();
         StatusMessage = null;
+        RaiseItems();
+    }
+
+    /// <summary>Back to the photos and settings that were waiting before the calibration sheet (prompt_07 §3.4).</summary>
+    [RelayCommand]
+    private void CancelCalibration()
+    {
+        if (_beforeCalibration is not { } before) return;
+        _beforeCalibration = null;
+        if (before.Items.Count == 0)
+        {
+            ClearItems();
+            IsSizeFixed = before.SizeFixed;
+            SelectedSize = before.Size;
+        }
+        else
+        {
+            Show(before.Items, before.Size, before.SizeFixed, before.Copies, before.Whole);
+        }
+
         RaiseItems();
     }
 
@@ -325,16 +427,14 @@ public sealed partial class PrintViewModel : ViewModelBase
         }
 
         foreach (var p in papers) Papers.Add(new PaperChoice(p, string.Format(Localizer.Instance.Culture, "{0}  ({1:0.#} × {2:0.#} mm)", p.Name, p.WidthMm, p.HeightMm)));
-        // The driver's paper of the print size, preferring a plain one over a two-up or cut variant of the same size.
-        SelectedPaper = Papers
-            .Where(c => PrintLayout.PaperMatches(c.Paper.WidthMm, c.Paper.HeightMm, SelectedSize.WidthMm, SelectedSize.HeightMm))
-            .OrderBy(c => IsVariant(c.Paper.Name) ? 1 : 0)
-            .FirstOrDefault();
+        // The driver's paper of the print size by its reported size (names differ between drivers), a plain one before
+        // a two-up or split variant; none when the driver has no such paper (prompt_07 §3.3).
+        var best = PaperMatcher.Best(Papers.Select(p => new DriverPaper(p.Paper.Name, p.Paper.WidthMm, p.Paper.HeightMm)).ToList(), SelectedSize.WidthMm, SelectedSize.HeightMm);
+        SelectedPaper = best is int i ? Papers[i] : null;
+        if (SelectedPaper is not null) Log.Information("Paper for {Size} on {Printer}: {Paper}", SelectedSize.Id, SelectedPrinter, SelectedPaper.Paper.Name);
+        else Log.Information("No {Size} paper on {Printer} (papers: {Papers})", SelectedSize.Id, SelectedPrinter, string.Join(", ", Papers.Select(p => p.Label)));
         RaiseTexts();
     }
-
-    private static bool IsVariant(string name) =>
-        name.Contains("2up", StringComparison.OrdinalIgnoreCase) || name.Contains("2-up", StringComparison.OrdinalIgnoreCase) || name.Contains("x2", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Renders the preview pages in the background with the same layout as the print.</summary>
     private async Task RenderPreviewsAsync()
@@ -350,7 +450,7 @@ public sealed partial class PrintViewModel : ViewModelBase
             {
                 var data = await Task.Run(() =>
                 {
-                    var (content, fill) = PrintContent.Load(item, preview: true, size);
+                    var (content, fill) = PrintContent.Load(Prepared(item), preview: true, size);
                     using (content)
                     {
                         var w = single ? 760 : 340;
@@ -379,6 +479,11 @@ public sealed partial class PrintViewModel : ViewModelBase
     private void RaiseItems()
     {
         OnPropertyChanged(nameof(HasItems));
+        OnPropertyChanged(nameof(HasPhotos));
+        OnPropertyChanged(nameof(IsCalibration));
+        OnPropertyChanged(nameof(ClearText));
+        OnPropertyChanged(nameof(HasOrigin));
+        OnPropertyChanged(nameof(BackText));
         OnPropertyChanged(nameof(PhotoCount));
         OnPropertyChanged(nameof(HasMorePreviews));
         OnPropertyChanged(nameof(MorePreviewsText));
@@ -397,5 +502,8 @@ public sealed partial class PrintViewModel : ViewModelBase
         OnPropertyChanged(nameof(PrintButtonText));
         OnPropertyChanged(nameof(LoadedPaperText));
         OnPropertyChanged(nameof(BackText));
+        OnPropertyChanged(nameof(HasNoMatchingPaper));
+        OnPropertyChanged(nameof(NoMatchingPaperText));
+        OnPropertyChanged(nameof(ClearText));
     }
 }

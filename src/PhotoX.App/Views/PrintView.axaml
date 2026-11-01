@@ -42,9 +42,15 @@
     <!-- Left: statistics, the queue of this session and the history -->
     <Border Grid.Row="1" Background="{DynamicResource PanelBrush}">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16,14,10,10">
+        <!-- Statistics fold away when Print opens this workspace: customers may see this screen (prompt_07 §3.1) -->
         <StackPanel Spacing="6">
-          <TextBlock Classes="section" Text="{l:Tr Statistics}" />
-          <ItemsControl ItemsSource="{Binding History.Tiles}" ToolTip.Tip="{l:Tr StatTip}">
+          <Button Classes="list" Focusable="False" Padding="0,2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Command="{Binding ToggleStatisticsCommand}" ToolTip.Tip="{l:Tr StatToggleTip}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Classes="section" Text="{l:Tr Statistics}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding !StatisticsOpen, Converter={x:Static s:IconConverter.Chevron}}" Classes="faint" FontSize="11" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <ItemsControl ItemsSource="{Binding History.Tiles}" ToolTip.Tip="{l:Tr StatTip}" IsVisible="{Binding StatisticsOpen}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:PrintStatTile">
@@ -177,8 +183,19 @@
                       Classes.selected="{Binding SelectedSize.Id, Converter={x:Static s:EqualsConverter.Instance}, ConverterParameter=15x20}" />
             </StackPanel>
 
+            <!-- Crop | Whole for photos without their own crop (prompt_07 §3.5); ID sheets and collages keep their layout -->
+            <StackPanel Spacing="6" IsVisible="{Binding HasPhotos}" Margin="0,4,0,0">
+              <Border Classes="segbox" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                  <ToggleButton Classes="segacc" Focusable="False" MinWidth="80" Content="{l:Tr Fill}" IsChecked="{Binding !WholePhoto, Mode=OneWay}" Command="{Binding SetWholeCommand}" CommandParameter="{x:False}" ToolTip.Tip="{l:Tr PrintCropTip}" />
+                  <ToggleButton Classes="segacc" Focusable="False" MinWidth="80" Content="{l:Tr Borders}" IsChecked="{Binding WholePhoto, Mode=OneWay}" Command="{Binding SetWholeCommand}" CommandParameter="{x:True}" ToolTip.Tip="{l:Tr PrintWholeTip}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
             <TextBlock Classes="section" Text="{l:Tr Paper}" Margin="0,10,0,0" IsVisible="{Binding HasPrinters}" />
             <ComboBox IsVisible="{Binding HasPrinters}" HorizontalAlignment="Stretch" ItemsSource="{Binding Papers}" SelectedItem="{Binding SelectedPaper}" PlaceholderText="{l:Tr ChoosePaper}" />
+            <TextBlock Text="{Binding NoMatchingPaperText}" IsVisible="{Binding HasNoMatchingPaper}" Classes="warn" FontSize="12" TextWrapping="Wrap" />
             <TextBlock Text="{Binding PaperNote}" IsVisible="{Binding PaperNote, Converter={x:Static ObjectConverters.IsNotNull}}" Classes="warn" FontSize="12" TextWrapping="Wrap" />
 
             <TextBlock Classes="section" Text="{l:Tr Copies}" Margin="0,10,0,0" />
@@ -199,7 +216,7 @@
           </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="1" Spacing="8" Margin="18,8,18,16">
-          <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr ClearPrint}" Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}" />
+          <Button Focusable="False" HorizontalAlignment="Stretch" Content="{Binding ClearText}" Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}" />
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding PrintCommand}" IsEnabled="{Binding CanPrint}">
             <TextBlock Text="{Binding PrintButtonText}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
           </Button>

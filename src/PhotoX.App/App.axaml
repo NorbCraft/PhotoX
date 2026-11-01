@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PhotoX.App.App"
-             RequestedThemeVariant="Dark">
+             RequestedThemeVariant="Light">
   <Application.Resources>
     <ResourceDictionary>
       <!-- Light and dark mode (prompt_06 §3): the same names in both, used with DynamicResource so a switch applies at once.
@@ -126,10 +126,6 @@
     <x:Double x:Key="SliderHorizontalThumbHeight">24</x:Double>
     <CornerRadius x:Key="SliderThumbCornerRadius">12</CornerRadius>
 
-    <LinearGradientBrush x:Key="BackgroundTrack" StartPoint="0%,0%" EndPoint="100%,0%">
-      <GradientStop Color="#9A9A9A" Offset="0" />
-      <GradientStop Color="#FFFFFF" Offset="1" />
-    </LinearGradientBrush>
     </ResourceDictionary>
   </Application.Resources>
 

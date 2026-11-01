@@ -142,15 +142,8 @@ public sealed partial class ShellViewModel
     public void OpenPrint(IReadOnlyList<PrintItem> items, PrintFormat size, bool sizeFixed)
     {
         if (items.Count == 0) return;
-        _printOrigin = IsPhotosWorkspace ? Browse : CurrentPage is PrintViewModel ? _printOrigin : CurrentPage;
-        var origin = _printOrigin switch
-        {
-            IdViewModel => Localizer.Instance["TabId"],
-            CollageViewModel => Localizer.Instance["TabCollages"],
-            _ => Localizer.Instance["TabPhotos"],
-        };
         ShowPrinting();
-        Print.Load(items, size, sizeFixed, origin);
+        Print.Load(items, size, sizeFixed, Print.OriginName);
     }
 
     private static string Names(IReadOnlyList<PhotoItemViewModel> items) =>

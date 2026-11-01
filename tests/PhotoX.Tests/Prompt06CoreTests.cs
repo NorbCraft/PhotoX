@@ -124,7 +124,7 @@ public class Prompt06CoreTests
         Directory.CreateDirectory(paths.ConfigDir);
         File.WriteAllText(paths.SettingsFile, "{\"version\":1,\"jpegQuality\":95,\"language\":\"en\"}");
         var loaded = new SettingsStore(paths).Load();
-        Assert.Equal((100, "en", "dark"), (loaded.JpegQuality, loaded.Language, loaded.Theme));
+        Assert.Equal((100, "en", "light"), (loaded.JpegQuality, loaded.Language, loaded.Theme));   // light by default since prompt_07
         Assert.Contains("\"version\": 2", File.ReadAllText(paths.SettingsFile));
     }
 

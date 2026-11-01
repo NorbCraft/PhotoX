@@ -31,8 +31,11 @@ public sealed class Settings
     /// <summary>JPEG quality of saved photos, ID sheets and collages; 100 by default (prompt_06 §9).</summary>
     public int JpegQuality { get; set; } = 100;
 
-    /// <summary>"dark" or "light" (prompt_06 §3).</summary>
-    public string Theme { get; set; } = "dark";
+    /// <summary>
+    /// "light" or "dark" (prompt_06 §3). Light for new settings (prompt_07 §5.1); a theme already stored by 0.9 is kept,
+    /// since a stored value cannot tell an explicit choice from the old default.
+    /// </summary>
+    public string Theme { get; set; } = "light";
 
     /// <summary>Size of the gallery thumbnails relative to the default (prompt_06 §4).</summary>
     public double ThumbnailScale { get; set; } = 1;

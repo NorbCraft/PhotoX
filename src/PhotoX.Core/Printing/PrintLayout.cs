@@ -36,10 +36,10 @@ public static class PrintLayout
         return new PrintPlacement(rotate, NormalizedRect.Full, CropMath.LargestCentered(page, contentRatio));
     }
 
-    /// <summary>True when a printer paper of <paramref name="widthMm"/> × <paramref name="heightMm"/> is the print size (either orientation, ±2 mm).</summary>
+    /// <summary>True when a printer paper of <paramref name="widthMm"/> × <paramref name="heightMm"/> is the print size (either orientation, within <see cref="PaperMatcher.ToleranceMm"/>).</summary>
     public static bool PaperMatches(double widthMm, double heightMm, double printWidthMm, double printHeightMm)
     {
-        static bool Near(double a, double b) => Math.Abs(a - b) <= 2;
+        static bool Near(double a, double b) => Math.Abs(a - b) <= PaperMatcher.ToleranceMm;
         return (Near(widthMm, printWidthMm) && Near(heightMm, printHeightMm)) || (Near(widthMm, printHeightMm) && Near(heightMm, printWidthMm));
     }
 }

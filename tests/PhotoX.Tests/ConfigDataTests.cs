@@ -76,7 +76,8 @@ public class ConfigDataTests
         File.WriteAllText(Path.Combine(paths.ConfigDir, ConfigData.PrintFormatsFile), """
             [ { "id": "10x15", "name": "10 × 15", "widthMm": 102, "heightMm": 152 },
               { "id": "15x20", "name": "15 × 20", "widthMm": -1, "heightMm": 203.2 },
-              { "id": "9x13", "name": "9 × 13", "widthMm": 89, "heightMm": 127 } ]
+              { "id": "9x13", "name": "9 × 13", "widthMm": 89, "heightMm": 127 },
+              { "id": "8x10", "name": "8 × 10", "widthMm": 203.2, "heightMm": 254 } ]
             """);
         File.WriteAllText(Path.Combine(paths.ConfigDir, ConfigData.IdSizesFile), """
             [ { "id": "3x4", "label": "3 × 4 cm", "widthMm": 30, "heightMm": 40, "stripBelowMm": 7, "familiarCounts": [4, 8], "crownFraction": 0.1, "headFraction": 0.75 },
@@ -87,7 +88,8 @@ public class ConfigDataTests
             ConfigData.Load(paths);
             Assert.Equal((102.0, 152.0), (PrintFormats.P10x15.WidthMm, PrintFormats.P10x15.HeightMm));
             Assert.Equal(152.4, PrintFormats.P15x20.WidthMm); // the negative width was ignored
-            Assert.Null(PrintFormats.Find("9x13"));           // the presets are fixed; unknown ids are ignored
+            Assert.Null(PrintFormats.Find("8x10"));           // the presets are fixed; unknown ids are ignored
+            Assert.Equal(90, PrintFormats.Find("9x13")!.WidthMm); // 9×13 needs its 10×15 canvas; an entry without one is ignored
             Assert.Equal("3x4", Assert.Single(IdSizes.BuiltIn).Id);
         }
         finally

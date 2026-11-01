@@ -99,6 +99,23 @@ public class CropMathTests
     }
 
     [Fact]
+    public void Plan_9x13_centres_photo_on_10x15_canvas()
+    {
+        // prompt_07 §1.1: 90 × 130 mm on the 101.6 × 152.4 mm sheet at the photo's own scale.
+        var recipe = new EditRecipe { FormatId = "9x13", Orientation = CropOrientation.Portrait, Crop = new NormalizedRect(0, 0, 1, 1) };
+        Assert.Equal(90.0 / 130.0, recipe.CropRatio, 6);
+        var plan = RenderPlan.Create(1800, 2600, recipe);
+        Assert.Equal(2032, plan.CanvasWidth);                                   // 1800 × 101.6 / 90
+        Assert.Equal(3048, plan.CanvasHeight);                                  // 2600 × 152.4 / 130
+        Assert.Equal(2.0 / 3.0, (double)plan.CanvasWidth / plan.CanvasHeight, 3);
+        Assert.Equal(116, plan.PhotoX);
+        Assert.Equal(224, plan.PhotoY);
+        Assert.Equal(508, plan.EffectivePpi!.Value, 0);                         // 2600 px over 130 mm
+        var landscape = RenderPlan.Create(2600, 1800, recipe with { Orientation = CropOrientation.Landscape });
+        Assert.Equal((3048, 2032), (landscape.CanvasWidth, landscape.CanvasHeight));
+    }
+
+    [Fact]
     public void Plan_whole_photo_adds_borders_without_scaling()
     {
         var recipe = new EditRecipe { Composition = Composition.WholeWithBorder, Orientation = CropOrientation.Landscape };

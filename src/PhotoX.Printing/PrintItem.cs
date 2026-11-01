@@ -15,9 +15,11 @@ public abstract record PrintItem(string Name, int Copies)
 
 /// <summary>
 /// An order photo (prompt_05 §3): the unsaved edit shown in PhotoX when there is one (rendered like a save, from the
-/// preserved original, but nothing is written), else the photo as saved, else the untouched original filled to the paper.
+/// preserved original, but nothing is written), else the photo as saved, else the untouched original. An edit keeps
+/// its own crop; an untouched photo is cropped to fill the paper, or with <paramref name="Whole"/> shown whole with
+/// white borders (prompt_07 §3.5).
 /// </summary>
-public sealed record PhotoPrintItem(string Name, string Path, EditRecipe? PendingRecipe, bool IsEdited, int Copies) : PrintItem(Name, Copies)
+public sealed record PhotoPrintItem(string Name, string Path, EditRecipe? PendingRecipe, bool IsEdited, int Copies, bool Whole = false) : PrintItem(Name, Copies)
 {
     public override string? CounterPath => Path;
 }
@@ -48,7 +50,7 @@ public static class PrintContent
                     return (RecipeRenderer.RenderFinal(source, recipe), false);
                 }
 
-                return (ImageLoader.Load(photo.Path, maxEdge), !photo.IsEdited);
+                return (ImageLoader.Load(photo.Path, maxEdge), !photo.IsEdited && !photo.Whole);
             case ImagePrintItem image:
                 return (image.Render(preview), false);
             case SizedPrintItem sized:

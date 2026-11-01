@@ -57,7 +57,7 @@
     <Style Selector="Border.value">
       <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
       <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="MinWidth" Value="56" />
+      <Setter Property="MinWidth" Value="52" />
       <Setter Property="Height" Value="26" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
@@ -79,149 +79,143 @@
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
   </UserControl.Styles>
-  <!-- ID Photos (prompt_06 §5): ID tools in the toolbar, the explorer on the left, the photo in the centre and the
-       editing sidebar of the Photos workspace on the right -->
-  <Grid x:Name="Root" ColumnDefinitions="290,Auto,*,Auto,340" RowDefinitions="Auto,*">
+  <!-- ID Photos (prompt_06 §5, prompt_07 §2): steps and tools above the photo, the explorer on the left, the photo in
+       the centre and the editing sidebar of the Photos workspace on the right -->
+  <Grid x:Name="Root" ColumnDefinitions="290,Auto,*,Auto,340" RowDefinitions="Auto,Auto,*">
 
-    <!-- Toolbar: steps, format, 90° rotation, Auto Align, zoom, rotation, background; scrolls when the window is narrow -->
-    <Border Grid.ColumnSpan="5" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,7">
+    <!-- Above the photo (prompt_07 §2.2): the format, the two steps and Clear, within the photo column -->
+    <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,7">
+      <Grid ColumnDefinitions="*,Auto,*">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+            <Button x:Name="FormatButton" Classes="chip selected" Focusable="False" Padding="12,4,14,4" MinHeight="34" ToolTip.Tip="{l:Tr IdFormatTip}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Path Data="{x:Static s:Icons.IdPhoto}" Stroke="{DynamicResource SelectedTextBrush}" StrokeThickness="1.7" StrokeLineCap="Round" StrokeJoin="Round"
+                    Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding SelectedSize.Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Text="▾" VerticalAlignment="Center" FontSize="12" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <StackPanel Spacing="6" Width="300">
+                  <TextBlock Classes="section" Text="{l:Tr IdFormat}" />
+                  <ItemsControl ItemsSource="{Binding Sizes}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:IdSizeItem">
+                        <Button Classes="chip compact sizechip" Classes.selected="{Binding IsSelected}" Focusable="False" ToolTip.Tip="{Binding Detail}"
+                                Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}" Content="{Binding Label}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <ItemsControl ItemsSource="{Binding CustomSizes}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:IdSizeItem">
+                        <Border Classes="customchip" Classes.selected="{Binding IsSelected}">
+                          <StackPanel Orientation="Horizontal">
+                            <Button Classes="link" Focusable="False" Padding="10,3,4,3" Content="{Binding Label}"
+                                    Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}" />
+                            <Button Classes="link" Focusable="False" Padding="6,3,10,3" Content="✕" ToolTip.Tip="{l:Tr RemoveSize}"
+                                    Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).RemoveCustomSizeCommand}" CommandParameter="{Binding}" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Classes="link" Focusable="False" HorizontalAlignment="Left" Content="{l:Tr NewSize}" Command="{Binding ToggleNewSizeCommand}" IsVisible="{Binding !IsAddingSize}" />
+                  <Border IsVisible="{Binding IsAddingSize}" Background="{DynamicResource Panel2Brush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="8" Padding="10">
+                    <StackPanel Spacing="8">
+                      <TextBlock Text="{l:Tr NewSizeTitle}" FontWeight="SemiBold" />
+                      <Grid ColumnDefinitions="*,Auto,*,Auto">
+                        <NumericUpDown Value="{Binding NewSizeWidth}" Minimum="1" Maximum="15" Increment="0.1" FormatString="0.0#" ShowButtonSpinner="False" ToolTip.Tip="{l:Tr Width}" />
+                        <TextBlock Grid.Column="1" Text="×" Margin="6,0" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="2" Value="{Binding NewSizeHeight}" Minimum="1" Maximum="15" Increment="0.1" FormatString="0.0#" ShowButtonSpinner="False" ToolTip.Tip="{l:Tr Height}" />
+                        <TextBlock Grid.Column="3" Text="cm" Margin="6,0,0,0" VerticalAlignment="Center" />
+                      </Grid>
+                      <TextBlock Text="{Binding NewSizeError}" IsVisible="{Binding NewSizeError, Converter={x:Static ObjectConverters.IsNotNull}}" Classes="warn" FontSize="12" TextWrapping="Wrap" />
+                      <Grid ColumnDefinitions="*,8,*">
+                        <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Cancel}" Command="{Binding ToggleNewSizeCommand}" />
+                        <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Add}" Command="{Binding AddCustomSizeCommand}" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+        <Border Grid.Column="1" Classes="segbox" Margin="10,0">
+          <StackPanel Orientation="Horizontal" Spacing="2">
+            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsFraming, Mode=OneWay}" Command="{Binding BackToFramingCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Classes="stepnum"><TextBlock Text="1" /></Border>
+                <TextBlock Text="{l:Tr Step1}" VerticalAlignment="Center" />
+              </StackPanel>
+            </ToggleButton>
+            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsSheetStep, Mode=OneWay}" Command="{Binding ContinueToSheetCommand}" IsEnabled="{Binding HasSource}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Classes="stepnum"><TextBlock Text="2" /></Border>
+                <TextBlock Text="{l:Tr Step2}" VerticalAlignment="Center" />
+              </StackPanel>
+            </ToggleButton>
+          </StackPanel>
+        </Border>
+        <!-- Clear (prompt_07 §2.3): removes the photo from the workspace; the file is not touched -->
+        <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Right" Content="{l:Tr ClearPhoto}" Command="{Binding ClearPhotoCommand}" IsVisible="{Binding HasSource}"
+                ToolTip.Tip="{l:Tr ClearPhotoTip}" />
+      </Grid>
+    </Border>
+
+    <!-- Framing tools, like the crop tools of the Photos editor (prompt_06 §5); scroll when the column is narrow -->
+    <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,7"
+            IsVisible="{Binding ShowFraming}">
       <Grid ColumnDefinitions="*,Auto">
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,2">
-            <Border Classes="segbox">
-              <StackPanel Orientation="Horizontal" Spacing="2">
-                <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsFraming, Mode=OneWay}" Command="{Binding BackToFramingCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Border Classes="stepnum"><TextBlock Text="1" /></Border>
-                    <TextBlock Text="{l:Tr Step1}" VerticalAlignment="Center" />
-                  </StackPanel>
-                </ToggleButton>
-                <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsSheetStep, Mode=OneWay}" Command="{Binding ContinueToSheetCommand}" IsEnabled="{Binding HasSource}">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Border Classes="stepnum"><TextBlock Text="2" /></Border>
-                    <TextBlock Text="{l:Tr Step2}" VerticalAlignment="Center" />
-                  </StackPanel>
-                </ToggleButton>
+            <Button Classes="icon" Focusable="False" Command="{Binding RotateLeftCommand}" ToolTip.Tip="{l:Tr RotateLeft90}">
+              <Path Data="{x:Static s:Icons.RotateLeft}" />
+            </Button>
+            <Button Classes="icon" Focusable="False" Command="{Binding RotateRightCommand}" ToolTip.Tip="{l:Tr RotateRight90}">
+              <Path Data="{x:Static s:Icons.RotateRight}" />
+            </Button>
+            <Border Classes="sep" />
+            <Button Focusable="False" Padding="10,4,14,4" Command="{Binding AutoAlignCommand}" IsEnabled="{Binding CanAutoAlign}" ToolTip.Tip="{l:Tr AutoAlignTip}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Path Data="{x:Static s:Icons.AutoAlign}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Width="24" Height="24" Stretch="None" />
+                <TextBlock Text="{l:Tr AutoAlign}" FontWeight="SemiBold" VerticalAlignment="Center" />
               </StackPanel>
+            </Button>
+            <Border Classes="sep" />
+            <Border Classes="segbox toolgroup" ToolTip.Tip="{l:Tr ZoomTip}">
+              <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+                <Path Data="{x:Static s:Icons.Zoom}" />
+                <Slider Grid.Column="1" Width="80" Margin="8,-14" Minimum="30" Maximum="400" Value="{Binding Zoom}" VerticalAlignment="Center" DoubleTapped="OnZoomDoubleTapped" />
+                <Border Grid.Column="2" Classes="value"><TextBlock Text="{Binding ZoomText}" /></Border>
+              </Grid>
+            </Border>
+            <Border Classes="segbox toolgroup" ToolTip.Tip="{l:Tr TiltTip}">
+              <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
+                <Path Data="{x:Static s:Icons.Straighten}" />
+                <Slider Grid.Column="1" Width="80" Margin="8,-14" Minimum="-20" Maximum="20" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding Rotation}"
+                        VerticalAlignment="Center" DoubleTapped="OnRotationDoubleTapped" />
+                <Border Grid.Column="2" Classes="value"><TextBlock Text="{Binding RotationText}" /></Border>
+              </Grid>
             </Border>
             <Border Classes="sep" />
-
-            <!-- The ID format (prompt_06 §5: moved from the left panel) -->
-            <Button x:Name="FormatButton" Classes="chip selected" Focusable="False" Padding="12,4,14,4" MinHeight="34" ToolTip.Tip="{l:Tr IdFormatTip}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Path Data="{x:Static s:Icons.IdPhoto}" Stroke="{DynamicResource SelectedTextBrush}" StrokeThickness="1.7" StrokeLineCap="Round" StrokeJoin="Round"
-                      Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding SelectedSize.Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Text="▾" VerticalAlignment="Center" FontSize="12" />
-              </StackPanel>
-              <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedLeft">
-                  <StackPanel Spacing="6" Width="300">
-                    <TextBlock Classes="section" Text="{l:Tr IdFormat}" />
-                    <ItemsControl ItemsSource="{Binding Sizes}">
-                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:IdSizeItem">
-                          <Button Classes="chip compact sizechip" Classes.selected="{Binding IsSelected}" Focusable="False" ToolTip.Tip="{Binding Detail}"
-                                  Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}" Content="{Binding Label}" />
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <ItemsControl ItemsSource="{Binding CustomSizes}">
-                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:IdSizeItem">
-                          <Border Classes="customchip" Classes.selected="{Binding IsSelected}">
-                            <StackPanel Orientation="Horizontal">
-                              <Button Classes="link" Focusable="False" Padding="10,3,4,3" Content="{Binding Label}"
-                                      Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).SelectSizeCommand}" CommandParameter="{Binding}" />
-                              <Button Classes="link" Focusable="False" Padding="6,3,10,3" Content="✕" ToolTip.Tip="{l:Tr RemoveSize}"
-                                      Command="{Binding $parent[UserControl].((vm:IdViewModel)DataContext).RemoveCustomSizeCommand}" CommandParameter="{Binding}" />
-                            </StackPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Classes="link" Focusable="False" HorizontalAlignment="Left" Content="{l:Tr NewSize}" Command="{Binding ToggleNewSizeCommand}" IsVisible="{Binding !IsAddingSize}" />
-                    <Border IsVisible="{Binding IsAddingSize}" Background="{DynamicResource Panel2Brush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="8" Padding="10">
-                      <StackPanel Spacing="8">
-                        <TextBlock Text="{l:Tr NewSizeTitle}" FontWeight="SemiBold" />
-                        <Grid ColumnDefinitions="*,Auto,*,Auto">
-                          <NumericUpDown Value="{Binding NewSizeWidth}" Minimum="1" Maximum="15" Increment="0.1" FormatString="0.0#" ShowButtonSpinner="False" ToolTip.Tip="{l:Tr Width}" />
-                          <TextBlock Grid.Column="1" Text="×" Margin="6,0" VerticalAlignment="Center" />
-                          <NumericUpDown Grid.Column="2" Value="{Binding NewSizeHeight}" Minimum="1" Maximum="15" Increment="0.1" FormatString="0.0#" ShowButtonSpinner="False" ToolTip.Tip="{l:Tr Height}" />
-                          <TextBlock Grid.Column="3" Text="cm" Margin="6,0,0,0" VerticalAlignment="Center" />
-                        </Grid>
-                        <TextBlock Text="{Binding NewSizeError}" IsVisible="{Binding NewSizeError, Converter={x:Static ObjectConverters.IsNotNull}}" Classes="warn" FontSize="12" TextWrapping="Wrap" />
-                        <Grid ColumnDefinitions="*,8,*">
-                          <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Cancel}" Command="{Binding ToggleNewSizeCommand}" />
-                          <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Add}" Command="{Binding AddCustomSizeCommand}" />
-                        </Grid>
-                      </StackPanel>
-                    </Border>
-                  </StackPanel>
-                </Flyout>
-              </Button.Flyout>
+            <Button Classes="icon" Focusable="False" Command="{Binding ResetFramingCommand}" ToolTip.Tip="{l:Tr ResetFraming}">
+              <Path Data="{x:Static s:Icons.ResetCrop}" />
             </Button>
-
-            <!-- Framing tools (prompt_06 §5: moved from the right panel), only while framing -->
-            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowFraming}">
-              <Border Classes="sep" />
-              <Button Classes="icon" Focusable="False" Command="{Binding RotateLeftCommand}" ToolTip.Tip="{l:Tr RotateLeft90}">
-                <Path Data="{x:Static s:Icons.RotateLeft}" />
-              </Button>
-              <Button Classes="icon" Focusable="False" Command="{Binding RotateRightCommand}" ToolTip.Tip="{l:Tr RotateRight90}">
-                <Path Data="{x:Static s:Icons.RotateRight}" />
-              </Button>
-              <Border Classes="sep" />
-              <Button Focusable="False" Padding="10,4,14,4" Command="{Binding AutoAlignCommand}" IsEnabled="{Binding CanAutoAlign}" ToolTip.Tip="{l:Tr AutoAlignTip}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Path Data="{x:Static s:Icons.AutoAlign}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" Width="24" Height="24" Stretch="None" />
-                  <TextBlock Text="{l:Tr AutoAlign}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-              <Border Classes="sep" />
-              <Border Classes="segbox toolgroup" ToolTip.Tip="{l:Tr ZoomTip}">
-                <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-                  <Path Data="{x:Static s:Icons.Zoom}" />
-                  <Slider Grid.Column="1" Width="104" Margin="8,-14" Minimum="30" Maximum="400" Value="{Binding Zoom}" VerticalAlignment="Center" DoubleTapped="OnZoomDoubleTapped" />
-                  <Border Grid.Column="2" Classes="value"><TextBlock Text="{Binding ZoomText}" /></Border>
-                </Grid>
-              </Border>
-              <Border Classes="segbox toolgroup" ToolTip.Tip="{l:Tr TiltTip}">
-                <Grid ColumnDefinitions="Auto,Auto,Auto" VerticalAlignment="Center">
-                  <Path Data="{x:Static s:Icons.Straighten}" />
-                  <Slider Grid.Column="1" Width="104" Margin="8,-14" Minimum="-20" Maximum="20" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding Rotation}"
-                          VerticalAlignment="Center" DoubleTapped="OnRotationDoubleTapped" />
-                  <Border Grid.Column="2" Classes="value"><TextBlock Text="{Binding RotationText}" /></Border>
-                </Grid>
-              </Border>
-              <Border Classes="segbox toolgroup" Padding="8,0,8,0" ToolTip.Tip="{l:Tr BackgroundTip}">
-                <Grid ColumnDefinitions="Auto,Auto" VerticalAlignment="Center">
-                  <Path Data="{x:Static s:Icons.Brightness}" />
-                  <Panel Grid.Column="1" Width="104" Margin="8,-14,0,-14" VerticalAlignment="Center">
-                    <Border Classes="track" Background="{StaticResource BackgroundTrack}" />
-                    <Slider Classes="tone" Minimum="0" Maximum="100" Value="{Binding BackgroundBrightness}" DoubleTapped="OnBackgroundDoubleTapped" />
-                  </Panel>
-                </Grid>
-              </Border>
-              <Border Classes="sep" />
-              <Button Classes="icon" Focusable="False" Command="{Binding ResetFramingCommand}" ToolTip.Tip="{l:Tr ResetFraming}">
-                <Path Data="{x:Static s:Icons.ResetCrop}" />
-              </Button>
-            </StackPanel>
           </StackPanel>
         </ScrollViewer>
         <!-- Before / after: the photo without adjustments while held, like Space (as in the Photos editor) -->
-        <Button x:Name="BeforeButton" Grid.Column="1" Classes="icon hold" Focusable="False" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0"
-                IsVisible="{Binding ShowFraming}">
+        <Button x:Name="BeforeButton" Grid.Column="1" Classes="icon hold" Focusable="False" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0">
           <Path Data="{x:Static s:Icons.BeforeAfter}" />
         </Button>
       </Grid>
     </Border>
 
     <!-- Left: the common explorer and the folder's photos; a click loads a photo (prompt_05 §7) -->
-    <Border Grid.Row="1" Background="{DynamicResource PanelBrush}">
+    <Border Grid.RowSpan="3" Background="{DynamicResource PanelBrush}">
       <Grid RowDefinitions="1.1*,5,*">
         <v:ExplorerView DataContext="{Binding Picker.Explorer}" />
         <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{DynamicResource BorderBrush}" />
@@ -231,10 +225,10 @@
         </DockPanel>
       </Grid>
     </Border>
-    <GridSplitter Grid.Row="1" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
+    <GridSplitter Grid.RowSpan="3" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
 
     <!-- Centre: the photo under the ID frame, or the sheet -->
-    <Panel Grid.Row="1" Grid.Column="2" Background="{DynamicResource CanvasBrush}">
+    <Panel Grid.Row="2" Grid.Column="2" Background="{DynamicResource CanvasBrush}">
       <c:IdCanvas x:Name="Canvas" IsVisible="{Binding ShowFraming}" Margin="16" Source="{Binding Preview}" Size="{Binding SelectedSize.Size}"
                   FrameWidth="{Binding PreviewFrameWidth}" FrameHeight="{x:Static vm:IdViewModel.PreviewFrameHeight}" />
       <Border IsVisible="{Binding ShowSheet}" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 6 18 0 #90000000">
@@ -265,9 +259,9 @@
     </Panel>
 
     <!-- Resizable right panel (prompt_03 §3) -->
-    <GridSplitter Grid.Row="1" Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnSplitterDragCompleted" />
+    <GridSplitter Grid.RowSpan="3" Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnSplitterDragCompleted" />
 
-    <Border Grid.Row="1" Grid.Column="4" Background="{DynamicResource PanelBrush}">
+    <Border Grid.RowSpan="3" Grid.Column="4" Background="{DynamicResource PanelBrush}">
       <Panel>
         <!-- Step 1: the editing sidebar of the Photos workspace (prompt_06 §5), then Continue -->
         <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding !IsSheetStep}">

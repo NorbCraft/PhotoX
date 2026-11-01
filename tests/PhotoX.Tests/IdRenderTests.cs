@@ -26,19 +26,6 @@ public class IdRenderTests
     }
 
     [Fact]
-    public void Background_lift_brightens_light_neutral_background_but_not_the_face_area()
-    {
-        using var img = new MagickImage(new MagickColor("#C8C8C8"), 354, 472);
-        var oval = IdRenderer.HeadOval(IdSizes.S3x4, 354, 472);
-        new ImageMagick.Drawing.Drawables().FillColor(new MagickColor("#C8C8C8")).Draw(img);
-        var faceBefore = img.GetPixels().GetPixel((int)oval.CenterX, (int)oval.CenterY).ToColor()!.R;
-        BackgroundLift.Apply(img, 80, oval);
-        using var px = img.GetPixels();
-        Assert.True(px.GetPixel(10, 10).ToColor()!.R > 60000, "corner background lifted towards white");
-        Assert.Equal(faceBefore, px.GetPixel((int)oval.CenterX, (int)oval.CenterY).ToColor()!.R);
-    }
-
-    [Fact]
     public void Sheet_places_exact_photos_and_keeps_the_white_strip_on_a_landscape_page()
     {
         using var photo = new MagickImage(new MagickColor("#204060"), (uint)IdSizes.S3x4.WidthPx, (uint)IdSizes.S3x4.HeightPx);

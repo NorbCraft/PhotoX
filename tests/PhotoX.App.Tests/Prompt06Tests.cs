@@ -226,7 +226,7 @@ public class Prompt06Tests
         }
         finally
         {
-            App.ApplyTheme("dark");
+            App.ApplyTheme("light");
             window.Close();
         }
     }

@@ -37,6 +37,7 @@ public sealed partial class ShellViewModel : ViewModelBase
             _ = ShowDialogAsync(d);
         };
         Editor.BackRequested += () => CurrentPage = Browse;
+        Editor.PrintRequested += item => PrintPhotos([item]);
         Editor.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(EditorViewModel.Title) or nameof(EditorViewModel.IsDirty)) RaiseContext();
@@ -142,11 +143,22 @@ public sealed partial class ShellViewModel : ViewModelBase
         Collage.Activate();
     }
 
+    /// <summary>
+    /// Printing (prompt_07 §3.7, §3.8): remembers the workspace it was opened from, so Back and Escape return there with
+    /// its state (the selection, or the photo open in the editor).
+    /// </summary>
     [RelayCommand]
     private void ShowPrinting()
     {
         if (IsPrintWorkspace) return;
         RememberPhotosPage();
+        _printOrigin = IsPhotosWorkspace ? Browse : CurrentPage;
+        Print.OriginName = _printOrigin switch
+        {
+            IdViewModel => Localizer.Instance["TabId"],
+            CollageViewModel => Localizer.Instance["TabCollages"],
+            _ => Localizer.Instance["TabPhotos"],
+        };
         CurrentPage = Print;
         Print.Activate();
     }

@@ -43,11 +43,6 @@ public sealed partial class IdView : UserControl
 
     private void OnRotationDoubleTapped(object? sender, TappedEventArgs e) => Vm?.ResetRotation();
 
-    private void OnBackgroundDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (Vm is { } vm) vm.BackgroundBrightness = 0;
-    }
-
     private async Task<string?> PickFolderAsync()
     {
         var storage = TopLevel.GetTopLevel(this)?.StorageProvider;

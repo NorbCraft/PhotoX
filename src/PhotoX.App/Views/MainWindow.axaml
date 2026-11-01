@@ -11,7 +11,7 @@
         Width="1440" Height="900" MinWidth="1100" MinHeight="680"
         WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="56,*">
-    <!-- Top bar (FR-008, FR-009): workspaces with icons on the left; language, settings and the PhotoX name on the right (prompt_05 §1, prompt_06 §1) -->
+    <!-- Top bar (FR-008, FR-009): the three workspaces on the left; Printing, language, settings and the PhotoX name on the right (prompt_05 §1, prompt_06 §1, prompt_07 §3.8) -->
     <Border Grid.Row="0" Background="{DynamicResource BarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto" Margin="12,0,16,0">
         <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
@@ -25,16 +25,6 @@
             <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsCollageWorkspace, Mode=OneWay}" Command="{Binding ShowCollagesCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.Collage}" /><TextBlock Text="{l:Tr TabCollages}" VerticalAlignment="Center" /></StackPanel>
             </ToggleButton>
-            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPrintWorkspace, Mode=OneWay}" Command="{Binding ShowPrintingCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Path Data="{x:Static s:Icons.Printer}" />
-                <TextBlock Text="{l:Tr TabPrinting}" VerticalAlignment="Center" />
-                <!-- Jobs in progress; amber when Windows reports a problem -->
-                <Border IsVisible="{Binding Print.Queue.HasActive}" Classes="wsbadge" Classes.attention="{Binding Print.Queue.NeedsAttention}" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding PrintBadge}" />
-                </Border>
-              </StackPanel>
-            </ToggleButton>
           </StackPanel>
         </Border>
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="12,0">
@@ -44,6 +34,19 @@
           </Border>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <!-- Printing, apart from the three creation workspaces (prompt_07 §3.8) -->
+          <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
+              <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPrintWorkspace, Mode=OneWay}" Command="{Binding ShowPrintingCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Path Data="{x:Static s:Icons.Printer}" />
+                  <TextBlock Text="{l:Tr TabPrinting}" VerticalAlignment="Center" />
+                  <!-- Jobs in progress; amber when Windows reports a problem -->
+                  <Border IsVisible="{Binding Print.Queue.HasActive}" Classes="wsbadge" Classes.attention="{Binding Print.Queue.NeedsAttention}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding PrintBadge}" />
+                  </Border>
+                </StackPanel>
+              </ToggleButton>
+          </Border>
           <Border Background="{DynamicResource Panel2Brush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="15" Padding="2" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal">
               <ToggleButton Classes="seg lang" Focusable="False" CornerRadius="13" Padding="12,3" MinHeight="26" FontWeight="Bold" Content="EN"

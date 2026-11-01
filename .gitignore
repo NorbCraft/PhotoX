@@ -52,3 +52,6 @@ desktop.ini
 # --- Tooling -----------------------------------------------------------------------
 __pycache__/
 *.py[cod]
+
+# Owner example photos for testing (prompt_07), never committed
+photos_example/

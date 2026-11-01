@@ -34,6 +34,7 @@ public static class ToneProcessor
 
         if (curve.IsIdentity && (gray || !saturate)) return;
 
+        OwnPixels(image);
         using var pixels = image.GetPixelsUnsafe();
         var channels = (int)pixels.Channels;
         int Index(PixelChannel channel) => pixels.GetChannelIndex(channel) is uint i ? (int)i : throw new InvalidOperationException($"No {channel} channel.");
@@ -67,6 +68,20 @@ public static class ToneProcessor
             });
             pixels.SetArea(0, y0, (uint)width, (uint)rows, data);
         }
+    }
+
+    /// <summary>
+    /// Gives <paramref name="image"/> its own copy of its pixels before they are written in strips (prompt_07 §1.6).
+    /// A clone shares its pixels with the original until the first write. The strips are written with queued
+    /// (write-only) access, and for that ImageMagick gives a shared image new pixel memory without copying the
+    /// pixels, so every strip after the first was read as zeros and saved black: a photo saved without a crop (the
+    /// full frame) but with a tone change came out black below its first strip, about 1/8 of a 22 MP photo.
+    /// Compositing a fully transparent pixel changes nothing, but writes through ordinary access, which copies first.
+    /// </summary>
+    internal static void OwnPixels(MagickImage image)
+    {
+        using var dot = new MagickImage(MagickColors.Transparent, 1, 1);
+        image.Composite(dot, 0, 0, CompositeOperator.Over);
     }
 
     /// <summary>

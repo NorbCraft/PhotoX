@@ -58,6 +58,24 @@ public static class Icons
     /// <summary>Half-filled circle: before / after.</summary>
     public static readonly Geometry BeforeAfter = Geometry.Parse("M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h4 M12 11h6 M12 15h5");
 
+    // Icons beside button labels (owner's choice B of the prompt_07 mockups, docs/mockups/buttons).
+
+    /// <summary>A cross: Close, Clear.</summary>
+    public static readonly Geometry Close = Geometry.Parse("M6.5 6.5l11 11 M17.5 6.5l-11 11");
+
+    /// <summary>A disk: Save.</summary>
+    public static readonly Geometry Save = Geometry.Parse("M5.5 4h10.5l3.5 3.5v11a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 18.5v-13A1.5 1.5 0 0 1 5.5 4z M8 4v4.5h7V4 M7.5 20v-6h9v6");
+
+    /// <summary>An arrow to a bar: Save &amp; Next, Continue.</summary>
+    public static readonly Geometry SaveNext = Geometry.Parse("M4 12h12 M11.5 7.5 16 12l-4.5 4.5 M20 5.5v13");
+
+    /// <summary>A circular arrow: Reset.</summary>
+    public static readonly Geometry Reset = Geometry.Parse("M5 12a7 7 0 1 0 2.1-5 M4.5 4.5v4h4");
+
+    public static readonly Geometry Undo = Geometry.Parse("M9 6.5 4.5 11 9 15.5 M5 11h9.5a4.5 4.5 0 0 1 0 9H12");
+
+    public static readonly Geometry Redo = Geometry.Parse("M15 6.5 19.5 11 15 15.5 M19 11H9.5a4.5 4.5 0 0 0 0 9H12");
+
     /// <summary>An eight-tooth gear on the 24 × 24 grid: trapezoid teeth on a root circle, and a round hole.</summary>
     private static string GearPath()
     {

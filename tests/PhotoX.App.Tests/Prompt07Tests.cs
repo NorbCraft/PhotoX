@@ -262,6 +262,35 @@ public class Prompt07Tests
         window.Close();
     }
 
+    /// <summary>The owner's choice B of the button mockups: an icon beside the label, the buttons where they were.</summary>
+    [AvaloniaFact]
+    public async Task Action_buttons_show_an_icon_beside_their_label()
+    {
+        using var dir = new TempDir();
+        var order = Order(dir, 1);
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1440, 900);
+        await shell.Browse.OpenFolderAsync(order);
+        shell.Browse.EditPhotoCommand.Execute(shell.Browse.AllPhotos[0]);
+        await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
+        UiHelpers.Capture(window, "editor-icon-buttons");
+        var editor = shell.Editor;
+        foreach (var (command, label) in new (System.Windows.Input.ICommand, string)[]
+                 {
+                     (editor.BackToFolderCommand, "Close"), (editor.PrintCommand, "Print"), (editor.SaveCommand, "Save"),
+                     (editor.SaveAndNextCommand, "Save & Next"), (editor.ResetAdjustmentsCommand, "Reset"),
+                 })
+        {
+            var button = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Avalonia.Controls.Button>()
+                .Single(b => b.Command == command && b.IsEffectivelyVisible
+                    && Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(b).OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == label));
+            var parts = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(button).ToList();
+            Assert.Contains(parts.OfType<Avalonia.Controls.Shapes.Path>(), p => p.Classes.Contains("bi") && p.IsEffectivelyVisible);
+            Assert.Contains(parts.OfType<Avalonia.Controls.TextBlock>(), t => t.Text == label && t.IsEffectivelyVisible);
+        }
+
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void New_settings_start_in_light_mode()
     {

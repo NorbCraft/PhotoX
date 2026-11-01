@@ -173,16 +173,24 @@
         <!-- Actions (prompt_07 §1.5): Close, Print and Save, then Save & Next; shortcuts in the tooltips -->
         <StackPanel Grid.Row="2" Spacing="8" Margin="18,8,18,16">
           <Grid ColumnDefinitions="*,8,*,8,*">
-            <Button Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Close}" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr CloseEditorTip}" />
-            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Print}" Command="{Binding PrintCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr PrintEditedTip}" />
-            <Button Grid.Column="4" Focusable="False" HorizontalAlignment="Stretch" Content="{l:Tr Save}" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr SaveTip}" />
+            <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr CloseEditorTip}">
+              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Close}" /><TextBlock Text="{l:Tr Close}" /></StackPanel>
+            </Button>
+            <Button Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding PrintCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr PrintEditedTip}">
+              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{l:Tr Print}" /></StackPanel>
+            </Button>
+            <Button Grid.Column="4" Focusable="False" HorizontalAlignment="Stretch" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr SaveTip}">
+              <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Save}" /><TextBlock Text="{l:Tr Save}" /></StackPanel>
+            </Button>
           </Grid>
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding SaveAndNextCommand}" IsEnabled="{Binding !IsBusy}">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock IsVisible="{Binding !IsCloseMode}" Text="{l:Tr SaveAndNext}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-              <TextBlock IsVisible="{Binding IsCloseMode}" Text="{l:Tr Close}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-              <Border Grid.Column="1" Classes="kbd" Margin="8,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
-            </Grid>
+            <StackPanel Classes="bs">
+              <Path Classes="bi" Data="{x:Static s:Icons.SaveNext}" IsVisible="{Binding !IsCloseMode}" />
+              <Path Classes="bi" Data="{x:Static s:Icons.Close}" IsVisible="{Binding IsCloseMode}" />
+              <TextBlock IsVisible="{Binding !IsCloseMode}" Text="{l:Tr SaveAndNext}" FontSize="17" FontWeight="SemiBold" Foreground="White" />
+              <TextBlock IsVisible="{Binding IsCloseMode}" Text="{l:Tr Close}" FontSize="17" FontWeight="SemiBold" Foreground="White" />
+              <Border Classes="kbd" Margin="4,0,0,0"><TextBlock Text="Enter" Foreground="White" /></Border>
+            </StackPanel>
           </Button>
         </StackPanel>
       </Grid>

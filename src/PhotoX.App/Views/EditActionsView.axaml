@@ -2,13 +2,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:PhotoX.App.ViewModels"
              xmlns:l="using:PhotoX.App.Localization"
+             xmlns:s="using:PhotoX.App.Services"
              x:Class="PhotoX.App.Views.EditActionsView"
              x:DataType="vm:ToneAdjustmentsViewModel">
   <!-- Top of the editing sidebar, the same in Photos and ID Photos (prompt_06 §1): Undo, Redo and one Reset for the
        image adjustments (the crop or framing stays) -->
   <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-    <Button Classes="list" Focusable="False" Padding="8,2" Content="↶" FontSize="18" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{l:Tr UndoTip}" HorizontalAlignment="Left" />
-    <Button Grid.Column="1" Classes="list" Focusable="False" Padding="8,2" Content="↷" FontSize="18" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{l:Tr RedoTip}" HorizontalAlignment="Left" />
-    <Button Grid.Column="3" Focusable="False" Padding="14,4" Content="{l:Tr Reset}" Command="{Binding ResetAdjustmentsCommand}" ToolTip.Tip="{Binding ResetTip}" VerticalAlignment="Center" />
+    <Button Classes="icon" Focusable="False" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{l:Tr UndoTip}" HorizontalAlignment="Left">
+      <Path Data="{x:Static s:Icons.Undo}" />
+    </Button>
+    <Button Grid.Column="1" Classes="icon" Focusable="False" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{l:Tr RedoTip}" HorizontalAlignment="Left" Margin="6,0,0,0">
+      <Path Data="{x:Static s:Icons.Redo}" />
+    </Button>
+    <Button Grid.Column="3" Focusable="False" Padding="12,4,14,4" Command="{Binding ResetAdjustmentsCommand}" ToolTip.Tip="{Binding ResetTip}" VerticalAlignment="Center">
+      <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Reset}" /><TextBlock Text="{l:Tr Reset}" /></StackPanel>
+    </Button>
   </Grid>
 </UserControl>

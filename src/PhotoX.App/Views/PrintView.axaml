@@ -216,9 +216,11 @@
           </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="1" Spacing="8" Margin="18,8,18,16">
-          <Button Focusable="False" HorizontalAlignment="Stretch" Content="{Binding ClearText}" Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}" />
+          <Button Focusable="False" HorizontalAlignment="Stretch" Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}">
+            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Close}" /><TextBlock Text="{Binding ClearText}" /></StackPanel>
+          </Button>
           <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="56" Command="{Binding PrintCommand}" IsEnabled="{Binding CanPrint}">
-            <TextBlock Text="{Binding PrintButtonText}" FontSize="17" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{Binding PrintButtonText}" FontSize="17" FontWeight="SemiBold" Foreground="White" /></StackPanel>
           </Button>
         </StackPanel>
       </Grid>

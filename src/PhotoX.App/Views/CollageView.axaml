@@ -152,8 +152,12 @@
         </ScrollViewer>
         <!-- Save and Print use the same composition (prompt_05 §8) -->
         <Grid Grid.Row="1" ColumnDefinitions="*,8,*" Margin="18,8,18,16">
-          <Button Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr SaveJpg}" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}" />
-          <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" FontSize="15" Content="{l:Tr Print}" Command="{Binding PrintCommand}" IsEnabled="{Binding HasPhotos}" />
+          <Button Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" Command="{Binding SaveCommand}" IsEnabled="{Binding HasPhotos}">
+            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Save}" /><TextBlock Text="{l:Tr SaveJpg}" FontSize="15" /></StackPanel>
+          </Button>
+          <Button Grid.Column="2" Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="52" Command="{Binding PrintCommand}" IsEnabled="{Binding HasPhotos}">
+            <StackPanel Classes="bs"><Path Classes="bi" Data="{x:Static s:Icons.Printer}" /><TextBlock Text="{l:Tr Print}" FontSize="15" FontWeight="SemiBold" Foreground="White" /></StackPanel>
+          </Button>
         </Grid>
       </Grid>
     </Border>

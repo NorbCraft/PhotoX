@@ -212,8 +212,8 @@
             <StackPanel Spacing="6" IsVisible="{Binding HasPhotos}" Margin="0,4,0,0">
               <Border Classes="segbox" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal">
-                  <ToggleButton Classes="segacc" Focusable="False" MinWidth="80" Content="{l:Tr Fill}" IsChecked="{Binding !WholePhoto, Mode=OneWay}" Command="{Binding SetWholeCommand}" CommandParameter="{x:False}" ToolTip.Tip="{l:Tr PrintCropTip}" />
-                  <ToggleButton Classes="segacc" Focusable="False" MinWidth="80" Content="{l:Tr Borders}" IsChecked="{Binding WholePhoto, Mode=OneWay}" Command="{Binding SetWholeCommand}" CommandParameter="{x:True}" ToolTip.Tip="{l:Tr PrintWholeTip}" />
+                  <c:ChoiceButton Classes="segacc" Focusable="False" MinWidth="80" Content="{l:Tr Fill}" IsChecked="{Binding !WholePhoto, Mode=OneWay}" Command="{Binding SetWholeCommand}" CommandParameter="{x:False}" ToolTip.Tip="{l:Tr PrintCropTip}" />
+                  <c:ChoiceButton Classes="segacc" Focusable="False" MinWidth="80" Content="{l:Tr Borders}" IsChecked="{Binding WholePhoto, Mode=OneWay}" Command="{Binding SetWholeCommand}" CommandParameter="{x:True}" ToolTip.Tip="{l:Tr PrintWholeTip}" />
                 </StackPanel>
               </Border>
             </StackPanel>

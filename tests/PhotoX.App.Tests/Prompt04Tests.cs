@@ -108,10 +108,10 @@ public class Prompt04Tests
         Assert.False(id.HasSource);
         await UiHelpers.WaitUntil(() => id.Picker.Photos.Count == 3 && id.Picker.Photos.All(p => p.Thumbnail is not null));
         Assert.Equal(order, id.Picker.Explorer.CurrentFolder);        // starts in the order open in Photos
-        Assert.Null(id.Picker.SelectedPhoto);                         // nothing loads until the operator clicks
+        Assert.False(id.HasSource);                                   // nothing loads until the operator double-clicks
         UiHelpers.Capture(window, "id-explorer-1366x768");
 
-        id.Picker.SelectedPhoto = id.Picker.Photos[1];                 // a click on a photo
+        id.Picker.Pick(id.Picker.Photos[1]);                           // a double-click on a photo (prompt_09 §7)
         await UiHelpers.WaitUntil(() => id.Preview is not null && id.HasSource);
         Assert.Equal("P2.jpg", id.SourceName);
         Assert.True(id.ShowFraming);

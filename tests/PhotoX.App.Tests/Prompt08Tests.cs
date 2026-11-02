@@ -177,7 +177,7 @@ public class Prompt08Tests
         Assert.True(FindIn<IdView, PickerGrid>(window, "SelectGrid").IsEffectivelyVisible);
         UiHelpers.Capture(window, "p08-id-step1");
 
-        id.Picker.SelectedPhoto = id.Picker.Photos[1];                                    // a click on a photo: step 2
+        id.Picker.Pick(id.Picker.Photos[1]);                                              // a double-click on a photo: step 2
         await UiHelpers.WaitUntil(() => id.ShowFraming && id.Preview is not null);
         Assert.False(id.IsSelectStep);
         Assert.True(FindIn<IdView, Border>(window, "RightPanel").IsVisible);

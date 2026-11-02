@@ -22,15 +22,15 @@
         </ToggleButton>
         <Border Grid.Column="1" Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPhotosWorkspace, Mode=OneWay}" Command="{Binding ShowPhotosCommand}">
+            <c:ChoiceButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPhotosWorkspace, Mode=OneWay}" Command="{Binding ShowPhotosCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.Photos}" /><TextBlock Text="{l:Tr TabPhotos}" VerticalAlignment="Center" /></StackPanel>
-            </ToggleButton>
-            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsIdWorkspace, Mode=OneWay}" Command="{Binding ShowIdCommand}">
+            </c:ChoiceButton>
+            <c:ChoiceButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsIdWorkspace, Mode=OneWay}" Command="{Binding ShowIdCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.IdPhoto}" /><TextBlock Text="{l:Tr TabId}" VerticalAlignment="Center" /></StackPanel>
-            </ToggleButton>
-            <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsCollageWorkspace, Mode=OneWay}" Command="{Binding ShowCollagesCommand}">
+            </c:ChoiceButton>
+            <c:ChoiceButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsCollageWorkspace, Mode=OneWay}" Command="{Binding ShowCollagesCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8"><Path Data="{x:Static s:Icons.Collage}" /><TextBlock Text="{l:Tr TabCollages}" VerticalAlignment="Center" /></StackPanel>
-            </ToggleButton>
+            </c:ChoiceButton>
           </StackPanel>
         </Border>
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="12,0">
@@ -42,7 +42,7 @@
         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <!-- Printing, apart from the three creation workspaces (prompt_07 §3.8) -->
           <Border Background="{DynamicResource Panel2Brush}" CornerRadius="10" Padding="4" VerticalAlignment="Center">
-              <ToggleButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPrintWorkspace, Mode=OneWay}" Command="{Binding ShowPrintingCommand}">
+              <c:ChoiceButton Classes="seg ws" Focusable="False" IsChecked="{Binding IsPrintWorkspace, Mode=OneWay}" Command="{Binding ShowPrintingCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <Path Data="{x:Static s:Icons.Printer}" />
                   <TextBlock Text="{l:Tr TabPrinting}" VerticalAlignment="Center" />
@@ -51,13 +51,13 @@
                     <TextBlock Text="{Binding PrintBadge}" />
                   </Border>
                 </StackPanel>
-              </ToggleButton>
+              </c:ChoiceButton>
           </Border>
           <Border Background="{DynamicResource Panel2Brush}" BorderBrush="{DynamicResource Border2Brush}" BorderThickness="1" CornerRadius="15" Padding="2" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal">
-              <ToggleButton Classes="seg lang" Focusable="False" CornerRadius="13" Padding="12,3" MinHeight="26" FontWeight="Bold" Content="EN"
+              <c:ChoiceButton Classes="seg lang" Focusable="False" CornerRadius="13" Padding="12,3" MinHeight="26" FontWeight="Bold" Content="EN"
                             IsChecked="{Binding IsEnglish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="en" />
-              <ToggleButton Classes="seg lang" Focusable="False" CornerRadius="13" Padding="12,3" MinHeight="26" FontWeight="Bold" Content="RO"
+              <c:ChoiceButton Classes="seg lang" Focusable="False" CornerRadius="13" Padding="12,3" MinHeight="26" FontWeight="Bold" Content="RO"
                             IsChecked="{Binding IsRomanian, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="ro" />
             </StackPanel>
           </Border>
@@ -125,8 +125,8 @@
             <TextBlock Text="{l:Tr Appearance}" VerticalAlignment="Center" FontWeight="SemiBold" />
             <Border Grid.Column="1" Classes="segbox">
               <StackPanel Orientation="Horizontal">
-                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeLight}" IsChecked="{Binding IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="light" />
-                <ToggleButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeDark}" IsChecked="{Binding !IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="dark" />
+                <c:ChoiceButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeLight}" IsChecked="{Binding IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="light" />
+                <c:ChoiceButton Classes="segacc" Focusable="False" MinWidth="64" Content="{l:Tr ThemeDark}" IsChecked="{Binding !IsLight, Mode=OneWay}" Command="{Binding SetThemeCommand}" CommandParameter="dark" />
               </StackPanel>
             </Border>
           </Grid>

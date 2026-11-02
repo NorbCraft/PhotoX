@@ -33,24 +33,8 @@ public sealed partial class PickerGrid : UserControl
         if (sender is Control { DataContext: PickerPhoto photo } && DataContext is PhotoPickerViewModel vm) vm.Pick(photo);
     }
 
-    /// <summary>
-    /// Where a click picks (ID Photos), a click on the photo that is already selected picks it again: back in the
-    /// Select photo step, the current portrait continues to framing.
-    /// </summary>
-    private void OnPhotoTapped(object? sender, TappedEventArgs e)
-    {
-        if (sender is Control { DataContext: PickerPhoto photo } && DataContext is PhotoPickerViewModel { PickOnSelect: true } vm && vm.SelectedPhoto == photo
-            && _selectedBeforePress == photo)
-        {
-            vm.Pick(photo);
-        }
-    }
-
-    private PickerPhoto? _selectedBeforePress;
-
     private void OnPressed(object? sender, PointerPressedEventArgs e)
     {
-        _selectedBeforePress = (DataContext as PhotoPickerViewModel)?.SelectedPhoto;
         _press = null;
         if (DataContext is not PhotoPickerViewModel { CanDrag: true } || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         if ((e.Source as Control)?.DataContext is not PickerPhoto { IsOpenable: true } photo) return;

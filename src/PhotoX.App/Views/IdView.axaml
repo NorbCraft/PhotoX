@@ -148,24 +148,24 @@
         <!-- The three steps (prompt_08 §2): Select photo, Framing & adjustment, Print -->
         <Border Grid.Column="1" Classes="segbox" Margin="10,0">
           <StackPanel Orientation="Horizontal" Spacing="2">
-            <ToggleButton x:Name="SelectStepButton" Classes="segacc step" Focusable="False" IsChecked="{Binding IsSelectStep, Mode=OneWay}" Command="{Binding ShowSelectStepCommand}">
+            <c:ChoiceButton x:Name="SelectStepButton" Classes="segacc step" Focusable="False" IsChecked="{Binding IsSelectStep, Mode=OneWay}" Command="{Binding ShowSelectStepCommand}">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Border Classes="stepnum"><TextBlock Text="1" /></Border>
                 <TextBlock Text="{l:Tr StepSelect}" VerticalAlignment="Center" />
               </StackPanel>
-            </ToggleButton>
-            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsFraming, Mode=OneWay}" Command="{Binding BackToFramingCommand}" IsEnabled="{Binding HasSource}">
+            </c:ChoiceButton>
+            <c:ChoiceButton Classes="segacc step" Focusable="False" IsChecked="{Binding IsFraming, Mode=OneWay}" Command="{Binding BackToFramingCommand}" IsEnabled="{Binding HasSource}">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Border Classes="stepnum"><TextBlock Text="2" /></Border>
                 <TextBlock Text="{l:Tr Step1}" VerticalAlignment="Center" />
               </StackPanel>
-            </ToggleButton>
-            <ToggleButton Classes="segacc step" Focusable="False" IsChecked="{Binding ShowSheet, Mode=OneWay}" Command="{Binding ContinueToSheetCommand}" IsEnabled="{Binding HasSource}">
+            </c:ChoiceButton>
+            <c:ChoiceButton Classes="segacc step" Focusable="False" IsChecked="{Binding ShowSheet, Mode=OneWay}" Command="{Binding ContinueToSheetCommand}" IsEnabled="{Binding HasSource}">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Border Classes="stepnum"><TextBlock Text="3" /></Border>
                 <TextBlock Text="{l:Tr Step2}" VerticalAlignment="Center" />
               </StackPanel>
-            </ToggleButton>
+            </c:ChoiceButton>
           </StackPanel>
         </Border>
         <!-- Clear (prompt_07 §2.3): removes the photo from the workspace; the file is not touched -->
@@ -230,10 +230,10 @@
     </Border>
     <GridSplitter x:Name="TreeSplitter" Grid.RowSpan="3" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
 
-    <!-- Step 1: the folder's subfolders and photos, as in the Photos gallery; a click on a photo opens it in step 2 -->
+    <!-- Step 1: the folder's subfolders and photos, as in the Photos gallery. A click selects a photo; a double-click
+         (or Enter) opens it in step 2, like a file explorer (prompt_09 §7). No permanent hint. -->
     <DockPanel Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" IsVisible="{Binding IsSelectStep}">
-      <TextBlock DockPanel.Dock="Top" Text="{l:Tr IdPickHint}" Classes="muted" Margin="24,12,24,2" TextWrapping="Wrap" />
-      <v:PickerGrid x:Name="SelectGrid" Margin="16,6,8,8" DataContext="{Binding Picker}" />
+      <v:PickerGrid x:Name="SelectGrid" Margin="16,12,8,8" DataContext="{Binding Picker}" />
     </DockPanel>
 
     <!-- Steps 2 and 3: the photo under the ID frame, or the sheet -->

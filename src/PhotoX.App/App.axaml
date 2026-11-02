@@ -360,7 +360,22 @@
     <Style Selector="ToggleButton.segacc Rectangle">
       <Setter Property="Stroke" Value="{DynamicResource Text2Brush}" />
     </Style>
-    <!-- The folder tree button in the toolbar (prompt_08 §4): tinted while the tree is shown -->
+    <!-- The folder tree button in the toolbar (prompt_08 §4): while the tree is hidden, a grey icon on the neutral grey of
+         an inactive workspace button, not the theme's black icon (prompt_09 §10); tinted blue while the tree is shown -->
+    <Style Selector="ToggleButton.tree">
+      <Setter Property="Background" Value="{DynamicResource Panel2Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Panel2Brush}" />
+    </Style>
+    <Style Selector="ToggleButton.tree:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.tree:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
+    </Style>
+    <Style Selector="ToggleButton.tree Path">
+      <Setter Property="Stroke" Value="{DynamicResource Text2Brush}" />
+    </Style>
+    <Style Selector="ToggleButton.tree:pointerover Path">
+      <Setter Property="Stroke" Value="{DynamicResource TextBrush}" />
+    </Style>
     <Style Selector="ToggleButton.tree:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.tree:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource AccentTintBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />

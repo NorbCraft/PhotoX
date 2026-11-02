@@ -219,7 +219,7 @@ public class Prompt07Tests
         shell.ShowIdCommand.Execute(null);
         var id = shell.Id;
         await UiHelpers.WaitUntil(() => id.Picker.Photos.Count == 2);
-        id.Picker.SelectedPhoto = id.Picker.Photos[0];
+        id.Picker.Pick(id.Picker.Photos[0]);                                // a double-click (prompt_09 §7)
         await UiHelpers.WaitUntil(() => id.HasSource && id.Preview is not null);
         id.Tone.Exposure = 0.4;
         id.RotateRightCommand.Execute(null);
@@ -235,7 +235,7 @@ public class Prompt07Tests
         UiHelpers.Capture(window, "id-cleared");
         Assert.Equal(hashes, Directory.GetFiles(order).Order().Select(Fixtures.Sha).ToList());
 
-        id.Picker.SelectedPhoto = id.Picker.Photos[0];                      // the same photo loads again, fresh
+        id.Picker.Pick(id.Picker.Photos[0]);                                // the same photo loads again, fresh
         await UiHelpers.WaitUntil(() => id.HasSource && id.Preview is not null);
         Assert.Equal(0, id.Framing!.QuarterTurns);
         window.Close();

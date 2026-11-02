@@ -49,22 +49,22 @@
             <Border Classes="sep" />
             <Border Classes="segbox">
               <StackPanel Orientation="Horizontal">
-                <ToggleButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding IsPortrait, Mode=OneWay}" ToolTip.Tip="{l:Tr Portrait}"
+                <c:ChoiceButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding IsPortrait, Mode=OneWay}" ToolTip.Tip="{l:Tr Portrait}"
                               Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Portrait}">
                   <Rectangle Width="14" Height="21" StrokeThickness="2" RadiusX="2" RadiusY="2" />
-                </ToggleButton>
-                <ToggleButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding !IsPortrait, Mode=OneWay}" ToolTip.Tip="{l:Tr Landscape}"
+                </c:ChoiceButton>
+                <c:ChoiceButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding !IsPortrait, Mode=OneWay}" ToolTip.Tip="{l:Tr Landscape}"
                               Command="{Binding SetOrientationCommand}" CommandParameter="{x:Static g:CropOrientation.Landscape}">
                   <Rectangle Width="21" Height="14" StrokeThickness="2" RadiusX="2" RadiusY="2" />
-                </ToggleButton>
+                </c:ChoiceButton>
               </StackPanel>
             </Border>
             <Border Classes="sep" />
             <Border Classes="segbox">
               <StackPanel Orientation="Horizontal">
-                <ToggleButton Classes="segacc" Focusable="False" IsChecked="{Binding !IsWholeWithBorder, Mode=OneWay}" Content="{l:Tr Fill}"
+                <c:ChoiceButton Classes="segacc" Focusable="False" IsChecked="{Binding !IsWholeWithBorder, Mode=OneWay}" Content="{l:Tr Fill}"
                               Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.Fill}" />
-                <ToggleButton Classes="segacc" Focusable="False" IsChecked="{Binding IsWholeWithBorder, Mode=OneWay}" Content="{l:Tr Borders}"
+                <c:ChoiceButton Classes="segacc" Focusable="False" IsChecked="{Binding IsWholeWithBorder, Mode=OneWay}" Content="{l:Tr Borders}"
                               Command="{Binding SetCompositionCommand}" CommandParameter="{x:Static e:Composition.WholeWithBorder}" />
               </StackPanel>
             </Border>

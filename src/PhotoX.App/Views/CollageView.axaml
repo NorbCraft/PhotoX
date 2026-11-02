@@ -60,15 +60,13 @@
     </Border>
     <GridSplitter x:Name="TreeSplitter" Grid.Column="1" Classes="panel" ResizeDirection="Columns" DragCompleted="OnLeftSplitterDragCompleted" />
 
-    <!-- 1. Photos: the folder's thumbnails (prompt_04 §6); drag a photo into a frame (prompt_06 §6) -->
+    <!-- 1. Photos: the folder's thumbnails (prompt_04 §6); drag a photo into a frame (prompt_06 §6), without a
+         permanent hint (prompt_09 §8) -->
     <Border Grid.Column="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
       <Panel>
         <DockPanel x:Name="ThumbsPanel" IsVisible="{Binding !ThumbsCollapsed}">
           <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="18,10,8,4">
-            <StackPanel Spacing="2">
-              <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" />
-              <TextBlock Text="{l:Tr CollagePickHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-            </StackPanel>
+            <TextBlock Classes="section" Text="{l:Tr CollagePhotos}" VerticalAlignment="Center" />
             <Button Grid.Column="1" Classes="fold" Focusable="False" VerticalAlignment="Top" Command="{Binding ToggleThumbsCommand}" ToolTip.Tip="{l:Tr HideThumbs}">
               <Path Data="{x:Static s:Icons.ChevronLeft}" />
             </Button>
@@ -155,14 +153,14 @@
             </StackPanel>
             <Border Classes="segbox" HorizontalAlignment="Left">
               <StackPanel Orientation="Horizontal">
-                <ToggleButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding !IsLandscape, Mode=OneWay}" ToolTip.Tip="{l:Tr Portrait}"
+                <c:ChoiceButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding !IsLandscape, Mode=OneWay}" ToolTip.Tip="{l:Tr Portrait}"
                               Command="{Binding SetLandscapeCommand}" CommandParameter="{x:False}">
                   <Rectangle Width="14" Height="21" StrokeThickness="2" RadiusX="2" RadiusY="2" />
-                </ToggleButton>
-                <ToggleButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding IsLandscape, Mode=OneWay}" ToolTip.Tip="{l:Tr Landscape}"
+                </c:ChoiceButton>
+                <c:ChoiceButton Classes="segacc icon large" Focusable="False" IsChecked="{Binding IsLandscape, Mode=OneWay}" ToolTip.Tip="{l:Tr Landscape}"
                               Command="{Binding SetLandscapeCommand}" CommandParameter="{x:True}">
                   <Rectangle Width="21" Height="14" StrokeThickness="2" RadiusX="2" RadiusY="2" />
-                </ToggleButton>
+                </c:ChoiceButton>
               </StackPanel>
             </Border>
             <TextBlock Text="{Binding PageText}" Classes="muted" FontSize="12" TextWrapping="Wrap" />

@@ -54,29 +54,23 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
 
     public double ThumbHeight { get; init; } = 150;
 
-    /// <summary>A click (selection) picks the photo, as in ID Photos where the explorer replaces the file dialog (prompt_05 §7).</summary>
-    public bool PickOnSelect { get; init; }
-
     /// <summary>Photos can be dragged out of the grid (onto a collage frame, prompt_06 §6).</summary>
     public bool CanDrag { get; init; }
 
-    private bool _opening;
-
     partial void OnSelectedPhotoChanged(PickerPhoto? value)
     {
-        if (!_syncing)
-        {
-            _syncing = true;
-            SelectedItem = value;
-            _syncing = false;
-        }
-
-        if (PickOnSelect && !_opening && value is { IsOpenable: true }) Picked?.Invoke(value);
+        if (_syncing) return;
+        _syncing = true;
+        SelectedItem = value;
+        _syncing = false;
     }
 
     private bool _syncing;
 
-    /// <summary>The selected card: a photo or a folder (the grid's selection).</summary>
+    /// <summary>
+    /// The selected card: a photo or a folder (the grid's selection). A click only selects, as in a file explorer; a
+    /// double-click or Enter picks (prompt_09 §7).
+    /// </summary>
     [ObservableProperty]
     public partial object? SelectedItem { get; set; }
 
@@ -86,16 +80,10 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
         _syncing = true;
         SelectedPhoto = value as PickerPhoto;
         _syncing = false;
-        if (PickOnSelect && !_opening && value is PickerPhoto { IsOpenable: true } photo) Picked?.Invoke(photo);
     }
 
-    /// <summary>No photo selected, without picking anything (so a click on the same photo loads it again).</summary>
-    public void ClearSelection()
-    {
-        _opening = true;
-        SelectedPhoto = null;
-        _opening = false;
-    }
+    /// <summary>No photo selected (after the ID photo is cleared).</summary>
+    public void ClearSelection() => SelectedPhoto = null;
 
     public ObservableCollection<PickerPhoto> Photos { get; } = [];
 
@@ -144,7 +132,6 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
         IsScanning = true;
-        _opening = true;
         SelectedPhoto = null;
         Photos.Clear();
         Items.Clear();
@@ -159,8 +146,7 @@ public sealed partial class PhotoPickerViewModel : ViewModelBase
             Items.Add(item);
         }
 
-        if (!PickOnSelect) SelectedPhoto = items.FirstOrDefault(p => p.IsOpenable);
-        _opening = false;
+        SelectedPhoto = items.FirstOrDefault(p => p.IsOpenable);
         IsScanning = false;
         _ = ThumbnailSource.LoadAllAsync(_services.ThumbnailCache, items, p => p.IsOpenable ? p.Entry : null, (p, bitmap, _, error) =>
         {

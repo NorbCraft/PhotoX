@@ -78,7 +78,7 @@ public sealed partial class IdViewModel : ViewModelBase
             Rerender();
         };
         // Step 1 shows the folder like the Photos gallery, with cards of the same size (prompt_08 §2).
-        Picker = new PhotoPickerViewModel(services, ExplorerViewModel.IdWorkspace) { ThumbWidth = 176, ThumbHeight = 172, PickOnSelect = true };
+        Picker = new PhotoPickerViewModel(services, ExplorerViewModel.IdWorkspace) { ThumbWidth = 176, ThumbHeight = 172 };
         Picker.Picked += photo => _ = PickAsync(photo.Path);
         foreach (var s in IdSizes.BuiltIn) Sizes.Add(new IdSizeItem(s));
         foreach (var c in services.Settings.CustomIdSizes.Where(c => IdSizes.IsValidCustom(c.WidthMm, c.HeightMm)))

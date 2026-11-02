@@ -48,7 +48,7 @@
       <ListBox.DataTemplates>
         <DataTemplate x:DataType="vm:PickerPhoto">
           <Border Classes="card" Width="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).ThumbWidth}" Height="{Binding $parent[UserControl].((vm:PhotoPickerViewModel)DataContext).ThumbHeight}"
-                  CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped" Tapped="OnPhotoTapped" ToolTip.Tip="{Binding Name}">
+                  CornerRadius="9" DoubleTapped="OnPhotoDoubleTapped" ToolTip.Tip="{Binding Name}">
             <Grid RowDefinitions="*,Auto" Margin="7">
               <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
               <TextBlock Text="…" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />

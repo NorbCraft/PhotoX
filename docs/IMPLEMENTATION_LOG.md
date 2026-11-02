@@ -726,3 +726,29 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Public endpoint:** `releases/latest` returns v0.13.0 (<https://github.com/NorbCraft/PhotoX/releases/tag/v0.13.0>).
   - **PhotoX's own client, run as 0.12.1 on Linux against the live API:** reports *Available 0.13.0* and completes the verified download.
   - **Not done:** installing it on Windows.
+
+### 2026-11-02: Version 0.14.0, prompt_11 (Citizen print dimensions, cropping accuracy, keyboard)
+- **Prompt:** [docs/prompts/prompt_11.md](prompts/prompt_11.md), archived unchanged.
+- **Investigation (§1):**
+  - **The driver's sizes:** the owner's Citizen CY-02 driver lists (6x4) 156.1 × 104.9 mm, (6x8) 156.1 × 206.2 mm and their PR and ×2 variants.
+  - **Citizen's manual:** the CX-02/CX-02 (S) driver manual (Windows, v1.0.2.1, the same driver family and paper names) gives the print area: (6x4) 1844 × 1240 dots at 300 dpi = 156.1 × 105.0 mm, (6x8) 1844 × 2436 = 156.1 × 206.2 mm, for 6 × 4 in and 6 × 8 in prints. It also says the PR sizes are for applications that cannot change the orientation and recommends the plain sizes.
+  - **Meaning of the sizes:** nominal 152.4 × 101.6 mm is the finished, cut print; the driver page adds about 1.7 mm (short side) and 1.85 mm (long side) of bleed on each side, cut off by the printer.
+  - **Likely root cause:** PhotoX's paper matching allowed 2.5 mm, so the (6x4) page (3.3 and 3.7 mm larger) was not recognised: no paper was chosen and, with (6x4) chosen by hand, the photo was centred at 152.4 × 101.6 mm on the larger page. That left about 1.7 mm of white bleed on every side, so any cut off centre by a fraction of a millimetre leaves a thin white strip on one side, as observed. A cutting tolerance of the printer may add to it; that can only be checked on paper.
+- **Fix (DEC-089):**
+  - **Paper matching:** a side may be up to 2.5 mm smaller or 6 mm larger, plain papers before PR and ×2.
+  - **Finished print:** the nominal size centred on the driver page in whole dots (1800 × 1200 at 22, 20 on a 1844 × 1240 page).
+  - **Fits** (`PrintFit`):
+    - Crop and edits without borders cover the whole page with its bleed (about 3 % larger than the nominal print, the usual borderless enlargement).
+    - Whole, borders, 9×13, 13×18 and custom canvases, ID sheets, collages and the calibration sheet stay at true size inside the finished print, with its outer edge repeated over the bleed.
+  - **Preview:** shows the finished print as cut on the selected paper.
+  - **Unchanged:** the PDF and A4 path.
+- **Keyboard (§§2–5, DEC-090):**
+  - **Editor and Settings:** Escape closes Settings. In the editor, Space / Backspace = next / previous photo, and before/after is held on `PhysicalKey.Backslash` (# on German, `\` on US keyboards); ID Photos accepts it too.
+  - **Gallery focus:** after a folder change the gallery takes the keyboard back when it had it, and Backspace or Up select the folder just left.
+  - **Selection look:** card lists no longer draw the focus frame, and the selected card keeps its blue border under the mouse pointer (found by the new test: it turned grey).
+- **Verification (Linux):**
+  - **Totals:** 189 core and 100 UI tests pass (Release); 2 and 3 skipped.
+  - **New tests:** `PrintBleedTests` (8) against the driver's 12 papers and the manual's dot counts; `Prompt11Tests` (6 UI tests).
+  - **Updated tests:** existing print tests use the new fit values; the before/after test holds the new key.
+  - **Screens inspected:** the Printing workspace choosing (6x4) without a warning; the dark gallery selection after keyboard moves.
+- **Not verified:** a print on the Citizen CY-02. Whether the white strip is gone, whether ID photos and the calibration sheet measure true, and the cut position all need the owner's prints.

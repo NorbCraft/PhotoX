@@ -4,6 +4,24 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-02
+
+### Fixed
+- **Printing on the Citizen CY-02 without a white strip.**
+  - **The driver's papers are now recognised:** its 10×15 page is 156.1 × 105.0 mm, with about 1.7 mm of bleed on each side that the printer cuts off. PhotoX expected at most 2.5 mm of difference, so it found no 10×15 paper, and a paper chosen by hand got the photo at exactly 10×15 in the middle of the larger page, so any slightly off-centre cut could leave a thin white strip.
+  - **Crop now fills the whole page, bleed included.** So do edits without borders.
+  - **Exact sizes stay exact:** Whole, photos with borders, 9×13, 13×18 and custom sizes, ID sheets, collages and the calibration sheet keep their true size, with their edge carried into the bleed.
+  - **Paper choice:** PhotoX picks the plain paper, (6x4) or (6x8), before the "PR" and ×2 papers.
+- When the mouse rested on the selected thumbnail its border turned grey; it stays blue now. The black square focus frame no longer appears over the selection when moving with ↑ / ↓.
+- After Backspace (or Up) the keyboard stays in the gallery instead of jumping to the folder tree, and the folder just left is selected.
+
+### Changed
+- **Print preview:** shows each print as it will look after the printer's cut, laid out on the selected paper.
+- **Editor keys:**
+  - **Space** = next photo, **Backspace** = previous photo (Page Down / Page Up still work).
+  - **Hold #** for before/after: the key left of Enter on a German keyboard, `\` on a US keyboard (found by its position); ID Photos accepts it too, besides Space.
+- **Escape** closes Settings.
+
 ## [0.13.0] - 2026-11-02
 
 ### Added

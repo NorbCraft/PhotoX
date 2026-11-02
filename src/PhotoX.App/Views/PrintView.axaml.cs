@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using PhotoX.App.ViewModels;
 
 namespace PhotoX.App.Views;
@@ -11,6 +12,17 @@ public sealed partial class PrintView : UserControl
         InitializeComponent();
         PanelWidth.Apply(Root.ColumnDefinitions[0], "print-left", 340);
         PanelWidth.Apply(Root.ColumnDefinitions[4], "print-right", 340);
+        // The selected pages get the Copies control on the right (prompt_10 §6).
+        PreviewList.SelectionChanged += (_, _) =>
+        {
+            if (DataContext is PrintViewModel vm) vm.SetSelection(PreviewList.SelectedItems?.OfType<PrintPreviewItem>() ?? []);
+        };
+    }
+
+    private void OnSelectAllClick(object? sender, RoutedEventArgs e)
+    {
+        PreviewList.SelectAll();
+        PreviewList.Focus(NavigationMethod.Tab);
     }
 
     protected override void OnDataContextChanged(EventArgs e)

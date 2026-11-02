@@ -38,12 +38,13 @@ public static class PrintContent
 
     /// <summary>Returns the content and whether it is an untouched original (cropped to fill the paper).</summary>
     /// <param name="size">The print size, for items made for it (<see cref="SizedPrintItem"/>).</param>
-    public static (MagickImage Image, bool CropToFill) Load(PrintItem item, bool preview, PrintFormat? size = null)
+    /// <param name="previewEdge">Long edge of a photo loaded for a preview; smaller for the small pages of a long list.</param>
+    public static (MagickImage Image, bool CropToFill) Load(PrintItem item, bool preview, PrintFormat? size = null, int previewEdge = PreviewEdge)
     {
         switch (item)
         {
             case PhotoPrintItem photo:
-                var maxEdge = preview ? PreviewEdge : (int?)null;
+                var maxEdge = preview ? previewEdge : (int?)null;
                 if (photo.PendingRecipe is { } recipe)
                 {
                     using var source = ImageLoader.Load(SourceFor(photo.Path), maxEdge);

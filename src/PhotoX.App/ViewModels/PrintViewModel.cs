@@ -24,10 +24,16 @@ public sealed partial class PrintPreviewItem(PrintItem item, int copies) : ViewM
 
     /// <summary>Copies this item prints: a gallery photo's requested quantity (prompt_09 §5), else the Copies setting.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CopiesText))]
+    [NotifyPropertyChangedFor(nameof(CopiesText), nameof(IsExcluded))]
     public partial int Copies { get; set; } = copies;
 
     public string CopiesText => "×" + Copies.ToString(Localizer.Instance.Culture);
+
+    /// <summary>Set to 0 here or in Photos after Print: still listed (faded), so it can be set back, but not printed.</summary>
+    public bool IsExcluded => Copies == 0;
+
+    /// <summary>A gallery photo, whose copies can be changed here (prompt_10 §6).</summary>
+    public string? PhotoPath => (Item as PhotoPrintItem)?.Path;
 
     [ObservableProperty]
     public partial Bitmap? Page { get; set; }
@@ -48,13 +54,18 @@ public sealed record PaperChoice(PrinterPaper Paper, string Label)
 /// </summary>
 public sealed partial class PrintViewModel : ViewModelBase
 {
-    private const int PreviewLimit = 20;
     private readonly AppServices _services;
     /// <summary>What Print sent here, including gallery photos set to 0 copies, which stay hidden until set above 0.</summary>
     private IReadOnlyList<PrintItem> _chosen = [];
 
-    /// <summary>What prints, in order: every chosen item with at least one copy.</summary>
+    /// <summary>
+    /// What is listed, in order: the chosen items with at least one copy when Print was pressed, and any set above 0
+    /// later. An item set to 0 afterwards stays listed (faded) and is not printed (prompt_10 §6).
+    /// </summary>
     private List<PrintPreviewItem> _entries = [];
+
+    /// <summary>The listed photos selected in the preview (Ctrl/Shift + click, Ctrl + A), for Copies.</summary>
+    private IReadOnlyList<PrintPreviewItem> _selected = [];
     private CancellationTokenSource _previewCts = new();
     private bool _syncingWhole;
 
@@ -94,11 +105,8 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public ObservableCollection<PaperChoice> Papers { get; } = [];
 
-    /// <summary>The first items, with their page as it will print.</summary>
+    /// <summary>Every listed item with its page as it will print (all of them since prompt_10 §6, rendered in the background).</summary>
     public ObservableCollection<PrintPreviewItem> Previews { get; } = [];
-
-    /// <summary>The items after the previewed ones: listed by name with their copies, so every quantity can be checked.</summary>
-    public ObservableCollection<PrintPreviewItem> MoreItems { get; } = [];
 
     public IReadOnlyList<PrintFormat> Sizes => PrintFormats.PrintSizes;
 
@@ -151,7 +159,10 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public string ClearText => Localizer.Instance[IsCalibration ? "CancelCalibration" : "ClearPrint"];
 
+    /// <summary>Something is listed (possibly only photos set to 0).</summary>
     public bool HasItems => _entries.Count > 0;
+
+    private IEnumerable<PrintPreviewItem> Printed => _entries.Where(e => e.Copies > 0);
 
     public bool HasOrigin => OriginName is not null || IsCalibration;
 
@@ -159,14 +170,11 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public bool IsSupported => Backend.IsSupported;
 
-    public int PhotoCount => _entries.Count;
+    /// <summary>Items that will print (at least one copy).</summary>
+    public int PhotoCount => Printed.Count();
 
     /// <summary>Copies of everything waiting, as they will be sent to the queue.</summary>
     public int TotalCopies => _entries.Sum(e => e.Copies);
-
-    public bool HasMorePreviews => _entries.Count > PreviewLimit;
-
-    public string MorePreviewsText => Localizer.Instance.Format("PrintMore", _entries.Count - PreviewLimit);
 
     public string BackText => IsCalibration ? Localizer.Instance["CancelCalibration"] : Localizer.Instance.Format("BackTo", OriginName ?? string.Empty);
 
@@ -180,7 +188,7 @@ public sealed partial class PrintViewModel : ViewModelBase
         : PaperMatches ? null
         : Localizer.Instance.Format("PaperCentred", SizeName(SelectedSize));
 
-    public bool CanPrint => HasItems && HasPrinters && SelectedPrinter is not null && SelectedPaper is not null && !PaperTooSmall;
+    public bool CanPrint => PhotoCount > 0 && HasPrinters && SelectedPrinter is not null && SelectedPaper is not null && !PaperTooSmall;
 
     /// <summary>"4 photos · 7 copies on 10 × 15 cm" for gallery photos (prompt_09 §5); "1 × 2 = 2 prints on …" for a sheet or collage.</summary>
     public string SummaryText => !HasItems ? Localizer.Instance["NothingToPrint"]
@@ -232,37 +240,97 @@ public sealed partial class PrintViewModel : ViewModelBase
     /// <summary>The copies an item prints: a gallery photo its requested quantity (prompt_09 §5), anything else the Copies setting.</summary>
     private int CopiesOf(PrintItem item) => item is PhotoPrintItem photo ? _services.PrintQuantities.For(photo.Path) : Copies;
 
-    /// <summary>Lists the chosen items with at least one copy: the first ones previewed, the others by name.</summary>
+    /// <summary>Lists the chosen items with at least one copy (prompt_09 §5), each with its page.</summary>
     private void Fill()
     {
         _previewCts.Cancel();
+        foreach (var e in _entries) (e.Page as IDisposable)?.Dispose();
         _entries = _chosen.Select(i => new PrintPreviewItem(i, CopiesOf(i))).Where(e => e.Copies > 0).ToList();
+        _selected = [];
         Previews.Clear();
-        MoreItems.Clear();
-        foreach (var e in _entries.Take(PreviewLimit)) Previews.Add(e);
-        foreach (var e in _entries.Skip(PreviewLimit)) MoreItems.Add(e);
+        foreach (var e in _entries) Previews.Add(e);
     }
 
     /// <summary>
-    /// A quantity changed in Photos while its photo waits here: the copies follow, and a photo set to 0 leaves the list
-    /// (or comes back when set above 0). Pages are rendered again only when the list itself changes.
+    /// A quantity changed, here or in Photos, while its photo waits (prompt_09 §5, prompt_10 §6): the copies follow at
+    /// once; a hidden photo set above 0 joins the list in its place; a listed photo set to 0 stays, faded. Only new
+    /// pages are rendered.
     /// </summary>
     private void ApplyQuantities(IReadOnlyList<string> paths)
     {
         var changed = paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (!_chosen.OfType<PhotoPrintItem>().Any(p => changed.Contains(p.Path))) return;
-        var included = _chosen.Where(i => CopiesOf(i) > 0).ToList();
-        if (included.SequenceEqual(_entries.Select(e => e.Item), ReferenceEqualityComparer.Instance))
+        foreach (var e in _entries) e.Copies = CopiesOf(e.Item);
+        var listed = _entries.ToDictionary(e => (object)e.Item, ReferenceEqualityComparer.Instance);
+        var wanted = _chosen.Where(i => listed.ContainsKey(i) || CopiesOf(i) > 0).ToList();
+        if (wanted.Count != _entries.Count)
         {
-            foreach (var e in _entries) e.Copies = CopiesOf(e.Item);
-        }
-        else
-        {
-            Fill();
-            _ = RenderPreviewsAsync();
+            _entries = wanted.Select(i => listed.TryGetValue(i, out var e) ? e : new PrintPreviewItem(i, CopiesOf(i))).ToList();
+            for (var i = 0; i < _entries.Count; i++)
+            {
+                if (i >= Previews.Count || !ReferenceEquals(Previews[i], _entries[i])) Previews.Insert(i, _entries[i]);
+            }
+
+            _ = RenderPreviewsAsync(onlyMissing: true);
         }
 
         RaiseItems();
+        RaiseCopies();
+    }
+
+    // ------------------------------------------------------------------ copies in the preview (prompt_10 §6)
+
+    /// <summary>Called by the preview list when its selection changes.</summary>
+    public void SetSelection(IEnumerable<PrintPreviewItem> items)
+    {
+        var set = items.ToHashSet();
+        _selected = _entries.Where(set.Contains).ToList();
+        RaiseCopies();
+    }
+
+    /// <summary>The selected gallery photos; ID sheets and collages use the Copies setting instead.</summary>
+    private IReadOnlyList<PrintPreviewItem> CopiesTargets => _selected.Where(e => e.PhotoPath is not null).ToList();
+
+    private IReadOnlyCollection<int> TargetCopies => CopiesTargets.Select(e => e.Copies).ToList();
+
+    public bool HasCopiesTargets => CopiesTargets.Count > 0;
+
+    public string CopiesValueText => CopiesControl.ValueText(TargetCopies);
+
+    public string? CopiesNote => CopiesControl.Note(TargetCopies);
+
+    public bool HasCopiesNote => CopiesNote is not null;
+
+    [RelayCommand]
+    private void PhotoCopiesMinus()
+    {
+        if (HasCopiesTargets) SetSelectedCopies(CopiesControl.Minus(TargetCopies));
+    }
+
+    [RelayCommand]
+    private void PhotoCopiesPlus()
+    {
+        if (HasCopiesTargets) SetSelectedCopies(CopiesControl.Plus(TargetCopies));
+    }
+
+    /// <summary>
+    /// Sets the copies of the selected photos in the same store as Photos (prompt_10 §6), so the gallery, its sidebar
+    /// and this list agree; 0 leaves them out of the print.
+    /// </summary>
+    public void SetSelectedCopies(int copies)
+    {
+        var paths = CopiesTargets.Select(e => e.PhotoPath!).ToList();
+        if (paths.Count == 0) return;
+        _services.PrintQuantities.Set(paths, Math.Clamp(copies, 0, Storage.PrintQuantities.Max));
+        Log.Information("Copies set to {Copies} for {Count} photo(s) in Printing", copies, paths.Count);
+    }
+
+    private void RaiseCopies()
+    {
+        OnPropertyChanged(nameof(HasCopiesTargets));
+        OnPropertyChanged(nameof(CopiesValueText));
+        OnPropertyChanged(nameof(CopiesNote));
+        OnPropertyChanged(nameof(HasCopiesNote));
     }
 
     /// <summary>Called when the workspace is shown: printers may have been added or removed meanwhile.</summary>
@@ -361,7 +429,7 @@ public sealed partial class PrintViewModel : ViewModelBase
         if (!CanPrint) return;
         var printer = SelectedPrinter!;
         var settings = _services.Settings.PrinterSettings.TryGetValue(printer, out var b64) ? TryDecode(b64) : null;
-        var requests = _entries.Select(e => new PrintRequest(Prepared(e.Item) with { Copies = e.Copies }, printer, SelectedPaper!.Paper, SelectedSize, settings)).ToList();
+        var requests = Printed.Select(e => new PrintRequest(Prepared(e.Item) with { Copies = e.Copies }, printer, SelectedPaper!.Paper, SelectedSize, settings)).ToList();
         _services.Printing.Enqueue(requests);
         _services.Settings.LastPrinter = printer;
         _services.SaveSettings();
@@ -409,9 +477,11 @@ public sealed partial class PrintViewModel : ViewModelBase
     {
         _previewCts.Cancel();
         _chosen = [];
+        foreach (var e in _entries) (e.Page as IDisposable)?.Dispose();
         _entries = [];
+        _selected = [];
         Previews.Clear();
-        MoreItems.Clear();
+        RaiseCopies();
         StatusMessage = null;
         RaiseItems();
     }
@@ -508,25 +578,30 @@ public sealed partial class PrintViewModel : ViewModelBase
         RaiseTexts();
     }
 
-    /// <summary>Renders the preview pages in the background with the same layout as the print.</summary>
-    private async Task RenderPreviewsAsync()
+    /// <summary>
+    /// Renders the preview pages in the background with the same layout as the print, one after the other, so a list
+    /// of hundreds stays responsive (prompt_10 §6). Large lists get smaller pages from smaller copies of the photos.
+    /// </summary>
+    /// <param name="onlyMissing">Only pages not rendered yet (photos added to the list), not a new size or fit.</param>
+    private async Task RenderPreviewsAsync(bool onlyMissing = false)
     {
-        _previewCts.Cancel();
-        _previewCts = new CancellationTokenSource();
+        if (!onlyMissing) _previewCts.Cancel();
+        if (_previewCts.IsCancellationRequested) _previewCts = new CancellationTokenSource();
         var ct = _previewCts.Token;
         var size = SelectedSize;
         var single = _entries.Count == 1;
+        var (w, edge) = single ? (760, PrintContent.PreviewEdge) : _entries.Count <= 40 ? (340, 700) : (220, 450);
         foreach (var preview in Previews.ToList())
         {
+            if (onlyMissing && preview.Page is not null) continue;
             var item = preview.Item;
             try
             {
                 var data = await Task.Run(() =>
                 {
-                    var (content, fill) = PrintContent.Load(Prepared(item), preview: true, size);
+                    var (content, fill) = PrintContent.Load(Prepared(item), preview: true, size, edge);
                     using (content)
                     {
-                        var w = single ? 760 : 340;
                         var h = (int)Math.Round(w * size.HeightMm / size.WidthMm);
                         var placement = PrintLayout.Place(content.Width, content.Height, size.WidthMm, size.HeightMm, fill);
                         using var page = PrintRenderer.RenderPage(content, placement, w, h, size.WidthMm, size.HeightMm);
@@ -558,8 +633,6 @@ public sealed partial class PrintViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasOrigin));
         OnPropertyChanged(nameof(BackText));
         OnPropertyChanged(nameof(PhotoCount));
-        OnPropertyChanged(nameof(HasMorePreviews));
-        OnPropertyChanged(nameof(MorePreviewsText));
         OnPropertyChanged(nameof(PreviewWidth));
         OnPropertyChanged(nameof(PreviewHeight));
         RaiseTexts();

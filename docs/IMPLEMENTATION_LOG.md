@@ -717,3 +717,12 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Updated tests:** one earlier test uses Page Down instead of →; the prompt_09 print test now expects every page to be listed.
   - **Screens inspected:** the editor with the new label and buttons (also Romanian, narrow), the Delete dialog with focus on Cancel, the print preview with faded ×0 pages and the Copies control, the small-thumbnail gallery.
 - **Not tested:** the keyboard workflow and dialogs on Windows by hand, the Citizen CY-02 and any physical print.
+- **CI result for 0.13.0:** runs 41415694637 (main) and 41415697607 (tag v0.13.0), both on commit f0e3d4d, passed.
+  - **Tests:** `windows-latest` 179 core and 92 UI tests, `ubuntu-latest` 177 and 92 (the rest skipped as opt-in or platform-specific).
+  - **Artifact:** `PhotoX-0.13.0-windows` is 78.8 MB (installer and checksum only, about 220 MB before).
+  - **Release job:** created the draft with exactly `PhotoX-0.13.0-win-Setup.exe` (78,758,017 bytes) and its `.sha256`.
+- **Release published** as prompt_10 asks, after checking:
+  - **Checksum:** the downloaded installer matches its checksum (d1ecacfb…e0ac) and GitHub's digest.
+  - **Public endpoint:** `releases/latest` returns v0.13.0 (<https://github.com/NorbCraft/PhotoX/releases/tag/v0.13.0>).
+  - **PhotoX's own client, run as 0.12.1 on Linux against the live API:** reports *Available 0.13.0* and completes the verified download.
+  - **Not done:** installing it on Windows.

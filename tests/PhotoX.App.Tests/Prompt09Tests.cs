@@ -206,7 +206,7 @@ public class Prompt09Tests(ITestOutputHelper output)
     }
 
     [AvaloniaFact]
-    public async Task Beyond_the_previews_every_photo_is_listed_with_its_copies_and_hundreds_update_at_once()
+    public async Task Every_photo_is_listed_with_its_copies_and_hundreds_update_at_once()
     {
         using var dir = new TempDir();
         var order = Order(dir, 300, width: 60, height: 40);
@@ -236,10 +236,8 @@ public class Prompt09Tests(ITestOutputHelper output)
         browse.PrintAllCommand.Execute(null);
         var print = shell.Print;
         Assert.Equal((25, 50), (print.PhotoCount, print.TotalCopies));
-        Assert.Equal(20, print.Previews.Count);
-        Assert.Equal(5, print.MoreItems.Count);                                           // the rest by name, with ×2
-        Assert.All(print.MoreItems, e => Assert.Equal("×2", e.CopiesText));
-        Assert.Equal("… and 5 more", print.MorePreviewsText);
+        Assert.Equal(25, print.Previews.Count);                                           // every photo as a page (prompt_10 §6)
+        Assert.All(print.Previews, e => Assert.Equal("×2", e.CopiesText));
         window.Close();
     }
 

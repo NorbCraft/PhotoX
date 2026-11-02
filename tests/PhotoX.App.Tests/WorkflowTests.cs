@@ -90,20 +90,20 @@ public class WorkflowTests
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
 
         // Skipping with only the default crop writes nothing and leaves the photo "to do".
-        UiHelpers.Tap(window, PhysicalKey.ArrowRight);
+        UiHelpers.Tap(window, PhysicalKey.PageDown);                     // Page Down: next photo (prompt_10 §1)
         await UiHelpers.WaitUntil(() => shell.Editor.Current!.Name == "IMG_002.jpg" && !shell.Editor.IsBusy);
         Assert.Equal(hash, Fixtures.Sha(Path.Combine(order, "IMG_001.jpg")));
         Assert.Equal(PhotoState.ToDo, shell.Browse.AllPhotos[0].State);
 
         // A manual edit followed by Next is kept in memory as unsaved, not written.
         shell.Editor.Tone.ExposureMinusCommand.Execute(null);
-        UiHelpers.Tap(window, PhysicalKey.ArrowRight);
+        UiHelpers.Tap(window, PhysicalKey.PageDown);
         await UiHelpers.WaitUntil(() => shell.Editor.Current!.Name == "IMG_003.jpg" && !shell.Editor.IsBusy);
         Assert.Equal(PhotoState.Unsaved, shell.Browse.AllPhotos[1].State);
         Assert.False(Directory.Exists(Path.Combine(order, "Original")));
 
         // Last photo: Next does not wrap around.
-        UiHelpers.Tap(window, PhysicalKey.ArrowRight);
+        UiHelpers.Tap(window, PhysicalKey.PageDown);
         await UiHelpers.WaitUntil(() => !shell.Editor.IsBusy);
         Assert.Equal("IMG_003.jpg", shell.Editor.Current!.Name);
         window.Close();

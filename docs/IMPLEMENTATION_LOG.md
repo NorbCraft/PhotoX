@@ -688,3 +688,32 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Public endpoint:** after publishing, `releases/latest` returns v0.12.1.
   - **PhotoX's own client, run as 0.11.0 on Linux against the live API:** reports *Available 0.12.1* and completes the verified download.
   - **Not done:** installing the update on Windows.
+
+### 2026-11-02: Version 0.13.0, prompt_10 (keyboard workflow, navigation, print preview, releases)
+- **Prompt:** [docs/prompts/prompt_10.md](prompts/prompt_10.md), archived unchanged. The owner reported that the update to 0.12.1 through Check for updates worked.
+- **Editor (§§1–3, DEC-086):**
+  - **Keys:** Page Up / Page Down change the photo. The arrow keys move the crop frame (0.25 % of the long side, Shift 1.25 %) with its size kept, only where there is room. Held arrows repeat (the window lets them through in the editor), and a burst of presses is one undo step. Enter (Save & Next) and Escape are unchanged.
+  - **Buttons:** Previous and Next are back above Close / Print / Save; `IconLabel` can put the chevron after the label.
+  - **Crop label:** *10 × 15 cm · 150 ppi*, without pixels, on a lighter translucent background.
+  - **Before/After:** the button gets the pressed look (class `active`) whenever the original is shown, also in ID Photos.
+- **Dialogs (§4):** every dialog takes the keyboard (`MainWindow.HandleDialogKey`): focus starts on Cancel; ← / → and Tab move between the buttons, ↑ / ↓ between choices; Enter or Space press, Escape cancels. No key reaches the gallery behind, and focus returns afterwards.
+- **Gallery (§§4, 5, 7, 8):**
+  - **After Delete:** the photo next to the deleted ones is selected instead of the first, so the list keeps its place.
+  - **Back from the editor:** the photo open last is selected and scrolled into view (`Reveal`).
+  - **↑ / ↓:** follow the laid-out grid (`GridNavigation`, Shift extends).
+  - **Thumbnail size:** − / + buttons with magnifier icons compute the largest size with one more or one fewer card per row in the gallery's width, within the slider's limits.
+- **Printing (§6, DEC-087):**
+  - **List:** every chosen photo is a page in a selectable, scrolling list, rendered one after the other (220 px pages from 450 px copies above 40 photos); pages are disposed when the list changes.
+  - **Copies:** selected pages change their copies through `CopiesControl` (shared with the Photos sidebar) into the same `PrintQuantities` store; the keys + / − and 0–9 work there too.
+  - **Pages set to 0:** a page set to 0 after Print stays listed, faded, and is left out of the jobs and totals; photos at 0 when Print was pressed are still not listed.
+- **ID Photos (§9):** Escape clears a loaded photo (the existing Clear), after an open dialog has been closed by its own Escape.
+- **Releases (§§10, 11, DEC-088):**
+  - **Packaging:** vpk packs without the portable zip, and the artifact and the release carry only `PhotoX-X.Y.Z-win-Setup.exe` and its `.sha256`.
+  - **Size:** checked by packing locally with vpk (cross-build): the installer is 78.8 MB; its package holds 154 MB uncompressed without any `.pdb` (vpk already excludes the 102 MB of SkiaSharp symbols that the publish folder contains). The rest is the self-contained runtime, Skia, Magick.NET (23 MB) and ONNX Runtime (16 MB). Not trimmed, to keep image processing and face detection as tested.
+  - **Process:** DEVELOPMENT.md now lets the agent publish the tag's draft when the owner asks, after CI passed and the checksum was checked.
+- **Verification (Linux):**
+  - **Totals:** 181 core and 94 UI tests pass (Release); 2 and 3 skipped.
+  - **New tests:** `Prompt10Tests`, 8 UI tests: editor keys, Enter, Page Up / Down, the buttons, Escape and the gallery's selection and scroll, Before/After, the Delete dialog's keys and the scroll offset after deleting, ↑ / ↓ and the size buttons, `GridNavigation`, ID Escape, the print preview's pages and copies.
+  - **Updated tests:** one earlier test uses Page Down instead of →; the prompt_09 print test now expects every page to be listed.
+  - **Screens inspected:** the editor with the new label and buttons (also Romanian, narrow), the Delete dialog with focus on Cancel, the print preview with faded ×0 pages and the Copies control, the small-thumbnail gallery.
+- **Not tested:** the keyboard workflow and dialogs on Windows by hand, the Citizen CY-02 and any physical print.

@@ -20,7 +20,7 @@ Plan revision **P-2** (2026-10-29). Requirements are in [PLAN.md](PLAN.md) and a
 | Face detection | Microsoft.ML.OnnxRuntime + YuNet model | 1.31.1 / 2023mar | MIT / MIT | 0.4.0, Auto Align only |
 | Logging | Serilog + Serilog.Sinks.File (used directly in the app; libraries return typed results instead of logging) | 4.4.0 / 7.0.0 | Apache-2.0 | DEC-040 |
 | Tests | xUnit v3 **3.2.2** + Avalonia.Headless.XUnit | 3.2.2 / 12.1.4 | Apache-2.0 / MIT | xUnit 4.x breaks Avalonia.Headless (Avalonia issue #22072) |
-| Installer | Velopack | 1.2.x | MIT | 0.4.0. Setup exe and portable zip, named `PhotoX-<version>-win-*` by CI (prompt_04), with the PhotoX icon. Linux: `packaging/linux` adds a desktop entry for a published build. |
+| Installer | Velopack | 1.2.x | MIT | 0.4.0. One Setup exe, `PhotoX-<version>-win-Setup.exe`, named by CI (prompt_04; the portable zip dropped in prompt_10, DEC-088), with the PhotoX icon. Linux: `packaging/linux` adds a desktop entry for a published build. |
 
 All licences permit use in a paid studio. Notices are collected in `THIRD-PARTY-NOTICES.md`. Avalonia's paid tools are not needed. Rejected for licence reasons: ImageSharp, FluentAssertions 8+, Emgu CV, InsightFace/dlib-68/BRIA models.
 
@@ -82,6 +82,7 @@ Rules:
 - **Shared editing sidebar (DEC-062):** `EditActionsView` (Undo, Redo, Reset) and `ToneAdjustmentsView` (levels histogram with three triangle handles, Auto Adjust, exposure, contrast, white balance, tint, saturation with gradient tracks; exposure also on the + / − keys), both bound to one `ToneAdjustmentsViewModel` that carries the owner's Undo, Redo, Reset and Auto Adjust commands. The Photos editor and the ID Photo Creator use them identically (prompt_03 §7, prompt_04 §§7–8, prompt_06 §1).
 - **Localization:** `Localization/Strings_en.json` / `Strings_ro.json` (embedded), a `Localizer`, and a `{l:Tr Key}` markup extension that binds to one observable `LocalizedString` per key, so language switches live (FR-009, DEC-039). Romanian plurals (1 fotografie / 2–19 fotografii / 20+ de fotografii) via `Localizer.Plural`.
 - **Keyboard:** handled at window level with `KeyDown` (tunnelling). Shortcuts are ignored when `e.Handled`, when a `TextBox`/`NumericUpDown`/`ComboBox` has focus, when a dialog is open, or for auto-repeat. Avalonia exposes no repeat flag, so the handler tracks key-down/key-up pairs and ignores repeated `KeyDown` events for a key that is still held (FR-018).
+- **Keyboard (prompt_10, DEC-086):** the editor takes Page Up / Page Down for the photo and the arrow keys for the crop frame (`EditorViewModel.MoveCrop`; the window lets held arrows repeat in the editor). While a dialog is shown the window handles every key itself (`MainWindow.HandleDialogKey`): focus is put on the dialog's Cancel button when it opens and restored when it closes. The Photos gallery handles ↑ / ↓ itself (`GridNavigation.Neighbour` on the laid-out card bounds); ← / → stay with the list. `BrowseViewModel.Reveal` and `RevealRequested` select and scroll to the photo open last when the editor closes.
 
 ```mermaid
 stateDiagram-v2
@@ -293,7 +294,7 @@ flowchart LR
   - `GetJob`/`SetJob` report status and cancel.
 
   Colours are sRGB with no printer profile applied by PhotoX. `DOCINFO.lpszOutput` lets tests print to a PDF printer without a dialog. Other platforms use `UnavailablePrintBackend`.
-- **Copies (prompt_09, DEC-083):** Print selected and Print all pass every chosen gallery photo to the workspace; `PrintViewModel` asks `PrintQuantities` for each photo's copies, lists only photos above 0 (the first 20 as rendered pages with a ×N badge, the rest by name with ×N) and follows `PrintQuantities.Changed`, so a quantity changed in Photos while the photos wait is taken over (pages are rendered again only when the list itself changes). Each item becomes one job with its own copies (`PrintItem.Copies`); the workspace's Copies setting applies only to ID sheets, collages and the calibration sheet. Requested quantities are never changed by printing.
+- **Copies (prompt_09, prompt_10, DEC-083, DEC-087):** Print selected and Print all pass every chosen gallery photo to the workspace; `PrintViewModel` asks `PrintQuantities` for each photo's copies and lists the photos above 0 as pages with a ×N badge (all of them, in a selectable list; pages rendered one after the other, smaller for long lists). Selected pages change their copies through `CopiesControl` (shared with the Photos sidebar) into the same store; `PrintQuantities.Changed` updates both places; a listed page set to 0 stays, faded, and is left out of the jobs; only pages added to the list are rendered anew. Each item becomes one job with its own copies (`PrintItem.Copies`); the workspace's Copies setting applies only to ID sheets, collages and the calibration sheet. Requested quantities are never changed by printing.
 - **Queue and counters:**
   - one worker prepares and submits jobs in order, then polls the Windows queue every 2 s;
   - counters (`PrintHistory`, in the data folder) are added when Windows accepts a job and taken back when the job is cancelled through PhotoX or seen deleting and then gone;

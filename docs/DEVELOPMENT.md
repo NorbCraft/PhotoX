@@ -31,7 +31,7 @@ Plan revision **P-2** (2026-10-29). [PLAN.md](PLAN.md) is authoritative for *wha
 
 The version lives in `Directory.Build.props`. Implementation starts at **0.1.0**. Unfinished or unverified milestones are never tagged.
 
-**Releases (prompt_08, DEC-080):** pushing a tag `vX.Y.Z` equal to the version runs CI as usual and then creates a **draft** GitHub Release named *PhotoX X.Y.Z* with `PhotoX-X.Y.Z-win-Setup.exe`, `PhotoX-X.Y.Z-win-Setup.exe.sha256` and `PhotoX-X.Y.Z-win-Portable.zip`, and the version's CHANGELOG section as notes. A draft is invisible to Check for updates. **The owner approves a version** by opening the draft on GitHub (Releases), checking it and pressing *Publish release*; from then on installed copies offer it. Agents never publish drafts, and never mark a pre-release as latest. Ordinary commits produce only CI artifacts.
+**Releases (prompt_08, prompt_10, DEC-080, DEC-088):** pushing a tag `vX.Y.Z` equal to the version runs CI as usual and then creates a **draft** GitHub Release named *PhotoX X.Y.Z* with `PhotoX-X.Y.Z-win-Setup.exe` and `PhotoX-X.Y.Z-win-Setup.exe.sha256` (no portable zip since prompt_10), and the version's CHANGELOG section as notes. A draft is invisible to Check for updates. A version is **published** (*Publish release*, marked latest) only after the tests and the build passed in CI and the installer matches its checksum: by the owner, or by the agent when the owner asked for it (as prompt_10 asks for every completed iteration); from then on installed copies offer it. A release that failed or could not be checked is reported, never claimed. Pre-releases are never marked latest. Ordinary commits produce only CI artifacts (the installer and its checksum).
 
 ## 3. Code
 
@@ -86,5 +86,5 @@ Prompts are stored as `docs/prompts/prompt_NN.md`, sequential and never edited. 
 - The .NET 10 SDK is installed user-locally at `~/.dotnet` on the development machine (`export PATH="$HOME/.dotnet:$PATH"`).
 - Build: `dotnet build PhotoX.slnx`. Test: `dotnet test PhotoX.slnx`. Run: `dotnet run --project src/PhotoX.App`.
 - Windows trial build: `dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64`.
-- Windows installer (cross-built on Linux): `dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion <version> --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --outputDir releases/win`. This gives `releases/win/PhotoX-win-Setup.exe` and `PhotoX-win-Portable.zip` (both git-ignored).
+- Windows installer (cross-built on Linux): `dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion <version> --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --noPortable --outputDir releases/win`. This gives `releases/win/PhotoX-win-Setup.exe` (git-ignored), about 79 MB; debug symbols are left out by vpk.
 - Performance measurements: `PHOTOX_PERF=1 dotnet test tests/PhotoX.App.Tests --filter PerformanceTests --logger "console;verbosity=detailed"`.

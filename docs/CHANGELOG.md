@@ -4,6 +4,25 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-02
+
+### Added
+- **Editor from the keyboard:** the arrow keys move the crop frame in small steps (Shift: larger), keeping its size and stopping at the photo's edge; a held arrow keeps moving. **Enter** saves exactly that crop and opens the next photo; **Page Up / Page Down** change the photo; **Escape** returns to the gallery.
+- **Previous** and **Next** buttons in the editor again, above Close, Print and Save.
+- **Copies in the print preview:** select pages (click, Ctrl/Shift + click, Ctrl + A or *Select all*) and change their copies with − / + or the keys + / − and 0–9. It is the same setting as in Photos, so both always agree; 0 leaves a photo out (its page stays, faded, so it can be set back).
+- **Thumbnail size buttons:** − and + (magnifier icons) beside the slider give one more or one fewer thumbnail per row.
+- **↑ / ↓** in the gallery move to the thumbnail above or below, following the grid as it is laid out.
+- **Escape in ID Photos** clears the loaded photo, like Clear (an open dialog closes first).
+
+### Changed
+- The **print preview shows every chosen photo** as a page in a scrolling list, not only the first 20.
+- The crop label over the photo shows only the print size in cm and the ppi, on a lighter background.
+- Before/After looks pressed while Space shows the original, as when it is held with the mouse (editor and ID Photos).
+- **Dialogs take the keyboard:** focus starts on Cancel, ← / → move between the buttons, Enter presses the focused one, Escape cancels; the gallery behind no longer moves.
+- After **Delete**, the gallery keeps its place and selects the photo next to the deleted ones.
+- **Back from the editor**, the gallery selects and shows the photo that was open last.
+- **Releases:** one Windows installer per version. The portable zip is no longer built, and the build artifact and the GitHub Release carry only the installer and its checksum (about 79 MB instead of about 220 MB).
+
 ## [0.12.1] - 2026-11-02
 
 ### Fixed

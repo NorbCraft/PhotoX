@@ -57,6 +57,7 @@ public sealed partial class IdViewModel : ViewModelBase
     private List<MagickImage> _levels = [];
     private double _proxyScale = 1;
     private int _renderVersion;
+    private int _sheetVersion;
     private bool _syncing;
 
     /// <summary>
@@ -929,25 +930,43 @@ public sealed partial class IdViewModel : ViewModelBase
         if (IsSheetStep) _ = RenderSheetPreviewAsync();
     }
 
+    /// <summary>
+    /// Renders the sheet preview in the background. It holds the render gate, like the framing preview, so Clear or
+    /// another photo cannot dispose the portrait while it is read (a native crash otherwise); a newer request replaces
+    /// a waiting one.
+    /// </summary>
     private async Task RenderSheetPreviewAsync()
     {
-        if (_proxy is null || Framing is null) return;
-        var proxy = _proxy;
-        var framing = Framing with { CenterX = Framing.CenterX * _proxyScale, CenterY = Framing.CenterY * _proxyScale, FrameWidthSource = Framing.FrameWidthSource * _proxyScale };
-        var size = SelectedSize.Size;
-        var adj = Adjustments;
-        var layout = CurrentLayout();
-        var scale = _services.Settings.IdScale;
-        var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
-        var data = await Task.Run(() =>
+        var version = Interlocked.Increment(ref _sheetVersion);
+        await _renderGate.WaitAsync();
+        try
         {
-            using var photo = IdRenderer.Render(proxy, framing, size, adj, pw, ph);
-            using var sheet = SheetRenderer.Render(photo, layout, scale);
-            return PixelData.From(sheet);
-        });
-        var old = SheetPreview;
-        SheetPreview = BitmapFactory.Create(data);
-        (old as IDisposable)?.Dispose();
+            if (version != _sheetVersion || _proxy is null || Framing is null) return;
+            var proxy = _proxy;
+            var framing = Framing with { CenterX = Framing.CenterX * _proxyScale, CenterY = Framing.CenterY * _proxyScale, FrameWidthSource = Framing.FrameWidthSource * _proxyScale };
+            var size = SelectedSize.Size;
+            var adj = Adjustments;
+            var layout = CurrentLayout();
+            var scale = _services.Settings.IdScale;
+            var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
+            var data = await Task.Run(() =>
+            {
+                using var photo = IdRenderer.Render(proxy, framing, size, adj, pw, ph);
+                using var sheet = SheetRenderer.Render(photo, layout, scale);
+                return PixelData.From(sheet);
+            });
+            var old = SheetPreview;
+            SheetPreview = BitmapFactory.Create(data);
+            (old as IDisposable)?.Dispose();
+        }
+        catch (MagickException ex)
+        {
+            Log.Error(ex, "ID sheet preview failed");
+        }
+        finally
+        {
+            _renderGate.Release();
+        }
     }
 
     [RelayCommand]
@@ -986,13 +1005,24 @@ public sealed partial class IdViewModel : ViewModelBase
             var quality = _services.Settings.JpegQuality;
             var scale = _services.Settings.IdScale;
             var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
-            var path = await Task.Run(() =>
+            string path;
+            // The portrait stays alive while it is rendered: Clear and another photo wait for the gate.
+            await _renderGate.WaitAsync();
+            try
             {
-                using var photo = IdRenderer.Render(source, framing, size, adj, pw, ph);
-                using var sheet = SheetRenderer.Render(photo, layout, scale);
-                var bytes = IdOutput.Encode(sheet, ImageKind.Jpeg, quality);
-                return IdExporter.Write(folder, bytes, ".jpg", DateTime.Now);
-            });
+                path = await Task.Run(() =>
+                {
+                    using var photo = IdRenderer.Render(source, framing, size, adj, pw, ph);
+                    using var sheet = SheetRenderer.Render(photo, layout, scale);
+                    var bytes = IdOutput.Encode(sheet, ImageKind.Jpeg, quality);
+                    return IdExporter.Write(folder, bytes, ".jpg", DateTime.Now);
+                });
+            }
+            finally
+            {
+                _renderGate.Release();
+            }
+
             StatusMessage = Localizer.Instance.Format("IdSaved", Path.GetFileName(path));
             Log.Information("ID sheet saved: {Path} ({Size}, {Copies} copies)", path, size.Id, layout.Photos.Count);
             return path;
@@ -1013,13 +1043,15 @@ public sealed partial class IdViewModel : ViewModelBase
 
     /// <summary>
     /// Print (prompt_05 §7): the same sheet as Save sheet, rendered from the full-resolution portrait when printed,
-    /// on 10×15 paper at its exact size. The preview renders from the screen-sized copy.
+    /// on 10×15 paper at its exact size; the preview from a screen-sized copy. Both read the portrait file again rather
+    /// than the images of this workspace, which Clear or another photo dispose while the sheet may still wait in
+    /// Printing (that used freed memory and could crash PhotoX).
     /// </summary>
     [RelayCommand]
     private void PrintSheet()
     {
-        if (_source is null || _proxy is null || Framing is null) return;
-        var (source, proxy, proxyScale) = (_source, _proxy, _proxyScale);
+        if (_source is null || SourcePath is not { } path || Framing is null) return;
+        var sourceWidth = _source.Width;
         var framing = Framing;
         var size = SelectedSize.Size;
         var adj = Adjustments;
@@ -1028,9 +1060,11 @@ public sealed partial class IdViewModel : ViewModelBase
         var name = $"{SelectedSize.Label} × {layout.Photos.Count} · {SourceName}";
         PrintRequested?.Invoke(new Printing.ImagePrintItem(name, preview =>
         {
+            using var image = ImageLoader.Load(path, preview ? ProxyEdge : null);
+            var k = (double)image.Width / sourceWidth;
+            var f = framing with { CenterX = framing.CenterX * k, CenterY = framing.CenterY * k, FrameWidthSource = framing.FrameWidthSource * k };
             var (pw, ph) = SheetRenderer.PhotoPixels(size, scale);
-            var f = preview ? framing with { CenterX = framing.CenterX * proxyScale, CenterY = framing.CenterY * proxyScale, FrameWidthSource = framing.FrameWidthSource * proxyScale } : framing;
-            using var photo = IdRenderer.Render(preview ? proxy : source, f, size, adj, pw, ph);
+            using var photo = IdRenderer.Render(image, f, size, adj, pw, ph);
             return SheetRenderer.Render(photo, layout, scale);
         }, 1), Core.Formats.PrintFormats.P10x15);
     }

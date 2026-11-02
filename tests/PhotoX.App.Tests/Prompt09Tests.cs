@@ -279,6 +279,40 @@ public class Prompt09Tests(ITestOutputHelper output)
         window.Close();
     }
 
+    /// <summary>
+    /// Found while releasing 0.12.0 (a crash of the Windows test run): sheet previews were rendered from the portrait
+    /// without the render gate, and a printed ID sheet kept the workspace's images, so Clear or another photo could
+    /// free them while they were read.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Id_sheet_previews_and_prints_survive_clearing_or_replacing_the_photo()
+    {
+        using var dir = new TempDir();
+        var order = Order(dir, 2, "P", 800, 1200);
+        var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1366, 768);
+        var id = shell.Id;
+        for (var i = 0; i < 4; i++)
+        {
+            await id.LoadSourceAsync(Path.Combine(order, "P001.jpg"));
+            id.ContinueToSheetCommand.Execute(null);                                      // sheet previews start …
+            id.CopiesMinusCommand.Execute(null);
+            await id.ClearPhotoAsync();                                                   // … and the photo goes at once
+            Assert.False(id.HasSource);
+        }
+
+        await id.LoadSourceAsync(Path.Combine(order, "P001.jpg"));
+        id.ContinueToSheetCommand.Execute(null);
+        id.PrintSheetCommand.Execute(null);                                               // the sheet waits in Printing …
+        await id.LoadSourceAsync(Path.Combine(order, "P002.jpg"));                         // … while another photo replaces it
+        await id.ClearPhotoAsync();
+        await UiHelpers.WaitUntil(() => shell.Print.Previews.Single().Page is not null);
+        shell.Print.PrintCommand.Execute(null);
+        await UiHelpers.WaitUntil(() => UiHelpers.Printer.Submitted.Count == 1);
+        var page = UiHelpers.Printer.Submitted.Single().Page;
+        Assert.Equal((1200, 1800), (page.Width, page.Height));
+        window.Close();
+    }
+
     [AvaloniaFact]
     public async Task Collages_show_no_drag_hint_and_still_take_dragged_photos()
     {

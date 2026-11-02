@@ -13,7 +13,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 
 ## Current status
 
-> **Version 0.12.0**: **copies per photo** (a ×N badge on each thumbnail, *Copies* in the sidebar for one or many photos, *Selected for print* and *Printed* for the folder; Print all and Print selected print each photo's copies, shown on the print preview), ID Photos opens a photo with a double-click, fewer hints, the open workspace stays highlighted, and a quieter tree button (prompt_09). Earlier: one file explorer in all workspaces, safe photo deletion, Discard originals for the whole folder, Check for updates from GitHub Releases and a new About (prompt_08); the fix for partly black saved photos, faster saving, Close / Print / Save in the editor and printing refinements (prompt_07); light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.12.1**: **copies per photo** (a ×N badge on each thumbnail, *Copies* in the sidebar for one or many photos, *Selected for print* and *Printed* for the folder; Print all and Print selected print each photo's copies, shown on the print preview), ID Photos opens a photo with a double-click, fewer hints, the open workspace stays highlighted, and a quieter tree button (prompt_09). Earlier: one file explorer in all workspaces, safe photo deletion, Discard originals for the whole folder, Check for updates from GitHub Releases and a new About (prompt_08); the fix for partly black saved photos, faster saving, Close / Print / Save in the editor and printing refinements (prompt_07); light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -60,8 +60,8 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-python3 packaging/windows/make_splash.py 0.12.0 releases/splash.png                                     # installer splash with the version
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.12.0 --packDir publish/win-x64 \
+python3 packaging/windows/make_splash.py 0.12.1 releases/splash.png                                     # installer splash with the version
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.12.1 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX \
   --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --outputDir releases/win            # Windows installer
 python3 assets/logo/build_icons.py     # re-render the icon PNGs and ICO after editing the SVG masters

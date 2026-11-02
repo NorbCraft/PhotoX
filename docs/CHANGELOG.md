@@ -4,6 +4,11 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-02
+
+### Fixed
+- **ID Photos could crash PhotoX** when the photo was cleared or replaced while its sheet preview was still being drawn, or while a printed ID sheet was still waiting in Printing: both read the portrait's image after it had been freed. The sheet preview and Save now wait for the photo's lock, and a printed sheet reads the portrait file itself. Found as a crash of the Windows test run while releasing 0.12.0, which was therefore not released.
+
 ## [0.12.0] - 2026-11-02
 
 ### Added

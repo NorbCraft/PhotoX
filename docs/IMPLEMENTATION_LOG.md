@@ -669,3 +669,16 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Timing (headless, this Linux PC, 300 photos with thumbnails loaded):** Select all 162 ms, all 300 to 0 copies 84 ms, 25 to 2 copies 143 ms. A first measurement of over a second turned out to include thumbnail loading still running in the background.
   - **Screens inspected (headless, 1366 × 768):** Photos with badges and the sidebar (single, mixed, light, dark, Romanian default and narrowest), the print preview with ×N badges, ID step 1 without the hint, Collages without the drag hint, the hidden-tree button in light and dark.
 - **Not tested:** Windows (no local run), real mouse use on Windows, the Citizen CY-02 and any physical print.
+- **CI result for 0.12.0:** run 41406061846 (main, commit 76e8c42) passed on Linux and Windows and built the installer. The tag run 41406064027 on the same commit **failed twice** (first run and a re-run): the Windows UI test process crashed with an access violation (0xC0000005) after 68 and 75 tests, so no draft release was created and **0.12.0 was not released**. Six diagnostic Windows runs on a temporary branch with crash blame did not reproduce it, so the crashing test was not identified by CI.
+
+### 2026-11-02: Version 0.12.1 (fix found while releasing 0.12.0)
+- **Cause found by reading the code:** two paths of ID Photos read the portrait's native image without the lock that guards its disposal.
+  - **Sheet preview:** the step 3 preview rendered in the background without the render gate. A second render started by another property change could still be running when Clear or another photo freed the image. The prompt_08 ID test does exactly this (sheet, then Clear), which fits a crash that appears only on a busy CI machine.
+  - **Printed ID sheet:** it kept the workspace's images, which Clear or another photo free while the sheet may still wait in Printing (preview or print would read freed memory). This could also happen in the studio.
+- **Fix:**
+  - The sheet preview and Save hold the render gate (a newer preview request replaces a waiting one).
+  - A printed ID sheet reads the portrait file itself, full size for printing and screen size for the preview, like collages already did.
+  - A missing file makes the job fail with a message, as before for photos.
+- **Test:** `Id_sheet_previews_and_prints_survive_clearing_or_replacing_the_photo`.
+- **Verification (Linux):** 181 core and 86 UI tests pass (Release); 2 and 3 skipped. Whether this was the CI crash is confirmed only by the Windows CI runs of 0.12.1, recorded below.
+- **Version:** 0.12.1, the documented patch bump. The v0.12.0 tag stays where it was, without a release.

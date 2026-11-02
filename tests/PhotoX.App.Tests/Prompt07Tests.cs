@@ -106,10 +106,8 @@ public class Prompt07Tests
         shell.Print.SetWholeCommand.Execute(true);
         await UiHelpers.WaitUntil(() => shell.Print.Previews[0].Page is { } page && page != cropPreview);
         UiHelpers.Capture(window, "print-whole");
-        using (var ms = new MemoryStream())
+        using (var preview = UiHelpers.ToMagick((Avalonia.Media.Imaging.WriteableBitmap)shell.Print.Previews[0].Page!))   // the preview shows the borders too
         {
-            shell.Print.Previews[0].Page!.Save(ms, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());                       // the preview shows the borders too
-            using var preview = new MagickImage(ms.ToArray());
             var (l, r) = EdgeBrightness(preview);
             Assert.True(l > 0.97 && r > 0.97, "the preview shows Whole");
         }

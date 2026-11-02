@@ -59,8 +59,12 @@ public class ButtonMockups
         window.Show();
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("No frame");
-        frame.Save(path, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        using (var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("No frame"))
+        using (var image = UiHelpers.ToMagick(frame))
+        {
+            image.Write(path, ImageMagick.MagickFormat.Png);
+        }
+
         window.Close();
     }
 

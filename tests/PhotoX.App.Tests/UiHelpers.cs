@@ -54,9 +54,26 @@ public static class UiHelpers
         Directory.CreateDirectory(ScreenshotDir);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("No frame");
+        using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("No frame");
         var path = Path.Combine(ScreenshotDir, name + ".png");
-        frame.Save(path, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        using var image = ToMagick(frame);
+        image.Write(path, ImageMagick.MagickFormat.Png);
         return path;
+    }
+
+    /// <summary>
+    /// A copy of a bitmap's pixels, taken under its lock, as a Magick image. Screenshots used to be written with
+    /// <c>Bitmap.Save</c>, whose Skia PNG encoder crashed the test process now and then (SIGSEGV in skcms, seen in
+    /// crash dumps while saving a captured frame that nothing kept alive, prompt_11); the bitmap is now held and disposed
+    /// by the caller, and encoding is Magick.NET's.
+    /// </summary>
+    public static ImageMagick.MagickImage ToMagick(Avalonia.Media.Imaging.WriteableBitmap bitmap)
+    {
+        using var locked = bitmap.Lock();
+        var (w, h) = (locked.Size.Width, locked.Size.Height);
+        var bytes = new byte[w * h * 4];
+        for (var y = 0; y < h; y++) System.Runtime.InteropServices.Marshal.Copy(locked.Address + y * locked.RowBytes, bytes, y * w * 4, w * 4);
+        var mapping = locked.Format == Avalonia.Platform.PixelFormat.Rgba8888 ? ImageMagick.PixelMapping.RGBA : ImageMagick.PixelMapping.BGRA;
+        return new ImageMagick.MagickImage(bytes, new ImageMagick.PixelReadSettings((uint)w, (uint)h, ImageMagick.StorageType.Char, mapping));
     }
 }

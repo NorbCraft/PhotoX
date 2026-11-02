@@ -277,7 +277,29 @@ public class Prompt10Tests
         Assert.True(id.HasSource);
 
         UiHelpers.Tap(window, PhysicalKey.Escape);                                        // … then Clear
-        await UiHelpers.WaitUntil(() => !id.HasSource);
+        try
+        {
+            await UiHelpers.WaitUntil(() => !id.HasSource);
+        }
+        catch (TimeoutException)
+        {
+            // Seen once in 18 local runs of the whole suite under load, not understood yet: report what ID Photos was
+            // doing, and whether Clear finished late (a slow machine) or never.
+            var gate = (SemaphoreSlim)typeof(IdViewModel).GetField("_renderGate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(id)!;
+            var diag = $"DIAG focused={Focused(window)?.GetType().FullName} busy={id.IsBusy} select={id.IsSelectStep} gate={gate.CurrentCount} preview={id.Preview is not null}";
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var late = true;
+            try
+            {
+                await UiHelpers.WaitUntil(() => !id.HasSource, 30000);
+            }
+            catch (TimeoutException)
+            {
+                late = false;
+            }
+
+            Assert.Fail($"{diag} gateAfter={gate.CurrentCount} clearedLater={late} after={sw.ElapsedMilliseconds}ms");
+        }
         Assert.True(id.IsSelectStep);
         Assert.Null(id.Framing);
         Assert.Equal(hashes, Directory.GetFiles(order).Order().Select(Fixtures.Sha).ToList());

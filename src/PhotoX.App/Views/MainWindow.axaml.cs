@@ -95,8 +95,25 @@ public sealed partial class MainWindow : Window
                 browse.Explorer.GoUpCommand.Execute(null);
                 e.Handled = true;
                 break;
+            case BrowseViewModel browse when !browse.IsDeletedView && (e.KeyModifiers & ~KeyModifiers.Shift) == KeyModifiers.None && QuantityKey(e.Key) is { } key:
+                // Copies of the selected photos (prompt_09 §4): + and − change them, 0–9 set them
+                if (key == '+') browse.QuantityPlusCommand.Execute(null);
+                else if (key == '-') browse.QuantityMinusCommand.Execute(null);
+                else browse.SetSelectedQuantity(key - '0');
+                e.Handled = true;
+                break;
         }
     }
+
+    /// <summary>'+', '-' or the digit of a key on the main keyboard or the number pad.</summary>
+    private static char? QuantityKey(Key key) => key switch
+    {
+        Key.OemPlus or Key.Add => '+',
+        Key.OemMinus or Key.Subtract => '-',
+        >= Key.D0 and <= Key.D9 => (char)('0' + (key - Key.D0)),
+        >= Key.NumPad0 and <= Key.NumPad9 => (char)('0' + (key - Key.NumPad0)),
+        _ => null,
+    };
 
     private void OnKeyUpTunnel(object? sender, KeyEventArgs e)
     {

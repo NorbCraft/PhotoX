@@ -149,6 +149,10 @@
                     <Panel>
                       <Image Source="{Binding Page}" Stretch="Fill" />
                       <TextBlock Text="…" Foreground="#888888" IsVisible="{Binding Page, Converter={x:Static ObjectConverters.IsNull}}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      <!-- The copies of this page (prompt_09 §5), as on the Photos thumbnails -->
+                      <Border Classes="quantity" Margin="6">
+                        <TextBlock Text="{Binding CopiesText}" />
+                      </Border>
                     </Panel>
                   </Border>
                   <TextBlock Text="{Binding Name}" FontSize="12" Classes="muted" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
@@ -156,7 +160,25 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Text="{Binding MorePreviewsText}" IsVisible="{Binding HasMorePreviews}" Classes="muted" HorizontalAlignment="Center" />
+          <!-- Beyond the previews, every further photo by name with its copies, so all quantities can be checked -->
+          <StackPanel Spacing="8" IsVisible="{Binding HasMorePreviews}" MaxWidth="900">
+            <TextBlock Text="{Binding MorePreviewsText}" Classes="muted" HorizontalAlignment="Center" />
+            <ItemsControl ItemsSource="{Binding MoreItems}" HorizontalAlignment="Center">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PrintPreviewItem">
+                  <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="13" Padding="10,0,3,0" Margin="3" Height="28">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" MaxWidth="180" TextTrimming="CharacterEllipsis" />
+                      <Border Classes="quantity" Margin="0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CopiesText}" />
+                      </Border>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
         </StackPanel>
       </ScrollViewer>
       <StackPanel IsVisible="{Binding !HasItems}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">
@@ -201,14 +223,18 @@
             <TextBlock Text="{Binding NoMatchingPaperText}" IsVisible="{Binding HasNoMatchingPaper}" Classes="warn" FontSize="12" TextWrapping="Wrap" />
             <TextBlock Text="{Binding PaperNote}" IsVisible="{Binding PaperNote, Converter={x:Static ObjectConverters.IsNotNull}}" Classes="warn" FontSize="12" TextWrapping="Wrap" />
 
-            <TextBlock Classes="section" Text="{l:Tr Copies}" Margin="0,10,0,0" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Classes="square" Focusable="False" Content="−" Command="{Binding CopiesMinusCommand}" />
-              <Border Background="{DynamicResource Panel2Brush}" CornerRadius="7" Width="56" Height="34">
-                <TextBlock Text="{Binding Copies}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-              </Border>
-              <Button Classes="square" Focusable="False" Content="+" Command="{Binding CopiesPlusCommand}" />
-              <TextBlock Text="{l:Tr EachPhoto}" Classes="muted" VerticalAlignment="Center" />
+            <!-- Copies: an ID sheet, a collage or the calibration sheet here; gallery photos bring their own (prompt_09 §5),
+                 so there is no second, multiplying setting for them -->
+            <StackPanel Spacing="8" Margin="0,10,0,0" IsVisible="{Binding HasItems}">
+              <TextBlock Classes="section" Text="{l:Tr Copies}" />
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !HasPhotos}">
+                <Button Classes="square" Focusable="False" Content="−" Command="{Binding CopiesMinusCommand}" />
+                <Border Background="{DynamicResource Panel2Brush}" CornerRadius="7" Width="56" Height="34">
+                  <TextBlock Text="{Binding Copies}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Button Classes="square" Focusable="False" Content="+" Command="{Binding CopiesPlusCommand}" />
+              </StackPanel>
+              <TextBlock Text="{l:Tr CopiesFromPhotos}" IsVisible="{Binding HasPhotos}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" />
             </StackPanel>
 
             <Border Background="{DynamicResource InfoBgBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,14,0,0">

@@ -139,9 +139,9 @@ public class Prompt07Tests
         var order = Order(dir, 3);
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1440, 900);
         await shell.Browse.OpenFolderAsync(order);
+        shell.Browse.SetQuantity(shell.Browse.AllPhotos.ToList(), 2);      // two copies each, set in Photos (prompt_09)
         shell.Browse.PrintAllCommand.Execute(null);
         var p = shell.Print;
-        p.CopiesPlusCommand.Execute(null);
         p.SetWholeCommand.Execute(true);
         p.SetSizeCommand.Execute(PrintFormats.P15x20);
 
@@ -152,14 +152,14 @@ public class Prompt07Tests
         UiHelpers.Tap(window, PhysicalKey.Escape);                         // Escape (Back) cancels the calibration only
         Assert.True(shell.IsPrintWorkspace);
         Assert.False(p.IsCalibration);
-        Assert.Equal((3, 2, true, "15x20"), (p.PhotoCount, p.Copies, p.WholePhoto, p.SelectedSize.Id));
+        Assert.Equal((3, 6, true, "15x20"), (p.PhotoCount, p.TotalCopies, p.WholePhoto, p.SelectedSize.Id));
 
         p.LoadCalibrationCommand.Execute(null);
         p.SetSizeCommand.Execute(PrintFormats.P10x15);
         p.PrintCommand.Execute(null);                                       // printing the sheet also returns to the photos
         await UiHelpers.WaitUntil(() => UiHelpers.Printer.Submitted.Count == 1);
         Assert.Equal((1200, 1800), (UiHelpers.Printer.Submitted[0].Page.Width, UiHelpers.Printer.Submitted[0].Page.Height));
-        Assert.Equal((3, 2, true, "15x20"), (p.PhotoCount, p.Copies, p.WholePhoto, p.SelectedSize.Id));
+        Assert.Equal((3, 6, true, "15x20"), (p.PhotoCount, p.TotalCopies, p.WholePhoto, p.SelectedSize.Id));
 
         UiHelpers.Tap(window, PhysicalKey.Escape);                         // and Escape leaves Printing for Photos
         Assert.True(shell.IsBrowsing);

@@ -233,16 +233,27 @@ public sealed partial class ShellViewModel
         if (failed.Count > 0) await ShowMessageAsync(Localizer.Instance["RestoreOriginal"], Localizer.Instance.Format("RestoreFailed", string.Join("\n", failed)));
     }
 
-    /// <summary>Opens the Printing workspace for gallery photos: unsaved edits print as shown, untouched photos fill the paper.</summary>
+    /// <summary>
+    /// Opens the Printing workspace for gallery photos: unsaved edits print as shown, untouched photos fill the paper.
+    /// Each photo prints its requested copies; photos set to 0 are left out (prompt_09 §5), and when every chosen photo
+    /// is set to 0 nothing opens and the operator is told why.
+    /// </summary>
     public void PrintPhotos(IReadOnlyList<PhotoItemViewModel> items)
     {
         Editor.KeepPending();
         var photos = items.Where(p => p.IsOpenable).ToList();
         if (photos.Count == 0) return;
+        if (photos.All(p => p.Quantity == 0))
+        {
+            _ = ShowMessageAsync(Localizer.Instance["NothingToPrintTitle"], Localizer.Instance.Plural("AllExcluded", photos.Count));
+            return;
+        }
+
         var sidecar = Browse.CurrentFolder is { } f ? new OrderStore(f).Load() : new Core.Orders.OrderSidecar();
-        var printItems = photos.Select(p => (PrintItem)new PhotoPrintItem(p.Name, p.Path, p.PendingRecipe, p.State is PhotoState.Edited or PhotoState.Reviewed, 1)).ToList();
+        // Photos set to 0 go along, hidden: the Printing workspace follows later changes of the quantities.
+        var printItems = photos.Select(p => (PrintItem)new PhotoPrintItem(p.Name, p.Path, p.PendingRecipe, p.State is PhotoState.Edited or PhotoState.Reviewed, p.Quantity)).ToList();
         // The print size follows the photos' format: 15×20 when every edited photo was made for 15×20 or 13×18.
-        var formats = photos.Select(p => p.PendingRecipe?.FormatId ?? sidecar.Find(p.Name)?.Recipe?.FormatId).OfType<string>().ToList();
+        var formats = photos.Where(p => p.Quantity > 0).Select(p => p.PendingRecipe?.FormatId ?? sidecar.Find(p.Name)?.Recipe?.FormatId).OfType<string>().ToList();
         var size = formats.Count > 0 && formats.All(id => id is "15x20" or "13x18") ? PrintFormats.P15x20 : PrintFormats.P10x15;
         OpenPrint(printItems, size, sizeFixed: false);
     }

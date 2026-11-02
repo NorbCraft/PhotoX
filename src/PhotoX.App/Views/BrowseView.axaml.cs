@@ -24,8 +24,20 @@ public sealed partial class BrowseView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is BrowseViewModel vm) PanelWidth.FollowTree(vm.Explorer, Root.ColumnDefinitions[0], TreePanel, TreeSplitter, ApplyLeftWidth);
+        if (DataContext is not BrowseViewModel vm) return;
+        PanelWidth.FollowTree(vm.Explorer, Root.ColumnDefinitions[0], TreePanel, TreeSplitter, ApplyLeftWidth);
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(BrowseViewModel.DetailsCollapsed) or nameof(BrowseViewModel.HasSelection)) SizePreview(vm);
+        };
+        SizePreview(vm);
     }
+
+    /// <summary>
+    /// The sidebar's photo preview fills the room left by the information and the actions, up to 190 px; folded away or
+    /// without a selection its row takes no room (prompt_09 §3).
+    /// </summary>
+    private void SizePreview(BrowseViewModel vm) => SideGrid.RowDefinitions[1].MaxHeight = vm.HasSelection && !vm.DetailsCollapsed ? 200 : 0;
 
     private void OnLeftSplitterDragCompleted(object? sender, VectorEventArgs e) => PanelWidth.Save("browse-left", Root.ColumnDefinitions[0]);
 

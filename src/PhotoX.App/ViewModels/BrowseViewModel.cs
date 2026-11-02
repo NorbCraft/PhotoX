@@ -43,6 +43,12 @@ public sealed partial class BrowseViewModel : ViewModelBase
             foreach (var p in AllPhotos.Where(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase))) p.PrintCount = services.PrintHistory.CountFor(p.Path);
             OnPropertyChanged(nameof(PrintedText));
         });
+        // Requested copies (prompt_09 §1) change here; the Printing workspace follows the same store.
+        services.PrintQuantities.Changed += paths =>
+        {
+            if (ui.CheckAccess()) ApplyQuantities(paths);
+            else ui.Post(() => ApplyQuantities(paths));
+        };
     }
 
     /// <summary>The built-in explorer (FR-001), shared in design with the ID Photos and Collages workspaces.</summary>
@@ -94,6 +100,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMultipleSelection));
         OnPropertyChanged(nameof(SelectionText));
         PrintSelectedCommand.NotifyCanExecuteChanged();
+        RaiseQuantity();
         RestoreOriginalCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         RestoreDeletedCommand.NotifyCanExecuteChanged();
@@ -111,10 +118,105 @@ public sealed partial class BrowseViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(HasTargets))]
     private void PrintSelected(PhotoItemViewModel? item) => PrintRequested?.Invoke(Targets(item));
 
+    /// <summary>Print all (prompt_09 §5): the folder's photos with a requested quantity above 0, each with its own quantity.</summary>
     [RelayCommand]
     private void PrintAll()
     {
         if (AllPhotos.Any(p => p.IsOpenable)) PrintRequested?.Invoke(AllPhotos.Where(p => p.IsOpenable).ToList());
+    }
+
+    /// <summary>
+    /// The photos the Copies control changes (prompt_09 §§3, 4): the selection, or the selected photo; only photos that
+    /// can be printed.
+    /// </summary>
+    private IReadOnlyList<PhotoItemViewModel> QuantityTargets =>
+        (SelectedPhotos.Count > 0 ? SelectedPhotos : SelectedPhoto is { } p ? [p] : []).Where(p => p.IsOpenable).ToList();
+
+    public bool HasQuantityTargets => !IsDeletedView && QuantityTargets.Count > 0;
+
+    /// <summary>The selection's quantity, or null when the selected photos have different quantities.</summary>
+    public int? QuantityValue => QuantityTargets.Select(p => p.Quantity).Distinct().ToList() is [var only] ? only : null;
+
+    public bool IsQuantityMixed => QuantityTargets.Count > 1 && QuantityValue is null;
+
+    public string QuantityValueText => QuantityValue?.ToString(Localizer.Instance.Culture) ?? "–";
+
+    /// <summary>Under the Copies control with several photos selected: how many it changes, and the range when they differ.</summary>
+    public string? QuantityNote
+    {
+        get
+        {
+            var targets = QuantityTargets;
+            if (targets.Count < 2) return null;
+            var count = Localizer.Instance.Plural("QuantityForPhotos", targets.Count);
+            return IsQuantityMixed ? Localizer.Instance.Format("QuantityMixed", targets.Min(p => p.Quantity), targets.Max(p => p.Quantity)) + " · " + count : count;
+        }
+    }
+
+    public bool HasQuantityNote => QuantityNote is not null;
+
+    /// <summary>
+    /// Folder summary (prompt_09 §3): photos with a requested quantity above 0, not the number of copies. Unreadable and
+    /// deleted photos are not counted.
+    /// </summary>
+    public int SelectedForPrintCount => AllPhotos.Count(p => p.IsOpenable && p.Quantity > 0);
+
+    public string SelectedForPrintText => Localizer.Instance.Format("SelectedForPrint", SelectedForPrintCount);
+
+    /// <summary>
+    /// − and + (prompt_09 §§3, 4): one copy less or more for every selected photo, all set to the same value. When they
+    /// differ, the lowest quantity is the starting point.
+    /// </summary>
+    [RelayCommand]
+    private void QuantityMinus()
+    {
+        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, targets.Min(p => p.Quantity) - 1);
+    }
+
+    [RelayCommand]
+    private void QuantityPlus()
+    {
+        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, targets.Min(p => p.Quantity) + 1);
+    }
+
+    /// <summary>Sets the requested copies of the selected photos (the 0–9 keys in the gallery).</summary>
+    public void SetSelectedQuantity(int copies)
+    {
+        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, copies);
+    }
+
+    /// <summary>Stores the quantity of <paramref name="photos"/> (0–99); the gallery, the sidebar and Printing follow.</summary>
+    public void SetQuantity(IReadOnlyList<PhotoItemViewModel> photos, int copies)
+    {
+        copies = Math.Clamp(copies, 0, PrintQuantities.Max);
+        var changed = photos.Where(p => p.IsOpenable && p.Quantity != copies).ToList();
+        if (changed.Count == 0) return;
+        _services.PrintQuantities.Set(changed.Select(p => p.Path).ToList(), copies);
+        Log.Information("Copies set to {Copies} for {Count} photo(s) in {Folder}", copies, changed.Count, CurrentFolder);
+    }
+
+    /// <summary>Takes the stored quantities of the changed photos into the gallery.</summary>
+    private void ApplyQuantities(IReadOnlyList<string> paths)
+    {
+        var set = paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in AllPhotos)
+        {
+            if (set.Contains(p.Path)) p.Quantity = _services.PrintQuantities.For(p.Path);
+        }
+
+        RaiseQuantity();
+    }
+
+    private void RaiseQuantity()
+    {
+        OnPropertyChanged(nameof(HasQuantityTargets));
+        OnPropertyChanged(nameof(QuantityValue));
+        OnPropertyChanged(nameof(IsQuantityMixed));
+        OnPropertyChanged(nameof(QuantityValueText));
+        OnPropertyChanged(nameof(QuantityNote));
+        OnPropertyChanged(nameof(HasQuantityNote));
+        OnPropertyChanged(nameof(SelectedForPrintCount));
+        OnPropertyChanged(nameof(SelectedForPrintText));
     }
 
     /// <summary>Discard Originals: the whole open folder, whatever is selected (prompt_08 §5).</summary>
@@ -183,6 +285,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
     partial void OnSelectedPhotoChanged(PhotoItemViewModel? value)
     {
+        RaiseQuantity();
         if (_syncingSelection) return;
         _syncingSelection = true;
         SelectedGalleryItem = value;
@@ -351,7 +454,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         Log.Information("Duplicated {Path} as {Copy}", item.Path, copy);
         var entry = FolderScanner.Scan(CurrentFolder).FirstOrDefault(e => string.Equals(e.Path, copy, StringComparison.Ordinal));
         if (entry is null) return;
-        var added = new PhotoItemViewModel(entry, PhotoState.ToDo) { Thumbnail = item.Thumbnail, Info = item.Info };
+        var added = new PhotoItemViewModel(entry, PhotoState.ToDo) { Thumbnail = item.Thumbnail, Info = item.Info, Quantity = _services.PrintQuantities.For(entry.Path) };
         var all = AllPhotos.Append(added).OrderBy(p => p.Name, Core.Naming.NaturalComparer.Instance).ToList();
         AllPhotos.Insert(all.IndexOf(added), added);
         ApplyFilter();
@@ -428,7 +531,11 @@ public sealed partial class BrowseViewModel : ViewModelBase
         var items = new List<PhotoItemViewModel>(entries.Count);
         foreach (var entry in entries)
         {
-            var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry)) { PrintCount = _services.PrintHistory.CountFor(entry.Path) };
+            var item = new PhotoItemViewModel(entry, StateFromSidecar(sidecar, entry))
+            {
+                PrintCount = _services.PrintHistory.CountFor(entry.Path),
+                Quantity = _services.PrintQuantities.For(entry.Path),
+            };
             item.ErrorText = entry.Kind switch
             {
                 ImageKind.Heic => ErrorTexts.ForImage(ImageError.UnsupportedHeic),
@@ -493,6 +600,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
                 Thumbnail = card?.Thumbnail,
                 Info = card?.Info ?? string.Empty,
                 PrintCount = _services.PrintHistory.CountFor(entry.Path),
+                Quantity = _services.PrintQuantities.For(entry.Path),
             };
             AllPhotos.Insert(IndexIn(AllPhotos, item), item);
             if (item.Thumbnail is null) RefreshThumbnail(item);
@@ -555,6 +663,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
         OnPropertyChanged(nameof(DeletedNote));
         OnPropertyChanged(nameof(ShowNoPhotos));
         OnPropertyChanged(nameof(EmptyText));
+        RaiseQuantity();
     }
 
     /// <summary>

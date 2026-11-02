@@ -14,10 +14,20 @@ using Serilog;
 
 namespace PhotoX.App.ViewModels;
 
-/// <summary>One page of the print preview.</summary>
-public sealed partial class PrintPreviewItem(string name) : ViewModelBase
+/// <summary>One item waiting in the Printing workspace: its page preview (the first ones only) and its copies.</summary>
+public sealed partial class PrintPreviewItem(PrintItem item, int copies) : ViewModelBase
 {
-    public string Name { get; } = name;
+    /// <summary>The item as Print in another workspace sent it.</summary>
+    public PrintItem Item { get; } = item;
+
+    public string Name => Item.Name;
+
+    /// <summary>Copies this item prints: a gallery photo's requested quantity (prompt_09 §5), else the Copies setting.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CopiesText))]
+    public partial int Copies { get; set; } = copies;
+
+    public string CopiesText => "×" + Copies.ToString(Localizer.Instance.Culture);
 
     [ObservableProperty]
     public partial Bitmap? Page { get; set; }
@@ -40,7 +50,11 @@ public sealed partial class PrintViewModel : ViewModelBase
 {
     private const int PreviewLimit = 20;
     private readonly AppServices _services;
-    private IReadOnlyList<PrintItem> _items = [];
+    /// <summary>What Print sent here, including gallery photos set to 0 copies, which stay hidden until set above 0.</summary>
+    private IReadOnlyList<PrintItem> _chosen = [];
+
+    /// <summary>What prints, in order: every chosen item with at least one copy.</summary>
+    private List<PrintPreviewItem> _entries = [];
     private CancellationTokenSource _previewCts = new();
     private bool _syncingWhole;
 
@@ -54,6 +68,12 @@ public sealed partial class PrintViewModel : ViewModelBase
         History = new PrintHistoryViewModel(services.PrintLog, Queue);
         SelectedSize = PrintFormats.P10x15;
         Localizer.Instance.LanguageChanged += (_, _) => RaiseTexts();
+        // The copies of waiting photos follow their quantity in Photos (prompt_09 §5).
+        services.PrintQuantities.Changed += paths =>
+        {
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) ApplyQuantities(paths);
+            else Avalonia.Threading.Dispatcher.UIThread.Post(() => ApplyQuantities(paths));
+        };
     }
 
     /// <summary>Jobs of this session that are still in progress (prompt_06 §7).</summary>
@@ -74,7 +94,11 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public ObservableCollection<PaperChoice> Papers { get; } = [];
 
+    /// <summary>The first items, with their page as it will print.</summary>
     public ObservableCollection<PrintPreviewItem> Previews { get; } = [];
+
+    /// <summary>The items after the previewed ones: listed by name with their copies, so every quantity can be checked.</summary>
+    public ObservableCollection<PrintPreviewItem> MoreItems { get; } = [];
 
     public IReadOnlyList<PrintFormat> Sizes => PrintFormats.PrintSizes;
 
@@ -87,6 +111,7 @@ public sealed partial class PrintViewModel : ViewModelBase
     [ObservableProperty]
     public partial PaperChoice? SelectedPaper { get; set; }
 
+    /// <summary>Copies of an ID sheet, a collage or the calibration sheet. Gallery photos print their own quantity instead (prompt_09 §5).</summary>
     [ObservableProperty]
     public partial int Copies { get; set; } = 1;
 
@@ -117,7 +142,7 @@ public sealed partial class PrintViewModel : ViewModelBase
     public bool IsCalibration => _beforeCalibration is not null;
 
     /// <summary>Crop | Whole applies to photos from Photos, not to ID sheets or collages, whose layout is fixed.</summary>
-    public bool HasPhotos => _items.Any(i => i is PhotoPrintItem);
+    public bool HasPhotos => _chosen.Any(i => i is PhotoPrintItem);
 
     /// <summary>The printer has no paper of the print size (prompt_07 §3.3).</summary>
     public bool HasNoMatchingPaper => HasPrinters && SelectedPrinter is not null && !Papers.Any(p => PrintLayout.PaperMatches(p.Paper.WidthMm, p.Paper.HeightMm, SelectedSize.WidthMm, SelectedSize.HeightMm));
@@ -126,7 +151,7 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public string ClearText => Localizer.Instance[IsCalibration ? "CancelCalibration" : "ClearPrint"];
 
-    public bool HasItems => _items.Count > 0;
+    public bool HasItems => _entries.Count > 0;
 
     public bool HasOrigin => OriginName is not null || IsCalibration;
 
@@ -134,11 +159,14 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     public bool IsSupported => Backend.IsSupported;
 
-    public int PhotoCount => _items.Count;
+    public int PhotoCount => _entries.Count;
 
-    public bool HasMorePreviews => _items.Count > PreviewLimit;
+    /// <summary>Copies of everything waiting, as they will be sent to the queue.</summary>
+    public int TotalCopies => _entries.Sum(e => e.Copies);
 
-    public string MorePreviewsText => Localizer.Instance.Format("PrintMore", _items.Count - PreviewLimit);
+    public bool HasMorePreviews => _entries.Count > PreviewLimit;
+
+    public string MorePreviewsText => Localizer.Instance.Format("PrintMore", _entries.Count - PreviewLimit);
 
     public string BackText => IsCalibration ? Localizer.Instance["CancelCalibration"] : Localizer.Instance.Format("BackTo", OriginName ?? string.Empty);
 
@@ -152,16 +180,19 @@ public sealed partial class PrintViewModel : ViewModelBase
         : PaperMatches ? null
         : Localizer.Instance.Format("PaperCentred", SizeName(SelectedSize));
 
-    public bool CanPrint => HasItems && HasPrinters && SelectedPrinter is not null && SelectedPaper is not null && !PaperTooSmall && Copies >= 1;
+    public bool CanPrint => HasItems && HasPrinters && SelectedPrinter is not null && SelectedPaper is not null && !PaperTooSmall;
 
-    public string SummaryText => HasItems ? Localizer.Instance.Format("PrintSummary", _items.Count, Copies, _items.Count * Copies, SizeName(SelectedSize)) : Localizer.Instance["NothingToPrint"];
+    /// <summary>"4 photos · 7 copies on 10 × 15 cm" for gallery photos (prompt_09 §5); "1 × 2 = 2 prints on …" for a sheet or collage.</summary>
+    public string SummaryText => !HasItems ? Localizer.Instance["NothingToPrint"]
+        : HasPhotos ? Localizer.Instance.Format("PrintPhotosSummary", Localizer.Instance.Plural("PrintPhotos", PhotoCount), Localizer.Instance.Plural("PrintCopies", TotalCopies), SizeName(SelectedSize))
+        : Localizer.Instance.Format("PrintSummary", PhotoCount, Copies, TotalCopies, SizeName(SelectedSize));
 
     public string PrintButtonText => Localizer.Instance.Format("PrintOn", SizeName(SelectedSize));
 
     public string LoadedPaperText => Localizer.Instance.Format("LoadedPaper", SizeName(SelectedSize));
 
     /// <summary>Preview page size (portrait) on screen: one large page, or a grid of smaller ones.</summary>
-    public double PreviewWidth => _items.Count == 1 ? 380 : 170;
+    public double PreviewWidth => _entries.Count == 1 ? 380 : 170;
 
     public double PreviewHeight => PreviewWidth * SelectedSize.HeightMm / SelectedSize.WidthMm;
 
@@ -184,18 +215,53 @@ public sealed partial class PrintViewModel : ViewModelBase
 
     private void Show(IReadOnlyList<PrintItem> items, PrintFormat size, bool sizeFixed, int copies, bool whole)
     {
-        _items = items;
+        _chosen = items;
         IsSizeFixed = sizeFixed;
         Copies = copies;
         _syncingWhole = true;
         WholePhoto = whole;
         _syncingWhole = false;
         StatusMessage = null;
-        Previews.Clear();
-        foreach (var item in items.Take(PreviewLimit)) Previews.Add(new PrintPreviewItem(item.Name));
+        Fill();
         RefreshPrinters();
         if (SelectedSize == size) _ = RenderPreviewsAsync();
         else SelectedSize = size;
+        RaiseItems();
+    }
+
+    /// <summary>The copies an item prints: a gallery photo its requested quantity (prompt_09 §5), anything else the Copies setting.</summary>
+    private int CopiesOf(PrintItem item) => item is PhotoPrintItem photo ? _services.PrintQuantities.For(photo.Path) : Copies;
+
+    /// <summary>Lists the chosen items with at least one copy: the first ones previewed, the others by name.</summary>
+    private void Fill()
+    {
+        _previewCts.Cancel();
+        _entries = _chosen.Select(i => new PrintPreviewItem(i, CopiesOf(i))).Where(e => e.Copies > 0).ToList();
+        Previews.Clear();
+        MoreItems.Clear();
+        foreach (var e in _entries.Take(PreviewLimit)) Previews.Add(e);
+        foreach (var e in _entries.Skip(PreviewLimit)) MoreItems.Add(e);
+    }
+
+    /// <summary>
+    /// A quantity changed in Photos while its photo waits here: the copies follow, and a photo set to 0 leaves the list
+    /// (or comes back when set above 0). Pages are rendered again only when the list itself changes.
+    /// </summary>
+    private void ApplyQuantities(IReadOnlyList<string> paths)
+    {
+        var changed = paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!_chosen.OfType<PhotoPrintItem>().Any(p => changed.Contains(p.Path))) return;
+        var included = _chosen.Where(i => CopiesOf(i) > 0).ToList();
+        if (included.SequenceEqual(_entries.Select(e => e.Item), ReferenceEqualityComparer.Instance))
+        {
+            foreach (var e in _entries) e.Copies = CopiesOf(e.Item);
+        }
+        else
+        {
+            Fill();
+            _ = RenderPreviewsAsync();
+        }
+
         RaiseItems();
     }
 
@@ -236,6 +302,7 @@ public sealed partial class PrintViewModel : ViewModelBase
     {
         if (value < 1) Copies = 1;
         else if (value > 99) Copies = 99;
+        foreach (var e in _entries.Where(e => e.Item is not PhotoPrintItem)) e.Copies = Copies;
         RaiseTexts();
     }
 
@@ -284,18 +351,21 @@ public sealed partial class PrintViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Sends every item to the queue with the chosen copies, then clears the list (a second Print needs a new choice).</summary>
+    /// <summary>
+    /// Sends every item to the queue with its own copies (one job per item, prompt_09 §5), then clears the list (a
+    /// second Print needs a new choice). The requested quantities in Photos stay as they are.
+    /// </summary>
     [RelayCommand]
     private void Print()
     {
         if (!CanPrint) return;
         var printer = SelectedPrinter!;
         var settings = _services.Settings.PrinterSettings.TryGetValue(printer, out var b64) ? TryDecode(b64) : null;
-        var requests = _items.Select(i => new PrintRequest(Prepared(i) with { Copies = Copies }, printer, SelectedPaper!.Paper, SelectedSize, settings)).ToList();
+        var requests = _entries.Select(e => new PrintRequest(Prepared(e.Item) with { Copies = e.Copies }, printer, SelectedPaper!.Paper, SelectedSize, settings)).ToList();
         _services.Printing.Enqueue(requests);
         _services.Settings.LastPrinter = printer;
         _services.SaveSettings();
-        Log.Information("Print: {Count} item(s) × {Copies} on {Printer}, {Size}, paper {Paper}, {Fit}", requests.Count, Copies, printer, SelectedSize.Id, SelectedPaper!.Paper.Name, WholePhoto ? "whole" : "crop");
+        Log.Information("Print: {Count} item(s), {Copies} copies on {Printer}, {Size}, paper {Paper}, {Fit}", requests.Count, requests.Sum(r => r.Item.Copies), printer, SelectedSize.Id, SelectedPaper!.Paper.Name, WholePhoto ? "whole" : "crop");
         if (IsCalibration)
         {
             CancelCalibration();          // the calibration sheet is printed: back to what was waiting
@@ -317,7 +387,7 @@ public sealed partial class PrintViewModel : ViewModelBase
     private void LoadCalibration()
     {
         if (IsCalibration) return;
-        var before = (_items, SelectedSize, IsSizeFixed, Copies, WholePhoto);
+        var before = (_chosen, SelectedSize, IsSizeFixed, Copies, WholePhoto);
         Show(
             [new SizedPrintItem(Localizer.Instance["CalibrationJob"], (_, size) => size.Id == PrintFormats.P15x20.Id
                 ? Imaging.Id.CalibrationSheet.FifteenByTwenty()
@@ -338,8 +408,10 @@ public sealed partial class PrintViewModel : ViewModelBase
     private void ClearItems()
     {
         _previewCts.Cancel();
-        _items = [];
+        _chosen = [];
+        _entries = [];
         Previews.Clear();
+        MoreItems.Clear();
         StatusMessage = null;
         RaiseItems();
     }
@@ -443,9 +515,10 @@ public sealed partial class PrintViewModel : ViewModelBase
         _previewCts = new CancellationTokenSource();
         var ct = _previewCts.Token;
         var size = SelectedSize;
-        var single = _items.Count == 1;
-        foreach (var (item, preview) in _items.Zip(Previews).ToList())
+        var single = _entries.Count == 1;
+        foreach (var preview in Previews.ToList())
         {
+            var item = preview.Item;
             try
             {
                 var data = await Task.Run(() =>
@@ -498,6 +571,7 @@ public sealed partial class PrintViewModel : ViewModelBase
         OnPropertyChanged(nameof(PaperTooSmall));
         OnPropertyChanged(nameof(PaperNote));
         OnPropertyChanged(nameof(CanPrint));
+        OnPropertyChanged(nameof(TotalCopies));
         OnPropertyChanged(nameof(SummaryText));
         OnPropertyChanged(nameof(PrintButtonText));
         OnPropertyChanged(nameof(LoadedPaperText));

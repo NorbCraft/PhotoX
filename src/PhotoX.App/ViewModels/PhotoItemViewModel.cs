@@ -69,6 +69,21 @@ public sealed partial class PhotoItemViewModel : ViewModelBase
 
     public string PrintCountTip => PrintCount > 0 ? Localizer.Instance.Plural("PrintedTimes", PrintCount) : Localizer.Instance["NotPrinted"];
 
+    /// <summary>
+    /// Copies requested for the next Print selected or Print all (prompt_09 §1): 1 by default, 0 leaves the photo out.
+    /// Kept in <see cref="PrintQuantities"/>; not changed by printing.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(QuantityText), nameof(QuantityTip), nameof(IsExcluded))]
+    public partial int Quantity { get; set; } = PrintQuantities.Default;
+
+    public string QuantityText => "×" + Quantity.ToString(Localizer.Instance.Culture);
+
+    /// <summary>Set to 0 copies: left out of Print selected and Print all.</summary>
+    public bool IsExcluded => Quantity == 0;
+
+    public string QuantityTip => Quantity == 0 ? Localizer.Instance["QuantityExcluded"] : Localizer.Instance.Plural("QuantityRequested", Quantity);
+
     /// <summary>True for the photo open in the editor (filmstrip highlight).</summary>
     [ObservableProperty]
     public partial bool IsCurrent { get; set; }
@@ -113,6 +128,7 @@ public sealed partial class PhotoItemViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(StateText));
         OnPropertyChanged(nameof(PrintCountTip));
+        OnPropertyChanged(nameof(QuantityTip));
     }
 
     public void UpdateEntry()

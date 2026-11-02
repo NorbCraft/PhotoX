@@ -34,13 +34,14 @@ public class Prompt05Tests
         Assert.NotNull(p1.PendingRecipe);
         Assert.Equal("–", p1.PrintCountText);
 
-        shell.PrintPhotos([p1, shell.Browse.AllPhotos.Single(p => p.Name == "P2.jpg")]);
+        var p2 = shell.Browse.AllPhotos.Single(p => p.Name == "P2.jpg");
+        shell.Browse.SetQuantity([p1, p2], 2);                               // two copies each, set in Photos (prompt_09)
+        shell.PrintPhotos([p1, p2]);
         Assert.True(shell.IsPrintWorkspace);
         var dialog = shell.Print;
         Assert.Equal("Citizen CY-02", dialog.SelectedPrinter);              // the Citizen is preferred
         Assert.Equal("(6x4)", dialog.SelectedPaper!.Paper.Name);            // the driver's 10×15 paper
         Assert.True(dialog.PaperMatches);
-        dialog.CopiesPlusCommand.Execute(null);
         await UiHelpers.WaitUntil(() => dialog.Previews.All(p => p.Page is not null));
         UiHelpers.Capture(window, "print-workspace");
         dialog.PrintCommand.Execute(null);

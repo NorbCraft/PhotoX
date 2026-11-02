@@ -29,12 +29,12 @@ public class Prompt06Tests
         await shell.Browse.OpenFolderAsync(order);
         var photos = shell.Browse.AllPhotos.ToList();
 
+        shell.Browse.SetQuantity(photos.Take(2).ToList(), 2);              // two copies each, set in Photos (prompt_09)
         shell.PrintPhotos(photos.Take(2).ToList());
         Assert.True(shell.IsPrintWorkspace);                                 // Print opens the Printing workspace
         Assert.Equal(2, shell.Print.PhotoCount);
         Assert.Equal("Photos", shell.Print.OriginName);
         Assert.Empty(UiHelpers.Printer.Submitted);
-        shell.Print.CopiesPlusCommand.Execute(null);
         shell.Print.PrintCommand.Execute(null);
         await UiHelpers.WaitUntil(() => shell.Print.Queue.Active.Count == 2 && shell.Print.Queue.Active.All(j => j.Job.State == PrintJobState.InQueue));
         Assert.Equal("2", shell.PrintBadge);

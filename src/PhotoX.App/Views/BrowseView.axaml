@@ -142,6 +142,10 @@
                         Background="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeBrush}}">
                   <TextBlock Text="{Binding IsWarning, Converter={x:Static s:IconConverter.BadgeGlyph}}" FontWeight="Bold" FontSize="12" Foreground="#151515" />
                 </Border>
+                <!-- Requested copies (prompt_09 §2): ×0 leaves the photo out of Print selected and Print all -->
+                <Border Classes="quantity" Classes.excluded="{Binding IsExcluded}" IsVisible="{Binding !IsDeleted}" ToolTip.Tip="{Binding QuantityTip}">
+                  <TextBlock Text="{Binding QuantityText}" />
+                </Border>
                 <!-- Print counter (prompt_05 §6): copies accepted by Windows through PhotoX -->
                 <Border Classes="printcount" Classes.printed="{Binding IsPrinted}" ToolTip.Tip="{Binding PrintCountTip}">
                   <TextBlock Text="{Binding PrintCountText}" />
@@ -161,46 +165,64 @@
     <!-- Details (collapsible, FR-039; resizable, prompt_06 §1) -->
     <GridSplitter Grid.Column="3" Classes="panel" ResizeDirection="Columns" DragCompleted="OnRightSplitterDragCompleted" />
     <Border Grid.Column="4" Background="{DynamicResource PanelBrush}">
-      <!-- The actions always show; the photo preview and progress fold away (FR-039) -->
-      <Panel>
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20,16,20,20">
+      <!-- The actions always show; the photo preview and progress fold away (FR-039). The preview takes the room that is
+           left (at most 190 px, set in code), so in a short window it shrinks and the printing information, Copies and
+           the actions stay in view (prompt_09 §3). -->
+      <Grid x:Name="SideGrid" RowDefinitions="Auto,1000*,Auto,Auto,Auto,*,Auto" Margin="20,16,20,20">
           <Button Classes="list" Focusable="False" Padding="0,2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Command="{Binding ToggleDetailsCommand}" ToolTip.Tip="{l:Tr Details}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <TextBlock Classes="section" Text="{l:Tr SelectedPhoto}" VerticalAlignment="Center" />
               <TextBlock Text="{Binding DetailsCollapsed, Converter={x:Static s:IconConverter.Chevron}}" Foreground="{DynamicResource Text3Brush}" FontSize="11" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <StackPanel Grid.Row="1" Spacing="6" Margin="0,10,0,0" IsVisible="{Binding HasSelection}">
-            <Border Background="{DynamicResource CanvasBrush}" CornerRadius="8" Height="190" Padding="6" IsVisible="{Binding !DetailsCollapsed}">
-              <Image Source="{Binding SelectedPhoto.Thumbnail}" Stretch="Uniform" />
-            </Border>
+          <Border x:Name="PreviewBox" Grid.Row="1" Background="{DynamicResource CanvasBrush}" CornerRadius="8" Padding="6" Margin="0,10,0,0" IsVisible="{Binding HasSelection}">
+            <Image Source="{Binding SelectedPhoto.Thumbnail}" Stretch="Uniform" />
+          </Border>
+          <StackPanel Grid.Row="2" Spacing="6" IsVisible="{Binding HasSelection}">
             <TextBlock Text="{Binding SelectionText}" IsVisible="{Binding HasMultipleSelection}" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
             <StackPanel IsVisible="{Binding !HasMultipleSelection}" Spacing="4">
               <TextBlock Text="{Binding SelectedPhoto.Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
               <TextBlock Text="{Binding SelectedPhoto.Info}" Classes="muted" />
-              <TextBlock Classes="muted"><Run Text="{Binding SelectedPhoto.StateText}" /><Run Text="  ·  " /><Run Text="{Binding SelectedPhoto.PrintCountTip}" /></TextBlock>
+              <TextBlock Classes="muted" TextTrimming="CharacterEllipsis"><Run Text="{Binding SelectedPhoto.StateText}" /><Run Text="  ·  " /><Run Text="{Binding SelectedPhoto.PrintCountTip}" /></TextBlock>
               <TextBlock Text="{Binding SelectedPhoto.ErrorText}" Foreground="{DynamicResource WarnBrush}" TextWrapping="Wrap" IsVisible="{Binding SelectedPhoto.ErrorText, Converter={x:Static ObjectConverters.IsNotNull}}" />
             </StackPanel>
           </StackPanel>
-          <!-- Edit progress and printed copies of the open folder (prompt_06 §4) -->
-          <StackPanel Grid.Row="2" Spacing="8" Margin="0,20,0,0" IsVisible="{Binding !DetailsCollapsed}">
+          <!-- Edit progress of the open folder (prompt_06 §4) -->
+          <StackPanel Grid.Row="3" Spacing="8" Margin="0,18,0,0" IsVisible="{Binding !DetailsCollapsed}">
             <TextBlock Classes="section" Text="{l:Tr EditProgress}" />
             <TextBlock Text="{Binding ProgressText}" FontSize="17" FontWeight="SemiBold" />
             <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" />
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" ToolTip.Tip="{l:Tr PrintedCopiesTip}">
-              <Path Data="{x:Static s:Icons.Printer}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7" StrokeJoin="Round" StrokeLineCap="Round" Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding PrintedText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-            </StackPanel>
+          </StackPanel>
+          <!-- Printing information of the open folder (prompt_09 §3): photos with copies requested, copies printed -->
+          <StackPanel Grid.Row="4" Spacing="4" Margin="0,18,0,0" IsVisible="{Binding HasFolder}">
+            <TextBlock Classes="section" Text="{l:Tr PrintingInfo}" Margin="0,0,0,2" />
+            <TextBlock x:Name="SelectedForPrint" Text="{Binding SelectedForPrintText}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" ToolTip.Tip="{l:Tr SelectedForPrintTip}" />
+            <TextBlock x:Name="PrintedCopies" Text="{Binding PrintedText}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" ToolTip.Tip="{l:Tr PrintedCopiesTip}" />
+          </StackPanel>
+        <StackPanel Grid.Row="6" Margin="0,14,0,0" Spacing="14">
+          <!-- Copies of the selected photos (prompt_09 §§3, 4): one value for the whole selection -->
+          <StackPanel Spacing="2" IsVisible="{Binding !IsDeletedView}" IsEnabled="{Binding HasQuantityTargets}" ToolTip.Tip="{l:Tr CopiesTip}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{l:Tr CopiesLabel}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                <Button x:Name="QuantityMinus" Classes="square" Focusable="False" Content="−" Command="{Binding QuantityMinusCommand}" />
+                <Border Background="{DynamicResource Panel2Brush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="7" Width="52" Height="34">
+                  <TextBlock x:Name="QuantityValue" Text="{Binding QuantityValueText}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Button x:Name="QuantityPlus" Classes="square" Focusable="False" Content="+" Command="{Binding QuantityPlusCommand}" />
+              </StackPanel>
+            </Grid>
+            <TextBlock Text="{Binding QuantityNote}" IsVisible="{Binding HasQuantityNote}" Classes="muted" FontSize="12.5" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
           </StackPanel>
           <!-- Under Deleted (prompt_08 §5): only Restore, and how long deleted photos are kept -->
-          <StackPanel Grid.Row="4" Spacing="10" IsVisible="{Binding IsDeletedView}">
+          <StackPanel Spacing="10" IsVisible="{Binding IsDeletedView}">
             <TextBlock Text="{Binding DeletedNote}" Classes="muted" TextWrapping="Wrap" />
             <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Padding="8,6" Command="{Binding RestoreDeletedCommand}">
               <c:IconLabel Icon="{x:Static s:Icons.Restore}" Text="{l:Tr RestoreDeletedSelected}" TextElement.FontWeight="SemiBold" />
             </Button>
           </StackPanel>
           <!-- Actions (prompt_05 §5): print, edit or use one photo, restore the selection; Discard originals for the folder (prompt_08 §5) -->
-          <StackPanel Grid.Row="4" Spacing="8" IsVisible="{Binding !IsDeletedView}">
+          <StackPanel Spacing="8" IsVisible="{Binding !IsDeletedView}">
             <Grid ColumnDefinitions="*,8,*">
               <Button Classes="primary" Focusable="False" HorizontalAlignment="Stretch" MinHeight="46" Padding="8,6" Command="{Binding PrintSelectedCommand}" IsEnabled="{Binding HasSelection}">
                 <c:IconLabel Icon="{x:Static s:Icons.Printer}" Text="{l:Tr PrintSelected}" TextElement.FontWeight="SemiBold" />
@@ -227,8 +249,8 @@
               </Button>
             </Grid>
           </StackPanel>
-        </Grid>
-      </Panel>
+        </StackPanel>
+      </Grid>
     </Border>
   </Grid>
 </UserControl>

@@ -17,6 +17,7 @@ public sealed class AppServices
         ThumbnailCache = new ThumbnailCache(paths.ThumbnailDir, (long)Settings.ThumbnailCacheMaxMb * 1048576, Settings.ThumbnailCacheDays);
         paths.MigratePrintHistory();
         PrintHistory = new PrintHistory(paths.PrintHistoryFile);
+        PrintQuantities = new PrintQuantities(paths.PrintQuantitiesFile);
         PrintLog = new PrintLog(paths.PrintLogDir);
         printBackend ??= OperatingSystem.IsWindows() ? new WindowsPrintBackend() : new UnavailablePrintBackend();
         Printing = new PrintService(printBackend, PrintHistory, PrintLog);
@@ -24,6 +25,9 @@ public sealed class AppServices
 
     /// <summary>Print counters per photo (prompt_05 §6).</summary>
     public PrintHistory PrintHistory { get; }
+
+    /// <summary>Requested copies per photo (prompt_09 §1).</summary>
+    public PrintQuantities PrintQuantities { get; }
 
     /// <summary>Every print job and its outcome, for the history and statistics (prompt_06 §7).</summary>
     public PrintLog PrintLog { get; }

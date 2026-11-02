@@ -4,6 +4,28 @@ All notable changes to PhotoX are documented in this file. The format follows [K
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-02
+
+### Added
+- **Copies per photo** in Photos: every photo has a requested number of copies, **1** by default.
+  - **0** leaves the photo out of Print selected and Print all; at most 99.
+  - Each thumbnail shows it in its lower-left corner (×0, ×1, ×2 …), next to the edit status (upper right) and the printed copies (lower right). The new badge is white with a blue outline, grey at ×0.
+  - **Copies [− n +]** in the sidebar changes the selected photo, or all selected photos at once (Ctrl/Shift + click, Ctrl + A). With different values it shows *Mixed* and sets them all alike.
+  - In the gallery, **+** and **−** change the copies of the selection and **0–9** set them.
+  - Kept between sessions in PhotoX's own data folder, never in the photos or the customer's folder. Printing does not reset them.
+- **Printing** section in the Photos sidebar: *Selected for print* (photos with at least one copy) and *Printed* (copies printed through PhotoX).
+
+### Changed
+- **Print all** prints every photo of the folder with at least one copy; **Print selected** the selected ones; each photo with its own copies. When all of them are at 0, a message says so.
+- **Printing workspace:** each preview page shows its copies (×N), photos beyond the first 20 are listed by name with their copies, and the summary reads like *4 photos · 7 copies on 10 × 15 cm*. Photos have no extra Copies setting any more, so nothing is multiplied; ID sheets, collages and the calibration sheet keep theirs. A change made in Photos while photos wait is followed.
+- **ID Photos, step 1:** a click selects a photo, a double-click (or Enter) opens it for framing. The hint line is gone.
+- **Collages:** the drag hint above the thumbnails is gone; the line under the collage names only zoom, move, swap and rotation.
+- The Photos sidebar's photo preview shrinks in a short window, so the information, Copies and the actions stay in view.
+
+### Fixed
+- Clicking the open workspace again no longer removes its blue highlight; the same for the language, theme, ID steps, Crop/Whole and orientation switches.
+- The folder tree button is a grey icon on light grey while the tree is hidden, instead of a black icon.
+
 ## [0.11.0] - 2026-11-01
 
 ### Added

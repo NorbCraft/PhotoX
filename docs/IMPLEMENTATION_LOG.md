@@ -641,3 +641,31 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Checksum:** downloaded and checked; it matches the installer and GitHub's own asset digest.
   - **Not yet visible to Check for updates:** the draft is not published, so the public "latest release" still answers 404.
   - **Not tried:** the installer was not installed or run on a Windows PC.
+
+### 2026-11-02: Version 0.12.0, prompt_09 (print quantities, ID and Collages hints, workspace highlight, tree button)
+- **Prompt:** [docs/prompts/prompt_09.md](prompts/prompt_09.md), archived unchanged.
+- **Requested copies (§§1, 6, DEC-083):**
+  - **Store:** `PrintQuantities` (Storage) keeps copies per photo path in `print-quantities.json` in the user data folder, beside the print counters: 1 by default (not stored), 0 = left out, at most 99. Not in the sidecar: print data stays out of customer folders (DEC-058), setting ×0 on an untouched order needs no write access and creates no `Original/`, and the backup logic is unchanged.
+  - **Behaviour:** printing never resets a quantity; the printed counter keeps its rules (only jobs Windows accepted, cancelled and removed jobs taken back).
+- **Photos (§§2–4, DEC-084):**
+  - **Thumbnails:** ×N in the lower-left corner, a white badge with a blue outline and blue figures, grey at ×0; the edit status (upper right) and the solid blue printed counter (lower right) are unchanged.
+  - **Sidebar:** the same parts in the same order, plus a **Printing** section (*Selected for print*: photos with at least one copy; *Printed*: the counter sum) and **Copies [− n +]** above the unchanged actions. With several photos selected it says for how many, shows *Mixed (a–b)* when they differ and sets one value for all; − and + start from the lowest.
+  - **Keys:** + / − and 0–9 act on the selection in the gallery.
+  - **Fit:** the photo preview takes the room that is left (at most 190 px), so at 1366 × 768 everything is visible without scrolling, also in Romanian at the narrowest panel width.
+- **Printing (§5):**
+  - **Print all / Print selected:** each photo with its own copies, photos at 0 left out; when every chosen photo is at 0, *Nothing to print* explains why and Printing does not open.
+  - **Printing workspace:** a ×N badge on each preview page; beyond the first 20 pages, every further photo by name with ×N; summary *4 photos · 7 copies on 10 × 15 cm*. Photos have no global Copies setting any more (it stays for ID sheets, collages and the calibration sheet), so nothing is multiplied. Waiting photos follow quantity changes made in Photos (a photo set to 0 leaves the list and comes back when set above 0); the copies stay when the size changes.
+- **UI fixes (§§7–10, DEC-085):**
+  - **Highlight:** a new `ChoiceButton` (a toggle whose click runs its command without unchecking it) for the workspaces, and for the language, theme, ID step, Crop/Whole and orientation switches, which had the same flaw.
+  - **Tree button:** while the tree is hidden, a grey icon on the neutral grey of an inactive workspace button.
+  - **ID Photos step 1:** a click selects, a double-click or Enter opens framing; the hint is removed.
+  - **Collages:** the hint above the thumbnails is removed, and the line under the collage no longer mentions dragging into a frame.
+- **Verification (actually run, Linux):**
+  - **Totals:** 181 core and 85 UI tests pass (Release); 2 and 3 opt-in or Windows-only tests are skipped.
+  - **New tests:**
+    - `PrintQuantitiesTests` (4): persistence, clamping, events, damaged file, and a queue run with 1, 3, 0, 2, 1 copies → 4 jobs, 7 copies.
+    - `Prompt09Tests` (8 UI tests, real mouse clicks for the sidebar buttons, ID cards, workspaces and tree button): one photo, many photos, mixed values, keys, restart, nothing written to the order folder; Print all and Print selected with their copies, the preview badges, a change while waiting, no multiplier, counters and quantities after printing; 300 photos; ID clicks; the collage hint; the workspace highlight; the tree button in light and dark.
+  - **Updated tests:** five earlier tests use the new behaviour (copies set in Photos instead of the global Copies, a double-click instead of a click in ID step 1).
+  - **Timing (headless, this Linux PC, 300 photos with thumbnails loaded):** Select all 162 ms, all 300 to 0 copies 84 ms, 25 to 2 copies 143 ms. A first measurement of over a second turned out to include thumbnail loading still running in the background.
+  - **Screens inspected (headless, 1366 × 768):** Photos with badges and the sidebar (single, mixed, light, dark, Romanian default and narrowest), the print preview with ×N badges, ID step 1 without the hint, Collages without the drag hint, the hidden-tree button in light and dark.
+- **Not tested:** Windows (no local run), real mouse use on Windows, the Citizen CY-02 and any physical print.

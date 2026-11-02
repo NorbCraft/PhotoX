@@ -2,10 +2,10 @@
 
 PhotoX is a lightweight, offline photo-preparation desktop application for a small professional photo studio. It replaces a workflow built on ACDSee, Photoshop and older Mitsubishi kiosk software with one focused tool:
 
-- **Photos:** open an order folder (folders and photos side by side, like a file explorer), select photos, edit if needed (crop to 10×15 / 15×20 / 9×13 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), then **Print** or **Discard originals**. Originals are kept in an `Original` subfolder until Discard originals, and Restore original can bring them back. Deleted photos wait in `Original` too and can be restored from the Deleted filter.
-- **ID Photos:** choose the format, click a portrait among the folder's thumbnails (step 1), frame it (face guides, Auto Align, 90° rotation), adjust it, then **Save** (JPG) or **Print**.
+- **Photos:** open an order folder (folders and photos side by side, like a file explorer), select photos, edit if needed (crop to 10×15 / 15×20 / 9×13 / 13×18 or a custom size, exposure, colour and levels, **Enter = Save & Next**), set how many **copies** each photo needs (×1 by default, ×0 to leave it out, for one or many photos at once), then **Print** or **Discard originals**. Originals are kept in an `Original` subfolder until Discard originals, and Restore original can bring them back. Deleted photos wait in `Original` too and can be restored from the Deleted filter.
+- **ID Photos:** choose the format, double-click a portrait among the folder's thumbnails (step 1), frame it (face guides, Auto Align, 90° rotation), adjust it, then **Save** (JPG) or **Print**.
 - **Collages:** choose a 10×15 or 15×20 sheet and a template, drag photos from the thumbnail panel into the frames, adjust the layout, then **Save** (JPG) or **Print**.
-- **Printing:** a workspace that prints directly through the installed Windows printer driver (Citizen CY-02), with the queue, the print history and statistics, and a print counter on every thumbnail.
+- **Printing:** a workspace that prints directly through the installed Windows printer driver (Citizen CY-02), with the queue, the print history and statistics, the requested and the printed copies on every thumbnail, and each photo's copies on the print preview.
 
 Light and dark mode are available in Settings.
 
@@ -13,7 +13,7 @@ The UI is in Romanian and English. All processing is local and no customer photo
 
 ## Current status
 
-> **Version 0.11.0**: one file explorer in all workspaces (folder cards, Up, a button to hide the tree), ID Photos with a Select photo step, foldable collage panels, **safe photo deletion** with a Deleted filter and Restore, Discard originals for the whole folder, **Check for updates** from GitHub Releases, and a new About (prompt_08). Earlier: the fix for partly black saved photos, faster saving, Close / Print / Save in the editor and printing refinements (prompt_07); light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
+> **Version 0.12.0**: **copies per photo** (a ×N badge on each thumbnail, *Copies* in the sidebar for one or many photos, *Selected for print* and *Printed* for the folder; Print all and Print selected print each photo's copies, shown on the print preview), ID Photos opens a photo with a double-click, fewer hints, the open workspace stays highlighted, and a quieter tree button (prompt_09). Earlier: one file explorer in all workspaces, safe photo deletion, Discard originals for the whole folder, Check for updates from GitHub Releases and a new About (prompt_08); the fix for partly black saved photos, faster saving, Close / Print / Save in the editor and printing refinements (prompt_07); light and dark mode, the Printing workspace with queue, history and statistics, one editing sidebar and collage drag and drop (prompt_06); direct printing through the Windows driver (prompt_05), the new icon, Collages and refinements (prompt_04), the owner's feedback (prompt_03). Verified by automated tests on Linux and in CI on Windows, including a print job through a virtual PDF printer. **Printing on the Citizen CY-02, studio use on Windows and the Romanian review are still pending the owner.** See [CHANGELOG](docs/CHANGELOG.md) and [IMPLEMENTATION_LOG](docs/IMPLEMENTATION_LOG.md).
 
 | Item | State |
 |---|---|
@@ -60,8 +60,8 @@ export PATH="$HOME/.dotnet:$PATH"      # .NET 10 SDK
 dotnet test PhotoX.slnx                # run tests
 dotnet run --project src/PhotoX.App    # start PhotoX
 dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -o publish/win-x64   # Windows build
-python3 packaging/windows/make_splash.py 0.11.0 releases/splash.png                                     # installer splash with the version
-dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.11.0 --packDir publish/win-x64 \
+python3 packaging/windows/make_splash.py 0.12.0 releases/splash.png                                     # installer splash with the version
+dotnet tool restore && dotnet vpk "[win]" pack --packId PhotoX --packVersion 0.12.0 --packDir publish/win-x64 \
   --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX \
   --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --outputDir releases/win            # Windows installer
 python3 assets/logo/build_icons.py     # re-render the icon PNGs and ICO after editing the SVG masters

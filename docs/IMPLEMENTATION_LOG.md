@@ -752,3 +752,20 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
   - **Updated tests:** existing print tests use the new fit values; the before/after test holds the new key.
   - **Screens inspected:** the Printing workspace choosing (6x4) without a warning; the dark gallery selection after keyboard moves.
 - **Not verified:** a print on the Citizen CY-02. Whether the white strip is gone, whether ID photos and the calibration sheet measure true, and the cut position all need the owner's prints.
+- **CI result for 0.14.0:**
+  - **Tag run 41426768966 (commit 2d75190):** passed on Linux and Windows (`windows-latest` 187 core and 98 UI tests, `ubuntu-latest` 185 and 98) and created the draft with `PhotoX-0.14.0-win-Setup.exe` (78,760,554 bytes) and its `.sha256`.
+  - **Main run 41426766444 (same commit):** passed on Windows, but on Linux the UI test process crashed (exit 139, segmentation fault) after 91 tests.
+- **The crash, reproduced and analysed:**
+  - **Reproduction:** locally the full suite crashed 2 times in 5 runs.
+  - **Crash dumps:** both crashes were in Skia's PNG encoder (`SkPngEncoder` → `skcms_Transform`), called by the test helper `UiHelpers.Capture` while saving a screenshot in `Prompt06Tests.Every_workspace_renders_in_dark_and_light_mode`. PhotoX itself never encodes PNGs through Skia.
+  - **Likely cause:** nothing kept the captured frame alive while its pixels were being encoded, so it could be finalised mid-encode.
+  - **Fix (tests only):** screenshots now copy the frame's pixels under its lock and are written by Magick.NET; the frame is disposed by the helper (also in `ButtonMockups` and one `Prompt07Tests` check).
+  - **After the fix:** 26 full local runs, no crash.
+  - **The 0.12.0 tag crash:** this may also have been the cause of the Windows test-process crash at 0.12.0 (not provable now). The ID Photos fix of 0.12.1 remains a real fix.
+  - **Still flaky:** `Escape_in_id_photos_clears_the_photo_but_first_closes_a_dialog` failed once in those runs: Clear had not run after 5 s, with no control focused, no dialog and nothing busy. The cause is not found; the test now reports the render lock's state and whether Clear finishes late or never.
+- **Release published** as prompt_11 asks, from the tag build whose tests all passed:
+  - **Checksum:** the installer matches its checksum (658a9c7e…c080) and GitHub's digest.
+  - **Endpoint:** `releases/latest` returns v0.14.0 (checked through the authenticated API: the unauthenticated quota of this network, 60 requests an hour, was used up by checks during the session).
+  - **PhotoX's own client, run as 0.13.0 after the quota reset:** reports *Available 0.14.0* and completes the verified download.
+  - **Not done:** installing on Windows, and a print on the Citizen.
+- **Limitation found:** PhotoX's Check for updates uses that unauthenticated quota per public IP address. When it is used up, the check reports a failure (HTTP 403) until the hourly reset. A clearer message is an open point.

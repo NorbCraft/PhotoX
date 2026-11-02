@@ -1,4 +1,5 @@
-# Build and test on Linux and Windows (NFR-011); package the Windows installer as a build artifact for every push.
+# Build and test on Linux and Windows (NFR-011); package the Windows installer as a build artifact for every push
+# (only the installer and its checksum, prompt_10 §10).
 # A version tag (vX.Y.Z) also prepares a draft GitHub Release with the installer and its checksum; the owner approves
 # the version by publishing the draft, and only published releases reach Check for Updates (prompt_08 §6, DEC-080).
 name: ci
@@ -39,31 +40,37 @@ jobs:
       - run: pip install pillow
       - run: dotnet tool restore
       - run: dotnet publish src/PhotoX.App -c Release -r win-x64 --self-contained -p:DebugType=None -p:DebugSymbols=false -o publish/win-x64
-      # The installer and portable zip carry the version in their names (prompt_04 §1). The installer shows a splash
-      # with the name and version while it installs; it installs per user into %LOCALAPPDATA%\PhotoX with Start menu
-      # and desktop shortcuts and an entry in Installed apps; a newer installer updates in place (prompt_06 §8).
+      # One Windows installer, with the version in its name (prompt_04 §1, prompt_10 §10: no portable zip). It shows a
+      # splash with the name and version while it installs; it installs per user into %LOCALAPPDATA%\PhotoX with Start
+      # menu and desktop shortcuts and an entry in Installed apps; a newer installer updates in place (prompt_06 §8).
+      # vpk leaves debug symbols (*.pdb, about 100 MB from SkiaSharp alone) out of the package by default.
       - id: pack
         shell: pwsh
         run: |
           $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
           python packaging/windows/make_splash.py $version releases/splash.png
-          dotnet vpk pack --packId PhotoX --packVersion $version --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --outputDir releases/win
+          dotnet vpk pack --packId PhotoX --packVersion $version --packDir publish/win-x64 --mainExe PhotoX.exe --icon assets/logo/photox.ico --packTitle PhotoX --packAuthors PhotoX --splashImage releases/splash.png --shortcuts StartMenuRoot,Desktop --noPortable --outputDir releases/win
           Rename-Item releases/win/PhotoX-win-Setup.exe "PhotoX-$version-win-Setup.exe"
-          Rename-Item releases/win/PhotoX-win-Portable.zip "PhotoX-$version-win-Portable.zip"
           # The checksum Check for Updates verifies before it starts the installer (prompt_08 §6).
           $setup = "PhotoX-$version-win-Setup.exe"
           $hash = (Get-FileHash "releases/win/$setup" -Algorithm SHA256).Hash.ToLowerInvariant()
           Set-Content -Path "releases/win/$setup.sha256" -Value "$hash  $setup" -Encoding ascii -NoNewline
           "PHOTOX_VERSION=$version" >> $env:GITHUB_ENV
           "version=$version" >> $env:GITHUB_OUTPUT
+      # The installer and its checksum only: not the package and release files vpk also writes, which the installer
+      # already contains.
       - uses: actions/upload-artifact@v4
         with:
           name: PhotoX-${{ env.PHOTOX_VERSION }}-windows
-          path: releases/win
+          path: |
+            releases/win/PhotoX-${{ env.PHOTOX_VERSION }}-win-Setup.exe
+            releases/win/PhotoX-${{ env.PHOTOX_VERSION }}-win-Setup.exe.sha256
+          compression-level: 0
 
   release:
-    # Only version tags, never ordinary commits: a draft release named after the version, with the installer, its
-    # checksum and the portable zip, and the version's changelog as notes. Publishing the draft is the approval.
+    # Only version tags, never ordinary commits: a draft release named after the version, with the installer and its
+    # checksum (which Check for Updates verifies), and the version's changelog as notes. Publishing the draft is the
+    # approval.
     if: startsWith(github.ref, 'refs/tags/v')
     needs: windows-package
     runs-on: ubuntu-latest
@@ -84,7 +91,7 @@ jobs:
           actual=$(sha256sum "release/PhotoX-$VERSION-win-Setup.exe" | cut -d' ' -f1)
           if [ "$expected" != "$actual" ]; then echo "The installer does not match its checksum"; exit 1; fi
           awk -v v="## [$VERSION]" 'index($0, v) == 1 { on = 1; next } on && /^## \[/ { exit } on { print }' docs/CHANGELOG.md > notes.md
-          files="release/PhotoX-$VERSION-win-Setup.exe release/PhotoX-$VERSION-win-Setup.exe.sha256 release/PhotoX-$VERSION-win-Portable.zip"
+          files="release/PhotoX-$VERSION-win-Setup.exe release/PhotoX-$VERSION-win-Setup.exe.sha256"
           if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" $files --clobber
           else

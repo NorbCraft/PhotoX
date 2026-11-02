@@ -71,10 +71,10 @@ public class PrintTests
         var recipe = new EditRecipe { Orientation = CropOrientation.Landscape, Crop = new NormalizedRect(0.1, 0.2, 0.6, 0.6), Exposure = 0.5, Saturation = 30 };
         var before = Fixtures.Sha(photo);
 
-        var (content, fill) = PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, recipe, IsEdited: false, 1), preview: false);
+        var (content, fit) = PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, recipe, IsEdited: false, 1), preview: false);
         using (content)
         {
-            Assert.False(fill);
+            Assert.Equal(PrintFit.Borderless, fit);
             Assert.True(new PhotoSaver().Save(copy, recipe, FileStamp.Of(copy)!.Value).Succeeded);
             using var saved = new MagickImage(copy);
             Assert.Equal((saved.Width, saved.Height), (content.Width, content.Height));

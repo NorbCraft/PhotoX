@@ -1,6 +1,7 @@
 using ImageMagick;
 using PhotoX.Core.Editing;
 using PhotoX.Core.Formats;
+using PhotoX.Core.Printing;
 using PhotoX.Imaging;
 using PhotoX.Storage;
 
@@ -36,10 +37,14 @@ public static class PrintContent
     /// <summary>Long edge of the source used for previews.</summary>
     public const int PreviewEdge = 1000;
 
-    /// <summary>Returns the content and whether it is an untouched original (cropped to fill the paper).</summary>
+    /// <summary>
+    /// Returns the content and how it goes on the page (prompt_11 §1): an untouched photo fills the page with its bleed
+    /// (Crop) or is shown whole; an edit without borders is borderless; canvases, borders, ID sheets, collages and the
+    /// calibration sheet keep their true size.
+    /// </summary>
     /// <param name="size">The print size, for items made for it (<see cref="SizedPrintItem"/>).</param>
     /// <param name="previewEdge">Long edge of a photo loaded for a preview; smaller for the small pages of a long list.</param>
-    public static (MagickImage Image, bool CropToFill) Load(PrintItem item, bool preview, PrintFormat? size = null, int previewEdge = PreviewEdge)
+    public static (MagickImage Image, PrintFit Fit) Load(PrintItem item, bool preview, PrintFormat? size = null, int previewEdge = PreviewEdge)
     {
         switch (item)
         {
@@ -48,17 +53,32 @@ public static class PrintContent
                 if (photo.PendingRecipe is { } recipe)
                 {
                     using var source = ImageLoader.Load(SourceFor(photo.Path), maxEdge);
-                    return (RecipeRenderer.RenderFinal(source, recipe), false);
+                    return (RecipeRenderer.RenderFinal(source, recipe), FitFor(recipe));
                 }
 
-                return (ImageLoader.Load(photo.Path, maxEdge), !photo.IsEdited && !photo.Whole);
+                var fit = !photo.IsEdited ? (photo.Whole ? PrintFit.Fit : PrintFit.Crop) : FitFor(SavedRecipe(photo.Path));
+                return (ImageLoader.Load(photo.Path, maxEdge), fit);
             case ImagePrintItem image:
-                return (image.Render(preview), false);
+                return (image.Render(preview), PrintFit.Fit);
             case SizedPrintItem sized:
-                return (sized.Render(preview, size ?? PrintFormats.P10x15), false);
+                return (sized.Render(preview, size ?? PrintFormats.P10x15), PrintFit.Fit);
             default:
                 throw new ArgumentException("Unknown print item.", nameof(item));
         }
+    }
+
+    /// <summary>
+    /// An edit keeps its true size when it has borders by design: the whole photo with borders, or a format on a
+    /// larger white canvas (9×13 on 10×15, 13×18 on 15×20, custom sizes). Otherwise it prints borderless.
+    /// </summary>
+    public static PrintFit FitFor(EditRecipe? recipe) =>
+        recipe is { Composition: Composition.WholeWithBorder } || recipe?.Format is { HasCanvas: true } ? PrintFit.Fit : PrintFit.Borderless;
+
+    /// <summary>The recipe PhotoX saved the photo with, from the order sidecar (null when there is none).</summary>
+    private static EditRecipe? SavedRecipe(string path)
+    {
+        var store = new OrderStore(System.IO.Path.GetDirectoryName(path)!);
+        return store.Load().Find(System.IO.Path.GetFileName(path))?.Recipe;
     }
 
     /// <summary>Where an unsaved edit starts from: the preserved original when PhotoX made one, like saving (FR-026).</summary>

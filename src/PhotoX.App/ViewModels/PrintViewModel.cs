@@ -355,7 +355,11 @@ public sealed partial class PrintViewModel : ViewModelBase
         RaiseTexts();
     }
 
-    partial void OnSelectedPaperChanged(PaperChoice? value) => RaiseTexts();
+    partial void OnSelectedPaperChanged(PaperChoice? value)
+    {
+        RaiseTexts();
+        if (HasItems) _ = RenderPreviewsAsync();   // the preview follows the paper's bleed (prompt_11 §1)
+    }
 
     partial void OnOriginNameChanged(string? value)
     {
@@ -589,6 +593,7 @@ public sealed partial class PrintViewModel : ViewModelBase
         if (_previewCts.IsCancellationRequested) _previewCts = new CancellationTokenSource();
         var ct = _previewCts.Token;
         var size = SelectedSize;
+        var paper = SelectedPaper?.Paper;
         var single = _entries.Count == 1;
         var (w, edge) = single ? (760, PrintContent.PreviewEdge) : _entries.Count <= 40 ? (340, 700) : (220, 450);
         foreach (var preview in Previews.ToList())
@@ -599,12 +604,10 @@ public sealed partial class PrintViewModel : ViewModelBase
             {
                 var data = await Task.Run(() =>
                 {
-                    var (content, fill) = PrintContent.Load(Prepared(item), preview: true, size, edge);
+                    var (content, fit) = PrintContent.Load(Prepared(item), preview: true, size, edge);
                     using (content)
                     {
-                        var h = (int)Math.Round(w * size.HeightMm / size.WidthMm);
-                        var placement = PrintLayout.Place(content.Width, content.Height, size.WidthMm, size.HeightMm, fill);
-                        using var page = PrintRenderer.RenderPage(content, placement, w, h, size.WidthMm, size.HeightMm);
+                        using var page = FinishedPreview(content, fit, size, paper, w);
                         return PixelData.From(page);
                     }
                 }, ct);
@@ -622,6 +625,31 @@ public sealed partial class PrintViewModel : ViewModelBase
                 Log.Warning(ex, "Print preview of {Name}", item.Name);
             }
         }
+    }
+
+    /// <summary>
+    /// A preview page as the print will look after the printer's cut (prompt_11 §1): laid out on the driver's page with
+    /// its bleed when the paper is the print size's, like the print, then cut to the print size. <paramref name="width"/>
+    /// is the preview's width in pixels.
+    /// </summary>
+    internal static MagickImage FinishedPreview(MagickImage content, PrintFit fit, PrintFormat size, PrinterPaper? paper, int width)
+    {
+        var (pageW, pageH) = paper is { } p && PrintLayout.PaperMatches(p.WidthMm, p.HeightMm, size.WidthMm, size.HeightMm)
+            ? (Math.Min(p.WidthMm, p.HeightMm), Math.Max(p.WidthMm, p.HeightMm))
+            : (size.WidthMm, size.HeightMm);
+        var finished = PrintLayout.Finished(pageW, pageH, size.WidthMm, size.HeightMm);
+        var placement = PrintLayout.Place(content.Width, content.Height, pageW, pageH, finished, fit);
+        var k = width / finished.Width;
+        var page = PrintRenderer.RenderPage(content, placement, (int)Math.Round(pageW * k), (int)Math.Round(pageH * k), pageW, pageH);
+        var (x, y) = ((int)Math.Round(finished.X * k), (int)Math.Round(finished.Y * k));
+        var height = (int)Math.Round(width * size.HeightMm / size.WidthMm);
+        if (x > 0 || y > 0 || page.Width != width || page.Height != height)
+        {
+            page.Crop(new MagickGeometry(x, y, (uint)width, (uint)Math.Min(height, (int)page.Height - y)));
+            page.ResetPage();
+        }
+
+        return page;
     }
 
     private void RaiseItems()

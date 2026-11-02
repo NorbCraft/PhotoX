@@ -1,5 +1,6 @@
 using ImageMagick;
 using PhotoX.Core.Formats;
+using PhotoX.Core.Geometry;
 using PhotoX.Core.Printing;
 using PhotoX.Imaging;
 using PhotoX.Imaging.Printing;
@@ -243,12 +244,12 @@ public sealed class PrintService : IDisposable
         try
         {
             var g = Backend.GetGeometry(r.Printer, r.Paper, r.Settings);
-            var (pageW, pageH, x, y, pageWmm, pageHmm) = PageFor(g, r);
-            var (content, cropToFill) = PrintContent.Load(r.Item, preview: false, r.Size);
+            var (pageW, pageH, x, y, pageWmm, pageHmm, finished) = PageFor(g, r);
+            var (content, fit) = PrintContent.Load(r.Item, preview: false, r.Size);
             PageBitmap bitmap;
             using (content)
             {
-                var placement = PrintLayout.Place(content.Width, content.Height, pageWmm, pageHmm, cropToFill);
+                var placement = PrintLayout.Place(content.Width, content.Height, pageWmm, pageHmm, finished, fit);
                 using var page = PrintRenderer.RenderPage(content, placement, pageW, pageH, pageWmm, pageHmm);
                 bitmap = PrintRenderer.ToBitmap(page);
             }
@@ -293,22 +294,28 @@ public sealed class PrintService : IDisposable
     }
 
     /// <summary>
-    /// The page in device pixels and where it goes. On the paper of the print size the page covers the driver's whole
-    /// page (its borderless area); on another paper (a PDF printer's A4) the print size is centred at true size.
+    /// The page in device pixels, where it goes, and the finished print on it (prompt_11 §1). On the paper of the
+    /// print size the page covers the driver's whole page, bleed included (Citizen (6x4): 1844 × 1240 dots for a
+    /// 1800 × 1200 print), and the finished print is centred on it in whole device pixels. On another paper (a PDF
+    /// printer's A4) the print size is centred at true size and is the finished print itself.
     /// </summary>
-    internal static (int W, int H, int X, int Y, double Wmm, double Hmm) PageFor(PageGeometry g, PrintRequest r)
+    internal static (int W, int H, int X, int Y, double Wmm, double Hmm, RectD Finished) PageFor(PageGeometry g, PrintRequest r)
     {
-        if (PrintLayout.PaperMatches(r.Paper.WidthMm, r.Paper.HeightMm, r.Size.WidthMm, r.Size.HeightMm))
-        {
-            return (g.PhysicalWidthPx, g.PhysicalHeightPx, -g.OffsetXPx, -g.OffsetYPx, g.PhysicalWidthPx * 25.4 / g.DpiX, g.PhysicalHeightPx * 25.4 / g.DpiY);
-        }
-
         var portrait = g.PhysicalWidthPx <= g.PhysicalHeightPx;
         var (wMm, hMm) = portrait ? (r.Size.WidthMm, r.Size.HeightMm) : (r.Size.HeightMm, r.Size.WidthMm);
         var w = (int)Math.Round(wMm * g.DpiX / 25.4);
         var h = (int)Math.Round(hMm * g.DpiY / 25.4);
+        if (PrintLayout.PaperMatches(r.Paper.WidthMm, r.Paper.HeightMm, r.Size.WidthMm, r.Size.HeightMm))
+        {
+            var (pw, ph) = (g.PhysicalWidthPx, g.PhysicalHeightPx);
+            var (fw, fh) = (Math.Min(w, pw), Math.Min(h, ph));
+            var (fx, fy) = ((pw - fw) / 2, (ph - fh) / 2);
+            var finished = new RectD(fx * 25.4 / g.DpiX, fy * 25.4 / g.DpiY, fw * 25.4 / g.DpiX, fh * 25.4 / g.DpiY);
+            return (pw, ph, -g.OffsetXPx, -g.OffsetYPx, pw * 25.4 / g.DpiX, ph * 25.4 / g.DpiY, finished);
+        }
+
         if (w > g.PhysicalWidthPx + 1 || h > g.PhysicalHeightPx + 1) throw new PrintException($"The paper \"{r.Paper.Name}\" is smaller than {r.Size.Name} cm.");
-        return (w, h, (g.PhysicalWidthPx - w) / 2 - g.OffsetXPx, (g.PhysicalHeightPx - h) / 2 - g.OffsetYPx, wMm, hMm);
+        return (w, h, (g.PhysicalWidthPx - w) / 2 - g.OffsetXPx, (g.PhysicalHeightPx - h) / 2 - g.OffsetYPx, wMm, hMm, RectD.FromSize(wMm, hMm));
     }
 
     private void DeleteInWindows(PrintJob job)

@@ -37,10 +37,10 @@ public class Prompt07CoreTests
     {
         using var dir = new TempDir();
         var photo = Fixtures.WriteJpeg(dir.Path, "P1.jpg", 600, 400);
-        Assert.True(PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, null, false, 1), preview: true).CropToFill);
-        Assert.False(PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, null, false, 1, Whole: true), preview: true).CropToFill);
-        Assert.False(PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, null, true, 1), preview: true).CropToFill);
-        Assert.False(PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, new Core.Editing.EditRecipe { Exposure = 0.2 }, false, 1), preview: true).CropToFill);
+        Assert.Equal(PrintFit.Crop, PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, null, false, 1), preview: true).Fit);
+        Assert.Equal(PrintFit.Fit, PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, null, false, 1, Whole: true), preview: true).Fit);
+        Assert.Equal(PrintFit.Borderless, PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, null, true, 1), preview: true).Fit);
+        Assert.Equal(PrintFit.Borderless, PrintContent.Load(new PhotoPrintItem("P1.jpg", photo, new Core.Editing.EditRecipe { Exposure = 0.2 }, false, 1), preview: true).Fit);
     }
 
     [Fact]

@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PhotoX.App.ViewModels;
 
 namespace PhotoX.App.Views;
@@ -24,6 +26,64 @@ public sealed partial class MainWindow : Window
         if (DataContext is not ShellViewModel shell) return;
         shell.ExitRequested += CloseConfirmed;
         shell.OpenUrlRequested += url => _ = Launcher.LaunchUriAsync(new Uri(url));
+        shell.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ShellViewModel.Dialog)) OnDialogChanged(shell.Dialog);
+        };
+    }
+
+    private IInputElement? _focusBeforeDialog;
+
+    /// <summary>
+    /// A dialog takes the keyboard (prompt_10 §4): focus moves to its Cancel button (the safe default, else the
+    /// highlighted one) and returns to where it was when the dialog closes, such as the gallery.
+    /// </summary>
+    private void OnDialogChanged(DialogViewModel? dialog)
+    {
+        if (dialog is null)
+        {
+            if (_focusBeforeDialog is InputElement { IsEffectivelyVisible: true } previous) previous.Focus(NavigationMethod.Tab);
+            _focusBeforeDialog = null;
+            return;
+        }
+
+        _focusBeforeDialog ??= FocusManager?.GetFocusedElement();
+        Dispatcher.UIThread.Post(() =>
+        {
+            var buttons = DialogButtonControls();
+            var start = buttons.FirstOrDefault(b => b.CommandParameter is "cancel")
+                ?? buttons.FirstOrDefault(b => b.Classes.Contains("primary")) ?? buttons.LastOrDefault();
+            start?.Focus(NavigationMethod.Tab);
+        }, DispatcherPriority.Loaded);
+    }
+
+    private List<Button> DialogButtonControls() => DialogButtons.GetVisualDescendants().OfType<Button>().ToList();
+
+    /// <summary>Keys while a dialog is open: none reaches the workspace behind it (the gallery moved its selection before).</summary>
+    private void HandleDialogKey(DialogViewModel dialog, KeyEventArgs e)
+    {
+        var buttons = DialogButtonControls();
+        var focused = FocusManager?.GetFocusedElement() is Button b ? buttons.IndexOf(b) : -1;
+        switch (e.Key)
+        {
+            case Key.Escape:
+                dialog.Cancel();
+                break;
+            case Key.Left or Key.Right or Key.Tab when buttons.Count > 0:
+                var back = e.Key == Key.Left || (e.Key == Key.Tab && e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+                var target = focused < 0 ? (back ? buttons.Count - 1 : 0) : Math.Clamp(focused + (back ? -1 : 1), 0, buttons.Count - 1);
+                buttons[target].Focus(NavigationMethod.Tab);
+                break;
+            case Key.Up or Key.Down when dialog.HasChoices:
+                var i = dialog.SelectedChoice is { } c ? dialog.Choices.IndexOf(c) : -1;
+                dialog.SelectedChoice = dialog.Choices[Math.Clamp(i + (e.Key == Key.Up ? -1 : 1), 0, dialog.Choices.Count - 1)];
+                break;
+            case Key.Enter or Key.Space when focused >= 0:
+                buttons[focused].Command?.Execute(buttons[focused].CommandParameter);
+                break;
+        }
+
+        e.Handled = true;
     }
 
     private bool _closeConfirmed;
@@ -56,11 +116,24 @@ public sealed partial class MainWindow : Window
     private void OnKeyDownTunnel(object? sender, KeyEventArgs e)
     {
         var repeat = !_held.Add(e.Key);
-        if (DataContext is not ShellViewModel shell || IsInputFocused()) return;
-        if (shell.Dialog is not null || shell.Settings is not null) return;
+        if (DataContext is not ShellViewModel shell) return;
+        if (shell.Dialog is { } dialog)
+        {
+            HandleDialogKey(dialog, e);
+            return;
+        }
+
+        if (IsInputFocused() || shell.Settings is not null) return;
         if (repeat)
         {
-            if (shell.CurrentPage is EditorViewModel or IdViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.PageDown or Key.PageUp or Key.Space)
+            // A held arrow key keeps moving the crop frame (prompt_10 §1); other held keys act once.
+            if (shell.CurrentPage is EditorViewModel editor && e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
+            {
+                e.Handled = editor.HandleKey(e.Key, e.KeyModifiers);
+                return;
+            }
+
+            if (shell.CurrentPage is EditorViewModel or IdViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.Up or Key.Down or Key.PageDown or Key.PageUp or Key.Space)
             {
                 e.Handled = true;
             }
@@ -81,6 +154,13 @@ public sealed partial class MainWindow : Window
                 break;
             case PrintViewModel print when e.Key == Key.Escape:
                 print.BackCommand.Execute(null); // back to where the print came from (prompt_07 §3.7)
+                e.Handled = true;
+                break;
+            case PrintViewModel print when print.HasCopiesTargets && (e.KeyModifiers & ~KeyModifiers.Shift) == KeyModifiers.None && QuantityKey(e.Key) is { } printKey:
+                // Copies of the selected pages, as in Photos (prompt_10 §6)
+                if (printKey == '+') print.PhotoCopiesPlusCommand.Execute(null);
+                else if (printKey == '-') print.PhotoCopiesMinusCommand.Execute(null);
+                else print.SetSelectedCopies(printKey - '0');
                 e.Handled = true;
                 break;
             case BrowseViewModel browse when e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None:

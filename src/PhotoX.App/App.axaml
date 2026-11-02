@@ -301,11 +301,12 @@
     <Style Selector="Button.icon.large Path">
       <Setter Property="RenderTransform" Value="scale(1.4)" />
     </Style>
-    <!-- Hold-to-compare button: filled with the accent colour while pressed -->
-    <Style Selector="Button.hold:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <!-- Hold-to-compare button: filled with the accent colour while pressed, or while Space shows the original
+         (class active, prompt_10 §3), so mouse and keyboard look the same -->
+    <Style Selector="Button.hold:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.hold.active /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
-    <Style Selector="Button.hold:pressed Path">
+    <Style Selector="Button.hold:pressed Path, Button.hold.active Path">
       <Setter Property="Stroke" Value="White" />
     </Style>
     <Style Selector="Border.sep">

@@ -758,6 +758,14 @@ public sealed partial class IdViewModel : ViewModelBase
     /// <summary>Framing keys; Space (held) shows the photo without adjustments, the only before/after control here (prompt_04 §8).</summary>
     public bool HandleKey(Key key, KeyModifiers modifiers)
     {
+        // Escape (prompt_10 §9): the same as Clear while a photo is loaded; the file is never touched.
+        if (key == Key.Escape && modifiers == KeyModifiers.None)
+        {
+            if (!HasSource || IsBusy) return false;
+            _ = ClearPhotoAsync();
+            return true;
+        }
+
         if (IsSelectStep && modifiers == KeyModifiers.None)
         {
             // Step 1 behaves like the Photos gallery: Enter picks the photo or opens the folder, Backspace goes up.

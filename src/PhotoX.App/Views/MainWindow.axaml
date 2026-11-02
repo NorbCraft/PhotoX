@@ -233,7 +233,8 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <TextBlock IsVisible="{Binding HasNote}" Text="{Binding Note}" Foreground="{DynamicResource Text3Brush}" FontSize="12" TextWrapping="Wrap" />
-          <ItemsControl ItemsSource="{Binding Buttons}" HorizontalAlignment="Right">
+          <!-- Keyboard (prompt_10 §4): focus starts on Cancel, ← / → move between the buttons, Enter presses the focused one, Escape cancels -->
+          <ItemsControl x:Name="DialogButtons" ItemsSource="{Binding Buttons}" HorizontalAlignment="Right">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>

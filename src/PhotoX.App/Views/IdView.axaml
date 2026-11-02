@@ -218,7 +218,7 @@
           </StackPanel>
         </ScrollViewer>
         <!-- Before / after: the photo without adjustments while held, like Space (as in the Photos editor) -->
-        <Button x:Name="BeforeButton" Grid.Column="1" Classes="icon hold" Focusable="False" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0">
+        <Button x:Name="BeforeButton" Grid.Column="1" Classes="icon hold" Classes.active="{Binding ShowBefore}" Focusable="False" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0">
           <Path Data="{x:Static s:Icons.BeforeAfter}" />
         </Button>
       </Grid>

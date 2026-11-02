@@ -198,18 +198,20 @@ public sealed partial class EditorViewModel : ViewModelBase
     /// <summary>Bounding box of the straightened preview: the coordinate space of the crop frame.</summary>
     public Size PreviewSize => new(PreviewWidth, PreviewHeight);
 
+    /// <summary>Over the photo: the print size in cm and the effective ppi, without the pixel dimensions (prompt_10 §2).</summary>
     public string CropInfo
     {
         get
         {
-            if (_sourceSize.W == 0) return string.Empty;
+            if (_sourceSize.W == 0 || _recipe.Format is not { } format) return string.Empty;
             var plan = RenderPlan.Create(_sourceSize.W, _sourceSize.H, _recipe);
-            var format = _recipe.Format;
-            return plan.EffectivePpi is double ppi && format is not null
-                ? Localizer.Instance.Format("CropInfo", format.Name, plan.CanvasWidth, plan.CanvasHeight, Math.Round(ppi))
-                : Localizer.Instance.Format("CropInfoNoPpi", plan.CanvasWidth, plan.CanvasHeight);
+            return plan.EffectivePpi is double ppi
+                ? Localizer.Instance.Format("CropInfo", format.Name, Math.Round(ppi))
+                : Localizer.Instance.Format("CropInfoNoPpi", format.Name);
         }
     }
+
+    public bool HasCropInfo => CropInfo.Length > 0;
 
     /// <summary>Low-resolution warning (FR-047).</summary>
     public string? ResolutionWarning
@@ -483,6 +485,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     {
         KeepPending();
         Browse.RefreshStates();
+        Browse.Reveal(Current);           // the gallery selects the photo open last (prompt_10 §5)
         BackRequested?.Invoke();
     }
 
@@ -658,6 +661,27 @@ public sealed partial class EditorViewModel : ViewModelBase
         CropApplied = state.CropApplied;
         _lastUndoTag = null;
         AfterRecipeChanged(render);
+    }
+
+    /// <summary>
+    /// Arrow keys (prompt_10 §1): moves the crop frame by a small step (0.25 % of the photo's long side, five times as
+    /// much with Shift), keeping its size and ratio, and stops at the edge of the photo. Only while the crop frame is
+    /// shown; a burst of key presses is one undo step. Returns false when nothing could move.
+    /// </summary>
+    public bool MoveCrop(int dx, int dy, bool large = false)
+    {
+        if (_proxy is null || !ShowCrop || (dx == 0 && dy == 0)) return false;
+        var (w, h) = RotatedFullSize(_recipe);
+        var valid = ValidArea(_recipe);
+        var crop = _recipe.Crop;
+        var step = Math.Max(1, Math.Round(Math.Max(w, h) * (large ? 0.0125 : 0.0025)));
+        var (cw, ch) = (crop.Width * w, crop.Height * h);
+        var x = Math.Clamp(crop.X * w + dx * step, valid.X, Math.Max(valid.X, valid.X + valid.Width - cw));
+        var y = Math.Clamp(crop.Y * h + dy * step, valid.Y, Math.Max(valid.Y, valid.Y + valid.Height - ch));
+        var moved = new NormalizedRect(x / w, y / h, crop.Width, crop.Height);
+        if (Math.Abs(moved.X - crop.X) < 1e-9 && Math.Abs(moved.Y - crop.Y) < 1e-9) return false;
+        SetRecipe(_recipe with { Crop = moved }, "move-crop");
+        return true;
     }
 
     /// <summary>Called by the canvas when a crop drag ends (one undo step).</summary>
@@ -879,7 +903,10 @@ public sealed partial class EditorViewModel : ViewModelBase
 
     // ------------------------------------------------------------------ keyboard (FR-018)
 
-    /// <summary>Editor shortcuts. The window filters out auto-repeat and keys aimed at text inputs before calling this.</summary>
+    /// <summary>
+    /// Editor shortcuts. The window filters out keys aimed at text inputs and auto-repeat (except for the arrow keys,
+    /// so a held arrow keeps moving the crop) before calling this.
+    /// </summary>
     public bool HandleKey(Key key, KeyModifiers modifiers)
     {
         var ctrl = modifiers.HasFlag(KeyModifiers.Control);
@@ -891,11 +918,16 @@ public sealed partial class EditorViewModel : ViewModelBase
             case Key.S when ctrl:
                 _ = SaveAsync();
                 return true;
-            case Key.Right or Key.PageDown when modifiers == KeyModifiers.None:
+            // Page Up / Page Down change the photo; the arrow keys move the crop frame (prompt_10 §1).
+            case Key.PageDown when modifiers == KeyModifiers.None:
                 _ = NextAsync();
                 return true;
-            case Key.Left or Key.PageUp when modifiers == KeyModifiers.None:
+            case Key.PageUp when modifiers == KeyModifiers.None:
                 _ = PreviousAsync();
+                return true;
+            case Key.Left or Key.Right or Key.Up or Key.Down when (modifiers & ~KeyModifiers.Shift) == KeyModifiers.None:
+                var large = modifiers.HasFlag(KeyModifiers.Shift);
+                MoveCrop(key == Key.Left ? -1 : key == Key.Right ? 1 : 0, key == Key.Up ? -1 : key == Key.Down ? 1 : 0, large);
                 return true;
             case Key.Z when ctrl && modifiers.HasFlag(KeyModifiers.Shift):
             case Key.Y when ctrl:
@@ -932,6 +964,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(StraightenText));
         OnPropertyChanged(nameof(CropInfo));
+        OnPropertyChanged(nameof(HasCropInfo));
         OnPropertyChanged(nameof(ResolutionWarning));
         OnPropertyChanged(nameof(PositionText));
     }

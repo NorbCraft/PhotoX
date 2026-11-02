@@ -97,7 +97,7 @@
           </StackPanel>
         </ScrollViewer>
         <!-- Before / after: the original shows only while the button (or Space) is held (prompt_04 §7) -->
-        <Button x:Name="BeforeButton" Grid.Column="1" Classes="icon hold" Focusable="False" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0">
+        <Button x:Name="BeforeButton" Grid.Column="1" Classes="icon hold" Classes.active="{Binding ShowBefore}" Focusable="False" ToolTip.Tip="{l:Tr BeforeAfterTip}" VerticalAlignment="Center" Margin="6,0,0,0">
           <Path Data="{x:Static s:Icons.BeforeAfter}" />
         </Button>
       </Grid>
@@ -109,7 +109,8 @@
                      CropRect="{Binding CropRect}" CropRatio="{Binding CropRatio}" CropBounds="{Binding CropBounds}" ShowCrop="{Binding ShowCrop}"
                      ShowResult="{Binding ShowResult}" ResultFrame="{Binding ResultFrame}" ResultCrop="{Binding ResultCrop}" />
       <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14" Spacing="6">
-        <Border Background="#B0000000" CornerRadius="14" Padding="12,5" IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <!-- Print size and ppi (prompt_10 §2): a lighter label, the same in both themes since it sits on the photo -->
+        <Border Background="#73000000" CornerRadius="14" Padding="12,5" HorizontalAlignment="Left" IsVisible="{Binding HasCropInfo}">
           <TextBlock Text="{Binding CropInfo}" FontWeight="SemiBold" FontSize="13" Foreground="White" />
         </Border>
         <Border Background="{DynamicResource WarnBgBrush}" BorderBrush="{DynamicResource WarnBorderBrush}" BorderThickness="1" CornerRadius="14" Padding="12,4" IsVisible="{Binding ResolutionWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -170,8 +171,17 @@
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Padding="18,6,18,8">
           <v:ToneAdjustmentsView DataContext="{Binding Tone}" />
         </ScrollViewer>
-        <!-- Actions (prompt_07 §1.5): Close, Print and Save, then Save & Next; shortcuts in the tooltips -->
+        <!-- Actions (prompt_07 §1.5): Previous and Next (Page Up / Page Down, back in prompt_10 §1), Close, Print and
+             Save, then Save & Next; shortcuts in the tooltips -->
         <StackPanel Grid.Row="2" Spacing="8" Margin="18,8,18,16">
+          <Grid ColumnDefinitions="*,8,*">
+            <Button x:Name="PreviousButton" Focusable="False" HorizontalAlignment="Stretch" Padding="4,6" Command="{Binding PreviousCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr PreviousTip}">
+              <c:IconLabel Icon="{x:Static s:Icons.ChevronLeft}" Text="{l:Tr Previous}" />
+            </Button>
+            <Button x:Name="NextButton" Grid.Column="2" Focusable="False" HorizontalAlignment="Stretch" Padding="4,6" Command="{Binding NextCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{l:Tr NextTip}">
+              <c:IconLabel Icon="{x:Static s:Icons.ChevronRight}" Text="{l:Tr Next}" IconAfter="True" />
+            </Button>
+          </Grid>
           <Grid ColumnDefinitions="*,8,*,8,*">
             <Button Focusable="False" HorizontalAlignment="Stretch" Padding="4,6" Command="{Binding BackToFolderCommand}" ToolTip.Tip="{l:Tr CloseEditorTip}">
               <c:IconLabel Icon="{x:Static s:Icons.Close}" Text="{l:Tr Close}" />

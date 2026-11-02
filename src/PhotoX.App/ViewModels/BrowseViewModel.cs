@@ -134,24 +134,17 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
     public bool HasQuantityTargets => !IsDeletedView && QuantityTargets.Count > 0;
 
+    private IReadOnlyCollection<int> TargetQuantities => QuantityTargets.Select(p => p.Quantity).ToList();
+
     /// <summary>The selection's quantity, or null when the selected photos have different quantities.</summary>
-    public int? QuantityValue => QuantityTargets.Select(p => p.Quantity).Distinct().ToList() is [var only] ? only : null;
+    public int? QuantityValue => CopiesControl.Value(TargetQuantities);
 
-    public bool IsQuantityMixed => QuantityTargets.Count > 1 && QuantityValue is null;
+    public bool IsQuantityMixed => CopiesControl.IsMixed(TargetQuantities);
 
-    public string QuantityValueText => QuantityValue?.ToString(Localizer.Instance.Culture) ?? "–";
+    public string QuantityValueText => CopiesControl.ValueText(TargetQuantities);
 
     /// <summary>Under the Copies control with several photos selected: how many it changes, and the range when they differ.</summary>
-    public string? QuantityNote
-    {
-        get
-        {
-            var targets = QuantityTargets;
-            if (targets.Count < 2) return null;
-            var count = Localizer.Instance.Plural("QuantityForPhotos", targets.Count);
-            return IsQuantityMixed ? Localizer.Instance.Format("QuantityMixed", targets.Min(p => p.Quantity), targets.Max(p => p.Quantity)) + " · " + count : count;
-        }
-    }
+    public string? QuantityNote => CopiesControl.Note(TargetQuantities);
 
     public bool HasQuantityNote => QuantityNote is not null;
 
@@ -170,13 +163,13 @@ public sealed partial class BrowseViewModel : ViewModelBase
     [RelayCommand]
     private void QuantityMinus()
     {
-        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, targets.Min(p => p.Quantity) - 1);
+        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, CopiesControl.Minus(TargetQuantities));
     }
 
     [RelayCommand]
     private void QuantityPlus()
     {
-        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, targets.Min(p => p.Quantity) + 1);
+        if (QuantityTargets is { Count: > 0 } targets) SetQuantity(targets, CopiesControl.Plus(TargetQuantities));
     }
 
     /// <summary>Sets the requested copies of the selected photos (the 0–9 keys in the gallery).</summary>
@@ -370,6 +363,42 @@ public sealed partial class BrowseViewModel : ViewModelBase
     /// <summary>Double-click on the slider: the default thumbnail size.</summary>
     [RelayCommand]
     public void ResetThumbScale() => ThumbScale = 1;
+
+    /// <summary>Width of a card's margins in the gallery (6 on each side).</summary>
+    private const double CardMargin = 12;
+
+    /// <summary>Cards of the current size that fit in a row of <paramref name="width"/>.</summary>
+    public int ColumnsIn(double width) => Math.Max(1, (int)Math.Floor(width / (CardWidth + CardMargin)));
+
+    /// <summary>
+    /// − and + beside the slider (prompt_10 §8): the largest thumbnail size with one more (−) or one fewer (+) card per
+    /// row in the gallery's <paramref name="width"/>, within the slider's limits.
+    /// </summary>
+    public void ChangeColumns(int delta, double width)
+    {
+        if (width <= 0) return;
+        var columns = Math.Max(1, ColumnsIn(width) + delta);
+        var scale = Math.Clamp((Math.Floor(width / columns) - CardMargin - 1) / 176, MinThumbScale, MaxThumbScale);
+        ThumbScale = Math.Round(scale, 4);
+    }
+
+    /// <summary>Raised to scroll the gallery to a photo once it is shown (after the editor, prompt_10 §5).</summary>
+    public event Action<PhotoItemViewModel>? RevealRequested;
+
+    /// <summary>
+    /// Back from the editor (prompt_10 §5): selects the photo that was open last, or, when the filter hides it now, the
+    /// next visible one after it, and asks the gallery to scroll to it.
+    /// </summary>
+    public void Reveal(PhotoItemViewModel? item)
+    {
+        if (item is null) return;
+        var target = VisiblePhotos.Contains(item) ? item
+            : AllPhotos.SkipWhile(p => p != item).FirstOrDefault(VisiblePhotos.Contains)
+              ?? AllPhotos.TakeWhile(p => p != item).LastOrDefault(VisiblePhotos.Contains);
+        if (target is null) return;
+        SelectedPhoto = target;
+        RevealRequested?.Invoke(target);
+    }
 
     public string FolderTitle => CurrentFolder is null ? string.Empty : Path.GetFileName(CurrentFolder.TrimEnd(Path.DirectorySeparatorChar));
 
@@ -567,6 +596,13 @@ public sealed partial class BrowseViewModel : ViewModelBase
     {
         if (CurrentFolder is not { } folder) return;
         var byName = items.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        // The photo after the deleted ones (or before them, at the end) is selected, so the gallery stays where it was
+        // instead of jumping to the first photo (prompt_10 §4).
+        var gone = deleted.Select(d => byName.GetValueOrDefault(d.Name)).OfType<PhotoItemViewModel>().ToHashSet();
+        var visible = VisiblePhotos.ToList();
+        var first = visible.FindIndex(gone.Contains);
+        var nearby = first < 0 ? null
+            : visible.Skip(first).FirstOrDefault(p => !gone.Contains(p)) ?? visible.Take(first).LastOrDefault(p => !gone.Contains(p));
         var added = new List<PhotoItemViewModel>();
         foreach (var d in deleted)
         {
@@ -579,6 +615,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
         foreach (var card in added) DeletedPhotos.Insert(IndexIn(DeletedPhotos, card), card);
 
+        if (nearby is not null) SelectedPhoto = nearby;
         ApplyFilter();
         RaiseCounts();
         foreach (var card in added.Where(c => c.Thumbnail is null)) RefreshThumbnail(card);

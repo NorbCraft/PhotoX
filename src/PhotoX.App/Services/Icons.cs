@@ -44,10 +44,10 @@ public static class Icons
     public static readonly Geometry Brightness = Geometry.Parse(
         "M12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7z M12 3v2 M12 19v2 M3 12h2 M19 12h2 M5.6 5.6l1.4 1.4 M17 17l1.4 1.4 M5.6 18.4 7 17 M17 7l1.4-1.4");
 
-    /// <summary>A small and a large picture: thumbnail size.</summary>
-    public static readonly Geometry ThumbSmall = Geometry.Parse("M8 8h8v8H8z");
+    /// <summary>Magnifier with a minus and with a plus: smaller and larger thumbnails (prompt_10 §8).</summary>
+    public static readonly Geometry ThumbSmaller = Geometry.Parse("M10.5 4a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13z M15.2 15.2 20 20 M8 10.5h5");
 
-    public static readonly Geometry ThumbLarge = Geometry.Parse("M4.5 4.5h15v15h-15z");
+    public static readonly Geometry ThumbLarger = Zoom;
 
     /// <summary>Gear (settings), drawn as one clean outline with a centre hole (prompt_04 §3).</summary>
     public static readonly Geometry Settings = Geometry.Parse(GearPath());

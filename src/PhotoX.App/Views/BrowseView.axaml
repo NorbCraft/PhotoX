@@ -44,12 +44,17 @@
             </StackPanel>
           </Button>
         </StackPanel>
-        <!-- Thumbnail size (prompt_06 §4): left smaller, right larger, double-click for the default -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" ToolTip.Tip="{l:Tr ThumbSizeTip}">
-          <Path Data="{x:Static s:Icons.ThumbSmall}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6" StrokeJoin="Round" Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
-          <Slider Width="120" Margin="0,-12" Minimum="{x:Static vm:BrowseViewModel.MinThumbScale}" Maximum="{x:Static vm:BrowseViewModel.MaxThumbScale}"
-                  Value="{Binding ThumbScale}" VerticalAlignment="Center" DoubleTapped="OnThumbSizeDoubleTapped" />
-          <Path Data="{x:Static s:Icons.ThumbLarge}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6" StrokeJoin="Round" Width="24" Height="24" Stretch="None" VerticalAlignment="Center" />
+        <!-- Thumbnail size (prompt_06 §4): − and + give one more or one fewer thumbnail per row (prompt_10 §8); the slider
+             in between, double-click for the default -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button x:Name="ThumbSmallerButton" Classes="icon" Focusable="False" Click="OnThumbSmallerClick" ToolTip.Tip="{l:Tr ThumbSmallerTip}">
+            <Path Data="{x:Static s:Icons.ThumbSmaller}" />
+          </Button>
+          <Slider Width="120" Margin="4,-12" Minimum="{x:Static vm:BrowseViewModel.MinThumbScale}" Maximum="{x:Static vm:BrowseViewModel.MaxThumbScale}"
+                  Value="{Binding ThumbScale}" VerticalAlignment="Center" DoubleTapped="OnThumbSizeDoubleTapped" ToolTip.Tip="{l:Tr ThumbSizeTip}" />
+          <Button x:Name="ThumbLargerButton" Classes="icon" Focusable="False" Click="OnThumbLargerClick" ToolTip.Tip="{l:Tr ThumbLargerTip}">
+            <Path Data="{x:Static s:Icons.ThumbLarger}" />
+          </Button>
         </StackPanel>
         </Grid>
       </StackPanel>

@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
+using PhotoX.App.Services;
 using PhotoX.App.ViewModels;
 
 namespace PhotoX.App.Views;
@@ -17,6 +19,49 @@ public sealed partial class BrowseView : UserControl
         {
             if (DataContext is BrowseViewModel vm) vm.SetSelection(Gallery.SelectedItems?.OfType<PhotoItemViewModel>() ?? []);
         };
+        // ↑ and ↓ follow the thumbnail grid; the list itself only knows ← and → in a wrapping panel (prompt_10 §7).
+        Gallery.AddHandler(KeyDownEvent, OnGalleryKeyDown, RoutingStrategies.Tunnel);
+    }
+
+    private void OnGalleryKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Up or Key.Down) || (e.KeyModifiers & ~KeyModifiers.Shift) != KeyModifiers.None) return;
+        e.Handled = true;
+        var count = Gallery.ItemCount;
+        var cards = Enumerable.Range(0, count).Select(i => Gallery.ContainerFromIndex(i)?.Bounds ?? default).ToList();
+        var from = Gallery.IndexFromContainer(TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Control ?? Gallery);
+        if (from < 0) from = Gallery.SelectedIndex;
+        var to = GridNavigation.Neighbour(cards, from, e.Key == Key.Down ? 1 : -1);
+        if (to < 0) return;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            // Shift extends the selection from its anchor, as with ← and →.
+            var anchor = Gallery.Selection.AnchorIndex >= 0 ? Gallery.Selection.AnchorIndex : from;
+            Gallery.Selection.BeginBatchUpdate();
+            Gallery.Selection.Clear();
+            Gallery.Selection.SelectRange(Math.Min(anchor, to), Math.Max(anchor, to));
+            Gallery.Selection.AnchorIndex = anchor;
+            Gallery.Selection.EndBatchUpdate();
+        }
+        else
+        {
+            Gallery.SelectedIndex = to;
+        }
+
+        Gallery.ScrollIntoView(to);
+        Gallery.ContainerFromIndex(to)?.Focus(NavigationMethod.Directional);
+    }
+
+    private void OnThumbSmallerClick(object? sender, RoutedEventArgs e) => ChangeColumns(+1);
+
+    private void OnThumbLargerClick(object? sender, RoutedEventArgs e) => ChangeColumns(-1);
+
+    /// <summary>One more or one fewer thumbnail per row in the gallery's current width (prompt_10 §8); the selected photo stays in view.</summary>
+    private void ChangeColumns(int delta)
+    {
+        if (DataContext is not BrowseViewModel vm || Gallery.ItemsPanelRoot is not { } panel) return;
+        vm.ChangeColumns(delta, panel.Bounds.Width);
+        if (Gallery.SelectedItem is { } selected) Dispatcher.UIThread.Post(() => Gallery.ScrollIntoView(selected), DispatcherPriority.Background);
     }
 
     private void ApplyLeftWidth() => PanelWidth.Apply(Root.ColumnDefinitions[0], "browse-left", 290, PanelWidth.MinLeft);
@@ -26,6 +71,12 @@ public sealed partial class BrowseView : UserControl
         base.OnDataContextChanged(e);
         if (DataContext is not BrowseViewModel vm) return;
         PanelWidth.FollowTree(vm.Explorer, Root.ColumnDefinitions[0], TreePanel, TreeSplitter, ApplyLeftWidth);
+        // Back from the editor: scroll to the photo that was open last, once the gallery is shown and laid out (prompt_10 §5).
+        vm.RevealRequested += item => Dispatcher.UIThread.Post(() =>
+        {
+            Gallery.ScrollIntoView(item);
+            Gallery.ContainerFromItem(item)?.Focus(NavigationMethod.Directional);
+        }, DispatcherPriority.Background);
         vm.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(BrowseViewModel.DetailsCollapsed) or nameof(BrowseViewModel.HasSelection)) SizePreview(vm);

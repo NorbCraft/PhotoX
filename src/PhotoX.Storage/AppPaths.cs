@@ -56,6 +56,9 @@ public sealed class AppPaths
     /// <summary>Print counters (prompt_05 §6), outside the customer's folders.</summary>
     public string PrintHistoryFile => Path.Combine(UserDataDir, "print-history.json");
 
+    /// <summary>Requested copies per photo (prompt_09 §1), beside the print counters.</summary>
+    public string PrintQuantitiesFile => Path.Combine(UserDataDir, "print-quantities.json");
+
     /// <summary>Where 0.8 kept the print counters (inside the installation folder on Windows).</summary>
     public string LegacyPrintHistoryFile => Path.Combine(DataDir, "print-history.json");
 

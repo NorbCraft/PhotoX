@@ -682,3 +682,9 @@ Entries are added newest **last**. Existing entries are never rewritten; correct
 - **Test:** `Id_sheet_previews_and_prints_survive_clearing_or_replacing_the_photo`.
 - **Verification (Linux):** 181 core and 86 UI tests pass (Release); 2 and 3 skipped. Whether this was the CI crash is confirmed only by the Windows CI runs of 0.12.1, recorded below.
 - **Version:** 0.12.1, the documented patch bump. The v0.12.0 tag stays where it was, without a release.
+- **CI result for 0.12.1:** runs 41409287983 (main) and 41409289892 (tag v0.12.1), both on commit 473eadf, passed: Windows 179 core and 84 UI tests, Linux 177 and 84 (the rest skipped as opt-in or platform-specific); `windows-package` built the installer; the release job created the draft *PhotoX 0.12.1*.
+- **Release published at the owner's request** (to try the updater from 0.11.0 on another PC):
+  - **Checks before publishing:** `PhotoX-0.12.1-win-Setup.exe` (78,750,208 bytes) was downloaded and matches its `.sha256` (4324a58f…821b) and GitHub's asset digest.
+  - **Public endpoint:** after publishing, `releases/latest` returns v0.12.1.
+  - **PhotoX's own client, run as 0.11.0 on Linux against the live API:** reports *Available 0.12.1* and completes the verified download.
+  - **Not done:** installing the update on Windows.

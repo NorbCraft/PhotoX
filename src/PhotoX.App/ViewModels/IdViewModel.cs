@@ -755,8 +755,8 @@ public sealed partial class IdViewModel : ViewModelBase
     [RelayCommand]
     private void CopiesPlus() => Copies = Math.Min(Math.Max(1, Capacity), Copies + 1);
 
-    /// <summary>Framing keys; Space (held) shows the photo without adjustments, the only before/after control here (prompt_04 §8).</summary>
-    public bool HandleKey(Key key, KeyModifiers modifiers)
+    /// <summary>Framing keys; Space or the editor's # key (held) show the photo without adjustments (prompt_04 §8, prompt_11 §3).</summary>
+    public bool HandleKey(Key key, KeyModifiers modifiers, PhysicalKey physical = PhysicalKey.None)
     {
         // Escape (prompt_10 §9): the same as Clear while a photo is loaded; the file is never touched.
         if (key == Key.Escape && modifiers == KeyModifiers.None)
@@ -778,6 +778,12 @@ public sealed partial class IdViewModel : ViewModelBase
         }
 
         if (!ShowFraming || Framing is null) return false;
+        if (physical == EditorViewModel.BeforeAfterKey && modifiers == KeyModifiers.None)
+        {
+            ShowBefore = true;                                     // the editor's before/after key works here too (prompt_11 §3)
+            return true;
+        }
+
         var step = modifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
         var ctrl = modifiers.HasFlag(KeyModifiers.Control);
         switch (key)
@@ -799,9 +805,9 @@ public sealed partial class IdViewModel : ViewModelBase
         }
     }
 
-    public bool HandleKeyUp(Key key)
+    public bool HandleKeyUp(Key key, PhysicalKey physical = PhysicalKey.None)
     {
-        if (key != Key.Space || !ShowBefore) return false;
+        if ((key != Key.Space && physical != EditorViewModel.BeforeAfterKey) || !ShowBefore) return false;
         ShowBefore = false;
         return true;
     }

@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PhotoX.App.Services;
 using PhotoX.App.ViewModels;
 
@@ -49,8 +51,14 @@ public sealed partial class BrowseView : UserControl
         }
 
         Gallery.ScrollIntoView(to);
-        Gallery.ContainerFromIndex(to)?.Focus(NavigationMethod.Directional);
+        Gallery.ContainerFromIndex(to)?.Focus(NavigationMethod.Pointer);    // like ← / →: no focus frame over the blue border
     }
+
+    private bool _focusInGallery;
+
+    /// <summary>No control has the keyboard (the focused card was removed with the old folder's cards).</summary>
+    private bool IsFocusLost() =>
+        TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Visual v || v is Window || TopLevel.GetTopLevel(v) is null;
 
     private void OnThumbSmallerClick(object? sender, RoutedEventArgs e) => ChangeColumns(+1);
 
@@ -71,11 +79,33 @@ public sealed partial class BrowseView : UserControl
         base.OnDataContextChanged(e);
         if (DataContext is not BrowseViewModel vm) return;
         PanelWidth.FollowTree(vm.Explorer, Root.ColumnDefinitions[0], TreePanel, TreeSplitter, ApplyLeftWidth);
+        // A new folder empties the gallery, which drops the keyboard focus; when the focus was in the gallery (Backspace,
+        // Up, a folder card), it goes back to the selected card, so the arrow keys stay here and not in the tree (prompt_11 §4).
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(BrowseViewModel.IsScanning) && vm.IsScanning) _focusInGallery = Gallery.IsKeyboardFocusWithin || IsFocusLost();
+        };
+        vm.FolderLoaded += () =>
+        {
+            if (!_focusInGallery && !IsFocusLost()) return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (Gallery.SelectedItem is { } item)
+                {
+                    Gallery.ScrollIntoView(item);
+                    if (Gallery.ContainerFromItem(item) is { } card) card.Focus(NavigationMethod.Pointer);
+                }
+                else
+                {
+                    Gallery.Focus(NavigationMethod.Pointer);
+                }
+            }, DispatcherPriority.Background);
+        };
         // Back from the editor: scroll to the photo that was open last, once the gallery is shown and laid out (prompt_10 §5).
         vm.RevealRequested += item => Dispatcher.UIThread.Post(() =>
         {
             Gallery.ScrollIntoView(item);
-            Gallery.ContainerFromItem(item)?.Focus(NavigationMethod.Directional);
+            Gallery.ContainerFromItem(item)?.Focus(NavigationMethod.Pointer);
         }, DispatcherPriority.Background);
         vm.PropertyChanged += (_, args) =>
         {

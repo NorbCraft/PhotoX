@@ -123,7 +123,19 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (IsInputFocused() || shell.Settings is not null) return;
+        if (shell.Settings is { } settings)
+        {
+            // Escape closes Settings like its Close button; settings are applied as they change (prompt_11 §2).
+            if (e.Key == Key.Escape && !repeat)
+            {
+                settings.CloseCommand.Execute(null);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (IsInputFocused()) return;
         if (repeat)
         {
             // A held arrow key keeps moving the crop frame (prompt_10 §1); other held keys act once.
@@ -133,7 +145,8 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            if (shell.CurrentPage is EditorViewModel or IdViewModel && e.Key is Key.Enter or Key.Left or Key.Right or Key.Up or Key.Down or Key.PageDown or Key.PageUp or Key.Space)
+            if (shell.CurrentPage is EditorViewModel or IdViewModel
+                && (e.Key is Key.Enter or Key.Left or Key.Right or Key.Up or Key.Down or Key.PageDown or Key.PageUp or Key.Space or Key.Back || e.PhysicalKey == EditorViewModel.BeforeAfterKey))
             {
                 e.Handled = true;
             }
@@ -144,10 +157,10 @@ public sealed partial class MainWindow : Window
         switch (shell.CurrentPage)
         {
             case EditorViewModel editor:
-                e.Handled = editor.HandleKey(e.Key, e.KeyModifiers);
+                e.Handled = editor.HandleKey(e.Key, e.KeyModifiers, e.PhysicalKey);
                 break;
             case IdViewModel id:
-                e.Handled = id.HandleKey(e.Key, e.KeyModifiers);
+                e.Handled = id.HandleKey(e.Key, e.KeyModifiers, e.PhysicalKey);
                 break;
             case CollageViewModel collage:
                 e.Handled = collage.HandleKey(e.Key);
@@ -201,8 +214,8 @@ public sealed partial class MainWindow : Window
         if (DataContext is not ShellViewModel shell || IsInputFocused()) return;
         e.Handled = shell.CurrentPage switch
         {
-            EditorViewModel editor => editor.HandleKeyUp(e.Key),
-            IdViewModel id => id.HandleKeyUp(e.Key),
+            EditorViewModel editor => editor.HandleKeyUp(e.Key, e.PhysicalKey),
+            IdViewModel id => id.HandleKeyUp(e.Key, e.PhysicalKey),
             _ => false,
         };
     }

@@ -907,9 +907,15 @@ public sealed partial class EditorViewModel : ViewModelBase
     /// Editor shortcuts. The window filters out keys aimed at text inputs and auto-repeat (except for the arrow keys,
     /// so a held arrow keeps moving the crop) before calling this.
     /// </summary>
-    public bool HandleKey(Key key, KeyModifiers modifiers)
+    public bool HandleKey(Key key, KeyModifiers modifiers, PhysicalKey physical = PhysicalKey.None)
     {
         var ctrl = modifiers.HasFlag(KeyModifiers.Control);
+        if (physical == BeforeAfterKey && modifiers == KeyModifiers.None)
+        {
+            ShowBefore = true;                                 // held: the original (prompt_11 §3)
+            return true;
+        }
+
         switch (key)
         {
             case Key.Enter when modifiers == KeyModifiers.None:
@@ -918,11 +924,12 @@ public sealed partial class EditorViewModel : ViewModelBase
             case Key.S when ctrl:
                 _ = SaveAsync();
                 return true;
-            // Page Up / Page Down change the photo; the arrow keys move the crop frame (prompt_10 §1).
-            case Key.PageDown when modifiers == KeyModifiers.None:
+            // Space / Page Down and Backspace / Page Up change the photo (prompt_11 §3, prompt_10 §1); the arrow keys
+            // move the crop frame.
+            case Key.Space or Key.PageDown when modifiers == KeyModifiers.None:
                 _ = NextAsync();
                 return true;
-            case Key.PageUp when modifiers == KeyModifiers.None:
+            case Key.Back or Key.PageUp when modifiers == KeyModifiers.None:
                 _ = PreviousAsync();
                 return true;
             case Key.Left or Key.Right or Key.Up or Key.Down when (modifiers & ~KeyModifiers.Shift) == KeyModifiers.None:
@@ -939,9 +946,6 @@ public sealed partial class EditorViewModel : ViewModelBase
             case Key.Escape:
                 BackToFolder();
                 return true;
-            case Key.Space:
-                ShowBefore = true;
-                return true;
             case Key.OemPlus or Key.Add when !ctrl:
                 Tone.ExposurePlus();
                 return true;
@@ -953,12 +957,18 @@ public sealed partial class EditorViewModel : ViewModelBase
         }
     }
 
-    public bool HandleKeyUp(Key key)
+    public bool HandleKeyUp(Key key, PhysicalKey physical = PhysicalKey.None)
     {
-        if (key != Key.Space) return false;
+        if (physical != BeforeAfterKey) return false;
         ShowBefore = false;
         return true;
     }
+
+    /// <summary>
+    /// Before/after while held (prompt_11 §3): the key left of Enter on a German keyboard (#), the same physical key on
+    /// others (\ above Enter on a US keyboard), found by its position, whatever character the layout gives it.
+    /// </summary>
+    public const PhysicalKey BeforeAfterKey = PhysicalKey.Backslash;
 
     private void RaiseInfo()
     {

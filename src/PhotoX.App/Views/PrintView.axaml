@@ -143,7 +143,10 @@
           <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate>
         </ListBox.ItemsPanel>
         <ListBox.Styles>
+          <!-- No keyboard focus frame on the cards: the rounded blue selection shows where the keyboard is, however it got
+               there (mouse, ← → ↑ ↓; prompt_11 §5) -->
           <Style Selector="ListBoxItem">
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="6" />
             <Setter Property="CornerRadius" Value="6" />
@@ -157,7 +160,7 @@
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Padding" Value="2" />
           </Style>
-          <Style Selector="ListBoxItem:pointerover Border.ring">
+          <Style Selector="ListBoxItem:pointerover:not(:selected) Border.ring">
             <Setter Property="BorderBrush" Value="{DynamicResource Border2Brush}" />
           </Style>
           <Style Selector="ListBoxItem:selected Border.ring">

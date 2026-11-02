@@ -131,7 +131,7 @@ public class Prompt10Tests
     }
 
     [AvaloniaFact]
-    public async Task Before_after_looks_pressed_while_space_is_held_as_with_the_mouse()
+    public async Task Before_after_looks_pressed_while_its_key_is_held_as_with_the_mouse()
     {
         using var dir = new TempDir();
         var (window, shell) = UiHelpers.CreateWindow(Path.Combine(dir.Path, "cfg"), 1366, 768);
@@ -140,12 +140,12 @@ public class Prompt10Tests
         await UiHelpers.WaitUntil(() => shell.Editor is { Preview: not null, IsLoading: false });
         var button = Find<Button>(window.GetVisualDescendants().OfType<EditorView>().Single(), "BeforeButton");
 
-        window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.Backslash, RawInputModifiers.None);              // the # key (prompt_11 §3)
         Dispatcher.UIThread.RunJobs();
         Assert.True(shell.Editor.ShowBefore);
         Assert.Contains("active", button.Classes);                                         // pressed look, as with the mouse
-        UiHelpers.Capture(window, "p10-before-space");
-        window.KeyReleaseQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        UiHelpers.Capture(window, "p10-before-key");
+        window.KeyReleaseQwerty(PhysicalKey.Backslash, RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
         Assert.False(shell.Editor.ShowBefore);
         Assert.DoesNotContain("active", button.Classes);

@@ -385,6 +385,9 @@ public sealed partial class BrowseViewModel : ViewModelBase
     /// <summary>Raised to scroll the gallery to a photo once it is shown (after the editor, prompt_10 §5).</summary>
     public event Action<PhotoItemViewModel>? RevealRequested;
 
+    /// <summary>Raised when a folder's cards are in the gallery and one is selected (the gallery takes the keyboard back, prompt_11 §4).</summary>
+    public event Action? FolderLoaded;
+
     /// <summary>
     /// Back from the editor (prompt_10 §5): selects the photo that was open last, or, when the filter hides it now, the
     /// next visible one after it, and asks the gallery to scroll to it.
@@ -521,6 +524,7 @@ public sealed partial class BrowseViewModel : ViewModelBase
     public async Task OpenFolderAsync(string folder)
     {
         if (!Directory.Exists(folder)) return;
+        var left = CurrentFolder;
         _thumbCts.Cancel();
         _thumbCts = new CancellationTokenSource();
         var ct = _thumbCts.Token;
@@ -576,9 +580,13 @@ public sealed partial class BrowseViewModel : ViewModelBase
 
         foreach (var item in items) AllPhotos.Add(item);
         ApplyFilter();
-        // Select after the gallery holds the items, so the list shows the selection.
-        SelectedPhoto = VisiblePhotos.FirstOrDefault(p => p.IsToDo && p.IsOpenable) ?? VisiblePhotos.FirstOrDefault();
+        // Select after the gallery holds the items, so the list shows the selection. Up from a subfolder selects the
+        // folder just left (prompt_11 §4); otherwise the first photo to do.
+        var exited = left is null ? null : Folders.FirstOrDefault(f => ExplorerViewModel.SamePath(f.Path, left));
+        if (exited is not null) SelectedGalleryItem = exited;
+        else SelectedPhoto = VisiblePhotos.FirstOrDefault(p => p.IsToDo && p.IsOpenable) ?? VisiblePhotos.FirstOrDefault();
         RaiseCounts();
+        FolderLoaded?.Invoke();
         _ = LoadThumbnailsAsync([.. items, .. DeletedPhotos], ct);
         Log.Information("Opened folder {Folder} with {Count} photos, {Folders} subfolders, {Deleted} deleted", folder, AllPhotos.Count, Folders.Count, DeletedPhotos.Count);
     }
